@@ -64,7 +64,7 @@
       </div>
       <div id="att-count" style="text-align:center; font-size:13px; font-weight:800; color:var(--accent-color); margin-top:15px;">0 Players Ready</div>
     </div>
-    <div class="section-title">Checklist</div>
+    <div class="section-title">Attendance Checklist</div>
     <div id="loading" class="loading-msg">Connecting to Google Drive...</div>
     <div class="attendance-list" id="attendance-list"></div>
     <div id="guest-area" style="margin: 10px 0;"></div>
@@ -90,7 +90,7 @@
   </div>
 
   <div id="history-section" style="margin-top: 40px;">
-    <div class="section-title">Match History (Cloud)</div>
+    <div class="section-title">Match History </div>
     <div id="history-list"></div>
     <div id="mvp-stats-container" style="margin-top: 40px;"></div>
   </div>
@@ -259,7 +259,7 @@
     renderMVPStats(); 
   }
 
-  // 승요(MVP) 랭킹 통계
+  // MVP 랭킹 통계
   function renderMVPStats() {
     const statsContainer = document.getElementById('mvp-stats-container');
     if (!statsContainer || hData.length === 0) return;
@@ -276,7 +276,7 @@
     });
     const ranking = Object.entries(playerStats).sort((a, b) => b[1].win - a[1].win || b[1].total - a[1].total);
     let html = `
-      <div class="section-title">Quarterly MVP (승요 랭킹)</div>
+      <div class="section-title">Quarterly MVP</div>
       <div style="background: white; border: 1px solid #e2e8f0; border-radius: 20px; padding: 15px; margin-bottom: 50px;">
         <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
           <thead>
