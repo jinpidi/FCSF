@@ -91,7 +91,8 @@
 
   <div style="margin-top: 40px;">
     <div class="section-title">Match History </div>
-    <div id="history-list"></div>
+    <div id="history-list"></div> 
+<div id="mvp-stats-container" style="margin-top: 40px;"></div>
   </div>
 </div>
 
@@ -230,16 +231,45 @@
     catch (e) { alert("Save Failed."); document.body.style.opacity = "1"; }
   }
 
-  function renderHistory() {
-    const box = document.getElementById('history-list'); 
-    box.innerHTML = hData.length === 0 ? "<div class='loading-msg'>No records.</div>" : "";
-    hData.forEach(h => {
-      const div = document.createElement('div'); div.className = 'history-card';
-      div.onclick = () => showDetail(h);
-      let html = `<div style="font-weight:800; margin-bottom:10px; display:flex; justify-content:space-between;">📅 ${h.date} <span class="del-btn" onclick="secureDelete(event, ${h.id})">✕</span></div>`;
-      h.rank.forEach(rk => { html += `<div style="display:flex; align-items:center; margin-bottom:4px;"><span class="rank-badge">${rk.r}${rk.sfx}</span> <b style="flex:1;">${rk.names}</b> <span style="font-size:10px; color:var(--accent-color);">${rk.record}</span></div>`; });
-      div.innerHTML = html; box.appendChild(div);
+ // 기존 renderHistory 함수를 이 내용으로 교체
+function renderHistory() {
+  const box = document.getElementById('history-list');
+  if (hData.length === 0) {
+    box.innerHTML = "<div class='loading-msg'>No records.</div>";
+    return;
+  }
+
+  // 1. 최신순 정렬 (ID 기준 내림차순)
+  const sortedData = [...hData].sort((a, b) => b.id - a.id);
+
+  // 2. 월별 그룹화
+  const groups = sortedData.reduce((acc, h) => {
+    const month = h.date.substring(0, 7); // "2024. 5." 형태 대응
+    if (!acc[month]) acc[month] = [];
+    acc[month].push(h);
+    return acc;
+  }, {});
+
+  let html = "";
+  for (const month in groups) {
+    html += `<div style="margin: 20px 0 10px; font-weight: 800; color: var(--primary-color); border-left: 4px solid var(--accent-color); padding-left: 10px;">${month} MATCHES</div>`;
+    groups[month].forEach(h => {
+      html += `
+        <div class="history-card" onclick="showDetail(${JSON.stringify(h).replace(/"/g, '&quot;')})">
+          <div style="font-weight:800; margin-bottom:10px; display:flex; justify-content:space-between;">
+            📅 ${h.date} <span class="del-btn" onclick="secureDelete(event, ${h.id})">✕</span>
+          </div>`;
+      h.rank.forEach(rk => {
+        html += `<div style="display:flex; align-items:center; margin-bottom:4px;"><span class="rank-badge">${rk.r}${rk.sfx}</span> <b style="flex:1;">${rk.names}</b> <span style="font-size:10px; color:var(--accent-color);">${rk.record}</span></div>`;
+      });
+      html += `</div>`;
     });
+  }
+  box.innerHTML = html;
+  
+  // 히스토리 렌더링 후 MVP 통계도 함께 업데이트
+  renderMVPStats(); 
+}
   }
 
   function showDetail(h) {
@@ -269,6 +299,56 @@
 
   function confirmReset() { if(confirm("Cancel current match?")) location.reload(); }
   function goBack() { document.getElementById('result-page').classList.add('hidden'); document.getElementById('setup-page').classList.remove('hidden'); }
+  // 분기 MVP 통계 생성 함수 (새로 추가)
+function renderMVPStats() {
+  const statsContainer = document.getElementById('mvp-stats-container');
+  // 컨테이너가 없거나 데이터가 없으면 중단
+  if (!statsContainer || hData.length === 0) return;
+
+  const playerStats = {};
+
+  hData.forEach(h => {
+    h.rank.forEach(rk => {
+      const players = rk.names.split(',').map(n => n.trim());
+      players.forEach(p => {
+        if (!playerStats[p]) playerStats[p] = { total: 0, win: 0 };
+        playerStats[p].total += 1; 
+        if (rk.r === 1) playerStats[p].win += 1; 
+      });
+    });
+  });
+
+  const ranking = Object.entries(playerStats).sort((a, b) => b[1].win - a[1].win || b[1].total - a[1].total);
+
+  let html = `
+    <div class="section-title">Quarterly MVP (승요 랭킹)</div>
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 20px; padding: 15px; margin-bottom: 50px;">
+      <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+        <thead>
+          <tr style="color: var(--text-sub); border-bottom: 1px solid #f1f5f9;">
+            <th style="padding: 8px 0; text-align: left;">Rank</th>
+            <th style="text-align: left;">Player</th>
+            <th style="text-align: center;">Wins</th>
+            <th style="text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>`;
+  
+  ranking.slice(0, 10).forEach((item, idx) => {
+    const [name, stat] = item;
+    const isFirst = idx === 0 ? 'color: var(--accent-color); font-weight: 800;' : '';
+    html += `
+      <tr style="border-bottom: 1px solid #f8fafc; ${isFirst}">
+        <td style="padding: 10px 0;">${idx + 1}</td>
+        <td>${name} ${idx === 0 ? '👑' : ''}</td>
+        <td style="text-align: center; font-weight: 700;">${stat.win}</td>
+        <td style="text-align: right; color: #94a3b8;">${stat.total}회</td>
+      </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  statsContainer.innerHTML = html;
+}
   window.onload = fetchMasterData;
 </script>
 </body>
