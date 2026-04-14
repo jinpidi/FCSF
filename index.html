@@ -65,21 +65,21 @@
 </div>
 
 <script>
-  const H = "867e3a9856f64243a8594248550774a3832d787037704870f20224419842f1f3";
+  // 비밀번호 직접 설정
+  const ADMIN_PW = "shj1110023";
   let isAdm = false;
   let pData = JSON.parse(localStorage.getItem('f_players')) || {};
   let hData = JSON.parse(localStorage.getItem('f_history')) || [];
   let currentTeams = [];
 
-  async function toggleAdmin() {
+  function toggleAdmin() {
     if (isAdm) { isAdm = false; location.reload(); return; }
-    const pw = prompt("Enter Admin Password.");
-    if (!pw) return;
-    const msgBuffer = new TextEncoder().encode(pw);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashedInput = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    if (hashedInput === H) {
+    
+    const inputPw = prompt("Enter Admin Password.");
+    if (!inputPw) return;
+
+    // 공백 제거 후 비교
+    if (inputPw.trim() === ADMIN_PW) {
       isAdm = true;
       document.getElementById('admin-status').innerText = "Admin Mode Active";
       document.getElementById('admin-status').classList.add('admin-mode-on');
@@ -87,7 +87,9 @@
       document.querySelectorAll('.admin-only').forEach(e => e.classList.remove('hidden'));
       initList();
       alert("Login Success!");
-    } else { alert("Incorrect Password."); }
+    } else { 
+      alert("Incorrect Password."); 
+    }
   }
 
   function initList() {
@@ -144,44 +146,3 @@
       t.members.sort(); 
       const card = document.createElement('div');
       card.className = 'team-card';
-      card.innerHTML = `<div class="team-name">🚩 Team ${i+1}</div><div class="team-members">${t.members.join(', ')}</div>`;
-      box.appendChild(card);
-    });
-  }
-
-  function saveHistory() {
-    const r1 = prompt("Winner team number?");
-    const r2 = prompt("2nd place team number?");
-    const r3 = prompt("3rd place team number? (Cancel if none)");
-    if(!r1 || !r2) return;
-    const entry = {
-      date: new Date().toLocaleDateString(),
-      rank: [{ r: 1, names: currentTeams[r1-1].members.join(', ') }, { r: 2, names: currentTeams[r2-1].members.join(', ') }]
-    };
-    if(r3 && currentTeams[r3-1]) entry.rank.push({ r: 3, names: currentTeams[r3-1].members.join(', ') });
-    hData.unshift(entry);
-    if(hData.length > 10) hData.pop();
-    localStorage.setItem('f_history', JSON.stringify(hData));
-    renderHistory();
-    alert("Record Saved!");
-  }
-
-  function renderHistory() {
-    const box = document.getElementById('history-list');
-    box.innerHTML = hData.length === 0 ? "<div style='text-align:center; color:#ccc; padding:20px;'>No records.</div>" : "";
-    hData.forEach(h => {
-      const card = document.createElement('div');
-      card.className = 'history-card';
-      let html = `<div style="font-weight:bold; margin-bottom:5px;">📅 ${h.date}</div>`;
-      h.rank.forEach(rk => { html += `<div><span class="rank-tag r${rk.r}">${rk.r}st</span> ${rk.names}</div>`; });
-      card.innerHTML = html;
-      box.appendChild(card);
-    });
-  }
-
-  function goBack() { document.getElementById('setup-page').classList.remove('hidden'); document.getElementById('result-page').classList.add('hidden'); }
-  function clearAll() { if(confirm("Clear all data?")) { localStorage.clear(); location.reload(); } }
-  window.onload = () => { initList(); renderHistory(); };
-</script>
-</body>
-</html>
