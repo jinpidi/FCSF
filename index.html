@@ -186,4 +186,80 @@
   function makeTeams() {
     let players = [];
     let totalScore = 0;
-    const
+    const selected = document.querySelectorAll('.p-check:checked');
+    selected.forEach(cb => {
+      const s = parseInt(cb.dataset.score);
+      players.push({ n: cb.dataset.name, s: s });
+      totalScore += s;
+    });
+    const avg = selected.length > 0 ? totalScore / selected.length : 50;
+    guests.forEach(g => players.push({ n: g, s: avg }));
+
+    const tCount = parseInt(document.getElementById('t-count').value);
+    if(players.length < tCount) return alert("Not enough players.");
+
+    players.sort((a,b) => b.s - a.s);
+    let teams = Array.from({length: tCount}, () => ({ members: [], total: 0 }));
+    let idx = 0, dir = 1;
+    players.forEach(p => {
+      teams[idx].members.push(p.n);
+      teams[idx].total += p.s;
+      idx += dir;
+      if(idx === tCount || idx === -1) { dir *= -1; idx += dir; }
+    });
+    currentTeams = teams;
+    renderResults();
+  }
+
+  function renderResults() {
+    const box = document.getElementById('team-results');
+    box.innerHTML = '';
+    document.getElementById('setup-page').classList.add('hidden');
+    document.getElementById('result-page').classList.remove('hidden');
+    currentTeams.forEach((t, i) => {
+      const avg = t.total / t.members.length;
+      const card = document.createElement('div');
+      card.className = 'team-card';
+      card.innerHTML = `<div class="team-header"><span class="team-name">🚩 Team ${i+1}</span><span class="stars">${getStars(avg)}</span></div><div style="font-size:14px; font-weight:500;">${t.members.sort().join(', ')}</div>`;
+      box.appendChild(card);
+    });
+  }
+
+  function saveHistory() {
+    const r1 = prompt("Winner Team #?");
+    const r2 = prompt("2nd Team #?");
+    if(!r1 || !r2) return;
+    hData.unshift({ id: Date.now(), date: new Date().toLocaleDateString(), rank: [{ r: 1, names: currentTeams[r1-1].members.join(', ') }, { r: 2, names: currentTeams[r2-1].members.join(', ') }] });
+    localStorage.setItem('f_history', JSON.stringify(hData));
+    renderHistory();
+    alert("Saved!");
+  }
+
+  function renderHistory() {
+    const box = document.getElementById('history-list');
+    box.innerHTML = hData.length === 0 ? "<div style='text-align:center; color:#ccc; padding:20px;'>No records.</div>" : "";
+    hData.forEach(h => {
+      const div = document.createElement('div');
+      div.className = 'history-card';
+      let html = `<div style="font-weight:bold; margin-bottom:5px;">📅 ${h.date}</div>`;
+      if(isAdm) html += `<span class="del-btn" onclick="deleteHistory(${h.id})">Delete</span>`;
+      h.rank.forEach(rk => html += `<div><span class="rank-tag r${rk.r}">${rk.r}st</span> ${rk.names}</div>`);
+      div.innerHTML = html;
+      box.appendChild(div);
+    });
+  }
+
+  function deleteHistory(id) {
+    if(!confirm("Delete this record?")) return;
+    hData = hData.filter(h => h.id !== id);
+    localStorage.setItem('f_history', JSON.stringify(hData));
+    renderHistory();
+  }
+
+  function goBack() { document.getElementById('setup-page').classList.remove('hidden'); document.getElementById('result-page').classList.add('hidden'); }
+  function clearAll() { if(confirm("This will clear ONLY attendee info and guest list.")) { guests = []; renderAttendanceList(); } }
+  
+  window.onload = () => { renderAttendanceList(); renderHistory(); };
+</script>
+</body>
+</html>
