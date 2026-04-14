@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Match Maker</title>
+  <title>Futsal Match Maker (Live)</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <style>
     :root { --primary-color: #0f172a; --accent-color: #10b981; --bg-color: #f1f5f9; --card-bg: #ffffff; --text-main: #1e293b; --text-sub: #64748b; --star-color: #fbbf24; }
@@ -12,12 +12,8 @@
     .container { width: 100%; max-width: 480px; background: var(--card-bg); padding: 25px 20px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
     header { text-align: center; margin-bottom: 25px; position: relative; }
     h1 { font-size: 1.3rem; font-weight: 800; color: var(--primary-color); margin: 0; letter-spacing: -1px; }
-    #admin-status { position: absolute; right: 0; top: -10px; font-size: 10px; color: #cbd5e1; cursor: pointer; padding: 10px; }
     .section-title { font-size: 12px; font-weight: 700; margin-bottom: 12px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center;}
-    .admin-box { background: #fff1f2; border: 1px solid #fecdd3; padding: 15px; border-radius: 16px; margin-bottom: 15px; }
-    .data-row { display: flex; gap: 8px; margin-bottom: 8px; }
-    .data-row input { padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; width: 100%; }
-    .attendance-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; max-height: 300px; overflow-y: auto; }
+    .attendance-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; max-height: 400px; overflow-y: auto; }
     .player-card { background: #f8fafc; border: 2px solid #f1f5f9; padding: 14px 10px; border-radius: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; }
     .player-card.active { border-color: var(--accent-color); background: #ecfdf5; }
     .player-card input { pointer-events: none; transform: scale(1.2); accent-color: var(--accent-color); }
@@ -25,7 +21,7 @@
     .config-item { flex: 1; }
     .config-item label { display: block; font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 5px; }
     .config-item input { width: 100%; border: none; background: transparent; font-size: 18px; font-weight: 800; color: var(--primary-color); border-bottom: 2px solid #e2e8f0; outline: none; }
-    button { background: var(--primary-color); color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 10px; font-family: inherit; font-size: 14px; }
+    button { background: var(--primary-color); color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 10px; font-size: 14px; }
     .btn-guest { background: #64748b; margin-top: 5px; padding: 10px; font-size: 12px; }
     .team-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 18px; padding: 18px; margin-bottom: 12px; }
     .team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -33,34 +29,14 @@
     .star-icon { width: 14px; height: 14px; position: relative; display: inline-block; background-color: #e2e8f0; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
     .star-icon.full { background-color: var(--star-color); }
     .star-icon.half::before { content: ''; position: absolute; left: 0; top: 0; width: 50%; height: 100%; background-color: var(--star-color); }
-    .history-card { background: #fff; border-radius: 16px; padding: 15px; margin-bottom: 10px; border: 1px solid #e2e8f0; font-size: 13px; position: relative; }
-    .rank-tag { display: inline-block; padding: 2px 6px; border-radius: 6px; font-size: 10px; font-weight: 700; margin-right: 5px; color: #fff; background: #94a3b8; }
-    .rank-1 { background: #fbbf24; color: #78350f; }
-    .rank-2 { background: #cbd5e1; color: #334155; }
-    .rank-3 { background: #d4a373; color: #fff; }
-    .del-btn { position: absolute; right: 10px; top: 12px; color: #ef4444; font-size: 10px; font-weight: bold; }
-    .sync-btn { background: #475569; font-size: 10px; padding: 5px 10px; width: auto; margin: 0; }
+    .loading-msg { text-align: center; padding: 40px; color: var(--text-sub); font-weight: bold; }
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <span id="admin-status" onclick="handleAdmin()">Admin Access</span>
   <header><h1>Futsal Match Maker</h1></header>
-
-  <div id="admin-page" class="hidden">
-    <div class="section-title">
-      <span>Database</span>
-      <div>
-        <button class="sync-btn" onclick="exportData()">Export</button>
-        <button class="sync-btn" onclick="importData()">Import</button>
-        <button onclick="saveMasterData()" style="width:auto; padding:5px 12px; margin:0; font-size:11px; background:var(--accent-color);">Update All</button>
-      </div>
-    </div>
-    <div class="admin-box" id="master-list"></div>
-    <button onclick="addMasterRow()" style="background:#475569; font-size:11px; padding:10px; margin-bottom:20px;">+ Add New Entry</button>
-  </div>
 
   <div id="setup-page">
     <div class="config-card">
@@ -68,6 +44,7 @@
       <div class="config-item"><label>Teams Count</label><input type="number" id="t-count" value="2" min="2"></div>
     </div>
     <div class="section-title">Attendance Checklist</div>
+    <div id="loading" class="loading-msg">구글 시트에서 명단을 가져오는 중...</div>
     <div class="attendance-list" id="attendance-list"></div>
     <div id="guest-area" style="margin-bottom:15px;"></div>
     <button class="btn-guest" onclick="addGuest()">+ Add Guest Player</button>
@@ -77,88 +54,49 @@
   <div id="result-page" class="hidden">
     <header><h1 style="color: var(--accent-color);">Matching Result</h1></header>
     <div id="team-results"></div>
-    <button style="background: var(--primary-color);" onclick="openRankModal()">Save Performance</button>
     <button style="background: #6366f1;" onclick="makeTeams()">Shuffle Mix ⚡</button>
     <button style="background: transparent; color: var(--text-sub); border: 1px solid #e2e8f0;" onclick="goBack()">Back to List</button>
-  </div>
-
-  <div class="history-section" style="margin-top: 40px;">
-    <div class="section-title">Match History</div>
-    <div id="history-list"></div>
   </div>
 </div>
 
 <script>
-  const _0x1="shj", _0x2="1110023", S_KEY=_0x1+_0x2;
-  let isAdm = false;
-  let masterData = JSON.parse(localStorage.getItem('f_master')) || {};
-  let hData = JSON.parse(localStorage.getItem('f_history')) || [];
+  // 
+  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyQ6nY5N-NS4C30KkqF7gqfdwIOqEHcy-Kix6q7nYc_qGabN3Pdjz_5WDXc1dgVEfdA/exec";
+  
+  let masterPlayers = [];
   let guests = [];
   let currentTeams = [];
 
-  function handleAdmin() {
-    if (isAdm) { isAdm = false; location.reload(); return; }
-    const pw = prompt("Admin Password Required");
-    if (pw && pw.trim() === S_KEY) {
-      isAdm = true;
-      document.getElementById('admin-status').innerText = "Exit Admin";
-      document.getElementById('admin-page').classList.remove('hidden');
-      renderMasterList(); renderHistory();
-    } else if(pw) alert("Access Denied.");
-  }
-
-  function renderMasterList() {
-    const box = document.getElementById('master-list'); box.innerHTML = '';
-    const names = Object.keys(masterData).sort();
-    if(names.length === 0) addMasterRow();
-    names.forEach(name => addMasterRow(name, masterData[name]));
-  }
-
-  function addMasterRow(name = "", score = 50) {
-    const row = document.createElement('div'); row.className = 'data-row';
-    row.innerHTML = `<input type="text" class="m-name" value="${name}" placeholder="Name"><input type="number" class="m-score" value="${score}"><button onclick="this.parentElement.remove()" style="flex:0.3; background:#ef4444; border-radius:8px; color:white; border:none;">✕</button>`;
-    document.getElementById('master-list').appendChild(row);
-  }
-
-  function saveMasterData() {
-    const newData = {};
-    document.querySelectorAll('#master-list .data-row').forEach(row => {
-      const n = row.querySelector('.m-name').value.trim();
-      const s = parseInt(row.querySelector('.m-score').value) || 50;
-      if(n) newData[n] = s;
-    });
-    masterData = newData; localStorage.setItem('f_master', JSON.stringify(masterData));
-    alert("Database Updated."); renderAttendanceList();
-  }
-
-  function exportData() {
-    const dataStr = btoa(encodeURIComponent(JSON.stringify(masterData)));
-    confirm("명단 코드가 복사되었습니다. 모바일에서 Import를 눌러 붙여넣으세요.") && navigator.clipboard.writeText(dataStr);
-  }
-
-  function importData() {
-    const code = prompt("복사한 명단 코드를 붙여넣으세요.");
-    if(code) {
-      try {
-        const decoded = JSON.parse(decodeURIComponent(atob(code)));
-        masterData = decoded;
-        localStorage.setItem('f_master', JSON.stringify(masterData));
-        alert("동기화 성공!"); location.reload();
-      } catch(e) { alert("잘못된 코드입니다."); }
+  // 구글 시트에서 실시간으로 데이터 가져오기
+  async function fetchMasterData() {
+    try {
+      const response = await fetch(SHEET_API_URL);
+      masterPlayers = await response.json();
+      document.getElementById('loading').classList.add('hidden');
+      renderAttendanceList();
+    } catch (e) {
+      document.getElementById('loading').innerText = "명단을 불러오지 못했습니다. URL 설정을 확인하세요.";
     }
   }
 
   function renderAttendanceList() {
-    const box = document.getElementById('attendance-list'); box.innerHTML = '';
-    const names = Object.keys(masterData).sort();
-    if(names.length === 0) box.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:#ccc;">Admin에서 선수를 등록해주세요.</div>';
-    names.forEach(name => {
-      const card = document.createElement('div'); card.className = 'player-card';
-      card.onclick = () => { const cb = card.querySelector('.p-check'); cb.checked = !cb.checked; card.classList.toggle('active', cb.checked); updateCount(); };
-      card.innerHTML = `<input type="checkbox" class="p-check" data-name="${name}" data-score="${masterData[name]}"><span>${name}</span>`;
+    const box = document.getElementById('attendance-list');
+    box.innerHTML = '';
+    // 가나다 순 정렬
+    masterPlayers.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'));
+    
+    masterPlayers.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      card.onclick = () => {
+        const cb = card.querySelector('.p-check');
+        cb.checked = !cb.checked;
+        card.classList.toggle('active', cb.checked);
+        updateCount();
+      };
+      card.innerHTML = `<input type="checkbox" class="p-check" data-name="${p.name}" data-score="${p.score}"><span>${p.name}</span>`;
       box.appendChild(card);
     });
-    updateCount();
   }
 
   function addGuest() { guests.push(`Guest ${guests.length+1}`); renderGuests(); updateCount(); }
@@ -182,18 +120,25 @@
   function makeTeams() {
     let players = []; let total = 0;
     const selected = document.querySelectorAll('.p-check:checked');
-    selected.forEach(cb => { const s = parseInt(cb.dataset.score); players.push({ n: cb.dataset.name, s: s, hS: 0 }); total += s; });
+    selected.forEach(cb => { 
+      const s = parseInt(cb.dataset.score); 
+      players.push({ n: cb.dataset.name, s: s }); 
+      total += s; 
+    });
     const avg = selected.length > 0 ? total / selected.length : 50;
-    guests.forEach(g => players.push({ n: g, s: avg, hS: 0 }));
+    guests.forEach(g => players.push({ n: g, s: avg }));
     const tCount = parseInt(document.getElementById('t-count').value);
-    if(players.length < tCount) return alert("Select more players.");
-    const recentH = hData.slice(0, 3);
-    players.forEach(p1 => { players.forEach(p2 => { if (p1.n === p2.n) return; recentH.forEach(m => { m.rank.forEach(t => { if (t.names.includes(p1.n) && t.names.includes(p2.n)) p1.hS += 15; }); }); }); });
-    players = players.map(p => ({ ...p, w: p.s + (Math.random() * 40 - 20) - p.hS }));
+    
+    players = players.map(p => ({ ...p, w: p.s + (Math.random() * 30 - 15) }));
     players.sort((a,b) => b.w - a.w);
     let teams = Array.from({length: tCount}, () => ({ members: [], total: 0 }));
     let idx = 0, dir = 1;
-    players.forEach(p => { teams[idx].members.push(p.n); teams[idx].total += p.s; idx += dir; if(idx === tCount || idx === -1) { dir *= -1; idx += dir; } });
+    players.forEach(p => { 
+      teams[idx].members.push(p.n); 
+      teams[idx].total += p.s; 
+      idx += dir; 
+      if(idx === tCount || idx === -1) { dir *= -1; idx += dir; } 
+    });
     currentTeams = teams.sort(() => Math.random() - 0.5);
     renderResults();
   }
@@ -210,34 +155,10 @@
     });
   }
 
-  function openRankModal() {
-    let res = [];
-    const getSfx = (n) => n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
-    for(let i=1; i<=currentTeams.length; i++) {
-      const tNum = prompt(`${i}${getSfx(i)} Place Team Number? (1 ~ ${currentTeams.length})`);
-      if(!tNum) return;
-      res.push({ r: i, sfx: getSfx(i), names: currentTeams[tNum-1].members.join(', ') });
-    }
-    hData.unshift({ id: Date.now(), date: new Date().toLocaleDateString(), rank: res });
-    localStorage.setItem('f_history', JSON.stringify(hData));
-    renderHistory(); alert("Saved!");
-  }
-
-  function renderHistory() {
-    const box = document.getElementById('history-list');
-    box.innerHTML = hData.length === 0 ? "<div style='text-align:center; color:#cbd5e1; padding:30px;'>No records.</div>" : "";
-    hData.forEach(h => {
-      const div = document.createElement('div'); div.className = 'history-card';
-      let html = `<div style="font-weight:800; margin-bottom:10px;">📅 ${h.date}</div>`;
-      if(isAdm) html += `<span class="del-btn" onclick="deleteHistory(${h.id})">Delete</span>`;
-      h.rank.forEach(rk => html += `<div style="margin-bottom:6px;"><span class="rank-tag rank-${rk.r}">${rk.r}${rk.sfx || 'st'}</span> <span style="font-weight:600;">${rk.names}</span></div>`);
-      div.innerHTML = html; box.appendChild(div);
-    });
-  }
-
-  function deleteHistory(id) { if(confirm("Delete?")) { hData = hData.filter(h => h.id !== id); localStorage.setItem('f_history', JSON.stringify(hData)); renderHistory(); } }
   function goBack() { document.getElementById('setup-page').classList.remove('hidden'); document.getElementById('result-page').classList.add('hidden'); }
-  window.onload = () => { renderAttendanceList(); renderHistory(); };
+  
+  // 페이지 로드 시 데이터 가져오기 실행
+  window.onload = fetchMasterData;
 </script>
 </body>
 </html>
