@@ -66,8 +66,8 @@
       </div>
       <div id="att-count" style="text-align:center; font-size:13px; font-weight:800; color:var(--accent-color); margin-top:15px;">0 Players Ready</div>
     </div>
-    <div class="section-title">Checklist</div>
-    <div id="loading" class="loading-msg">Connecting to Google Drive...</div>
+    <div class="section-title">Attendance Checklist</div>
+    <div id="loading" class="loading-msg">Loading...</div>
     <div class="attendance-list" id="attendance-list"></div>
     <div id="guest-area" style="margin: 10px 0;"></div>
     <button class="btn-guest" onclick="addGuest()">+ Add Guest</button>
@@ -98,7 +98,7 @@
 
 <script>
   // 
-  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbxCIA9PYp1lnsgbLSMQOT5U9v3IW0gY1z6EVfOiNcqOLZkRZ2poH5dbKZdTLBhc4MlE/exec"; 
+  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyo7l12l_Y6x0f3Abs1bT67Cxd88ckZn9fYxipK91Q_2s4kbUFioJLy3hDoHppXVAYb/exec"; 
   
   let masterPlayers = [], guests = [], teamCount = 2, currentTeams = [], hData = [];
   let rounds = [];
