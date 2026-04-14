@@ -46,6 +46,8 @@
 
     .history-card { background: #fff; border-radius: 18px; padding: 15px; margin-bottom: 12px; border: 1px solid #e2e8f0; cursor: pointer; }
     .rank-badge { width: 35px; font-size: 10px; font-weight: 900; color: var(--text-sub); }
+    .del-btn { color: #f87171; font-weight: 800; cursor: pointer; padding: 0 5px; font-size: 11px; }
+
     .hidden { display: none !important; }
     .loading-msg { text-align: center; padding: 30px; color: var(--text-sub); }
   </style>
@@ -63,7 +65,7 @@
       <div id="att-count" style="text-align:center; font-size:13px; font-weight:800; color:var(--accent-color); margin-top:15px;">0 Players Ready</div>
     </div>
     <div class="section-title">Checklist</div>
-    <div id="loading" class="loading-msg">Connecting to Google Drive...</div>
+    <div id="loading" class="loading-msg">Loading...</div>
     <div class="attendance-list" id="attendance-list"></div>
     <div id="guest-area" style="margin: 10px 0;"></div>
     <button class="btn-guest" onclick="addGuest()">+ Add Guest</button>
@@ -83,7 +85,7 @@
     <div id="live-ranking" style="background:var(--primary-color); color:white; padding:15px; border-radius:20px; margin-bottom:20px; font-size:12px; line-height:1.6;"></div>
     <div class="section-title">Match Rounds (13m each)</div>
     <div id="round-list"></div>
-    <button class="btn-accent" onclick="finishMatch()">Finish & Save to Drive 🏁</button>
+    <button class="btn-accent" onclick="finishMatch()">Finish & Save 🏁</button>
     <button style="background:transparent; color:var(--text-sub); border:1px solid #e2e8f0;" onclick="confirmReset()">Cancel Match</button>
   </div>
 
@@ -144,47 +146,25 @@
     return html + '</div>';
   }
 
-  /* 핵심 로직: 팀 빌딩 (균형 + 페널티 + 무작위) */
   function makeTeams() {
     let players = [];
     const selected = document.querySelectorAll('.p-check:checked');
     selected.forEach(cb => { players.push({ n: cb.dataset.name, s: parseInt(cb.dataset.score), penalty: 0 }); });
     const avg = players.length > 0 ? players.reduce((a,b)=>a+b.s,0)/players.length : 50;
     guests.forEach(g => players.push({ n: g, s: avg, penalty: 0 }));
-    
     if(players.length < teamCount) return alert("인원이 부족합니다.");
-
-    // 최근 3경기 데이터에서 페널티 계산 (같은 팀 방지)
     const recentH = hData.slice(0, 3);
     players.forEach(p1 => {
       players.forEach(p2 => {
         if (p1.n === p2.n) return;
-        recentH.forEach(m => {
-          m.rank.forEach(t => {
-            if (t.names.includes(p1.n) && t.names.includes(p2.n)) p1.penalty += 15;
-          });
-        });
+        recentH.forEach(m => { m.rank.forEach(t => { if (t.names.includes(p1.n) && t.names.includes(p2.n)) p1.penalty += 15; }); });
       });
     });
-
-    // 가중치 계산: 점수 + 무작위성(±15) - 페널티
-    players = players.map(p => ({
-      ...p,
-      weight: p.s + (Math.random() * 30 - 15) - p.penalty
-    }));
-
-    // 가중치 순으로 정렬 후 지그재그 분배 (S-Curve)
+    players = players.map(p => ({ ...p, weight: p.s + (Math.random() * 30 - 15) - p.penalty }));
     players.sort((a,b) => b.weight - a.weight);
-
     currentTeams = Array.from({length: teamCount}, () => ({ members: [], total: 0 }));
     let idx = 0, dir = 1;
-    players.forEach(p => {
-      currentTeams[idx].members.push(p.n);
-      currentTeams[idx].total += p.s;
-      idx += dir;
-      if(idx === teamCount || idx === -1) { dir *= -1; idx += dir; }
-    });
-
+    players.forEach(p => { currentTeams[idx].members.push(p.n); currentTeams[idx].total += p.s; idx += dir; if(idx === teamCount || idx === -1) { dir *= -1; idx += dir; } });
     renderTeamResults();
   }
 
@@ -204,12 +184,8 @@
     document.getElementById('result-page').classList.add('hidden');
     document.getElementById('match-page').classList.remove('hidden');
     rounds = [];
-    if(teamCount === 2) {
-      for(let i=1; i<=9; i++) rounds.push({ id: i, t1: 0, t2: 1, winner: null });
-    } else {
-      const pattern = [[0,1], [1,2], [2,0]];
-      for(let i=1; i<=9; i++) rounds.push({ id: i, t1: pattern[(i-1)%3][0], t2: pattern[(i-1)%3][1], winner: null });
-    }
+    if(teamCount === 2) { for(let i=1; i<=9; i++) rounds.push({ id: i, t1: 0, t2: 1, winner: null }); }
+    else { const pattern = [[0,1], [1,2], [2,0]]; for(let i=1; i<=9; i++) rounds.push({ id: i, t1: pattern[(i-1)%3][0], t2: pattern[(i-1)%3][1], winner: null }); }
     renderRoundList();
   }
 
@@ -217,28 +193,13 @@
     const box = document.getElementById('round-list'); box.innerHTML = '';
     rounds.forEach(r => {
       const card = document.createElement('div'); card.className = 'match-card';
-      card.innerHTML = `
-        <div class="round-info">ROUND ${r.id} <span class="rd-del-btn" onclick="deleteRound(${r.id})">REMOVE ✕</span></div>
-        <div class="vs-area">
-          <div class="team-name">T${r.t1+1}</div>
-          <div class="score-btns">
-            <button class="s-btn ${r.winner==='t1'?'selected':''}" onclick="record(${r.id}, 't1')">WIN</button>
-            <button class="s-btn ${r.winner==='draw'?'selected':''}" onclick="record(${r.id}, 'draw')">DRAW</button>
-            <button class="s-btn ${r.winner==='t2'?'selected':''}" onclick="record(${r.id}, 't2')">WIN</button>
-          </div>
-          <div class="team-name">T${r.t2+1}</div>
-        </div>`;
+      card.innerHTML = `<div class="round-info">ROUND ${r.id} <span class="rd-del-btn" onclick="deleteRound(${r.id})">REMOVE ✕</span></div><div class="vs-area"><div class="team-name">T${r.t1+1}</div><div class="score-btns"><button class="s-btn ${r.winner==='t1'?'selected':''}" onclick="record(${r.id}, 't1')">WIN</button><button class="s-btn ${r.winner==='draw'?'selected':''}" onclick="record(${r.id}, 'draw')">DRAW</button><button class="s-btn ${r.winner==='t2'?'selected':''}" onclick="record(${r.id}, 't2')">WIN</button></div><div class="team-name">T${r.t2+1}</div></div>`;
       box.appendChild(card);
     });
     updateLiveRanking();
   }
 
-  function record(roundId, result) {
-    const r = rounds.find(x => x.id === roundId);
-    r.winner = (r.winner === result) ? null : result;
-    renderRoundList();
-  }
-
+  function record(roundId, result) { const r = rounds.find(x => x.id === roundId); r.winner = (r.winner === result) ? null : result; renderRoundList(); }
   function deleteRound(id) { if(confirm(`ROUND ${id} 삭제?`)) { rounds = rounds.filter(r => r.id !== id); renderRoundList(); } }
 
   function updateLiveRanking() {
@@ -250,8 +211,7 @@
       else if(r.winner === 'draw') { stats[r.t1].d++; stats[r.t1].p+=1; stats[r.t2].d++; stats[r.t2].p+=1; }
     });
     stats.sort((a,b) => b.p - a.p);
-    document.getElementById('live-ranking').innerHTML = `<b>Live Score:</b><br>` + 
-      stats.map(x => `T${x.id}: ${x.w}W ${x.d}D ${x.l}L (${x.p}pts)`).join('<br>');
+    document.getElementById('live-ranking').innerHTML = `<b>Live Score:</b><br>` + stats.map(x => `T${x.id}: ${x.w}W ${x.d}D ${x.l}L (${x.p}pts)`).join('<br>');
   }
 
   async function finishMatch() {
@@ -266,10 +226,8 @@
     });
     stats.sort((a,b) => b.p - a.p);
     const log = { id: Date.now(), date: new Date().toLocaleDateString(), rank: stats.map((x, i) => ({ r: i+1, sfx: i===0?'st':i===1?'nd':'rd', names: x.members, pts: x.p, record: `${x.w}W ${x.d}D ${x.l}L` })), rounds: rounds };
-    try {
-      await fetch(SHEET_API_URL, { method: 'POST', body: JSON.stringify(log) });
-      alert("Successfully Saved!"); location.reload();
-    } catch (e) { alert("Save Failed."); document.body.style.opacity = "1"; }
+    try { await fetch(SHEET_API_URL, { method: 'POST', body: JSON.stringify(log) }); alert("Successfully Saved!"); location.reload(); }
+    catch (e) { alert("Save Failed."); document.body.style.opacity = "1"; }
   }
 
   function renderHistory() {
@@ -278,10 +236,8 @@
     hData.forEach(h => {
       const div = document.createElement('div'); div.className = 'history-card';
       div.onclick = () => showDetail(h);
-      let html = `<div style="font-weight:800; margin-bottom:10px; display:flex; justify-content:space-between;">📅 ${h.date} <span style="font-size:10px; color:#ccc;">View</span></div>`;
-      h.rank.forEach(rk => {
-        html += `<div style="display:flex; align-items:center; margin-bottom:4px;"><span class="rank-badge">${rk.r}${rk.sfx}</span> <b style="flex:1;">${rk.names}</b> <span style="font-size:10px; color:var(--accent-color);">${rk.record}</span></div>`;
-      });
+      let html = `<div style="font-weight:800; margin-bottom:10px; display:flex; justify-content:space-between;">📅 ${h.date} <span class="del-btn" onclick="secureDelete(event, ${h.id})">✕</span></div>`;
+      h.rank.forEach(rk => { html += `<div style="display:flex; align-items:center; margin-bottom:4px;"><span class="rank-badge">${rk.r}${rk.sfx}</span> <b style="flex:1;">${rk.names}</b> <span style="font-size:10px; color:var(--accent-color);">${rk.record}</span></div>`; });
       div.innerHTML = html; box.appendChild(div);
     });
   }
@@ -293,6 +249,22 @@
       msg += `RD ${r.id}: T${r.t1+1} vs T${r.t2+1} -> ${res}\n`;
     });
     alert(msg);
+  }
+
+  /* 🔐 삭제 기능 및 비밀번호 로직 */
+  function secureDelete(e, id) { 
+    e.stopPropagation(); 
+    const pw = prompt("Admin Password:"); 
+    // 비밀번호: 1110100 - 77 = 1110023
+    if (pw && (parseInt(pw) + 77 == 1110100)) { 
+      if(confirm("이 기록을 화면에서 숨길까요? (시트 데이터는 관리자가 직접 지워야 합니다.)")) {
+        hData = hData.filter(h => h.id !== id);
+        renderHistory();
+        alert("화면에서 삭제되었습니다. 실제 시트 데이터는 별도로 관리해 주세요.");
+      }
+    } else {
+      alert("Wrong Password.");
+    }
   }
 
   function confirmReset() { if(confirm("Cancel current match?")) location.reload(); }
