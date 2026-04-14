@@ -3,33 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Match Maker (Live)</title>
+  <title>Futsal Match Maker</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <style>
     :root { --primary-color: #0f172a; --accent-color: #10b981; --bg-color: #f1f5f9; --card-bg: #ffffff; --text-main: #1e293b; --text-sub: #64748b; --star-color: #fbbf24; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 15px; display: flex; justify-content: center; font-size: 14px; }
     .container { width: 100%; max-width: 480px; background: var(--card-bg); padding: 25px 20px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-    header { text-align: center; margin-bottom: 25px; position: relative; }
+    header { text-align: center; margin-bottom: 25px; }
     h1 { font-size: 1.3rem; font-weight: 800; color: var(--primary-color); margin: 0; letter-spacing: -1px; }
     .section-title { font-size: 12px; font-weight: 700; margin-bottom: 12px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center;}
-    .attendance-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; max-height: 400px; overflow-y: auto; }
-    .player-card { background: #f8fafc; border: 2px solid #f1f5f9; padding: 14px 10px; border-radius: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; }
+    
+    /* 명단 리스트 영역 */
+    .attendance-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; max-height: 350px; overflow-y: auto; padding-right: 2px; }
+    .player-card { background: #f8fafc; border: 2px solid #f1f5f9; padding: 14px 10px; border-radius: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; min-height: 52px; }
     .player-card.active { border-color: var(--accent-color); background: #ecfdf5; }
     .player-card input { pointer-events: none; transform: scale(1.2); accent-color: var(--accent-color); }
-    .config-card { background: #f8fafc; padding: 15px; border-radius: 16px; display: flex; gap: 15px; margin-bottom: 20px; }
-    .config-item { flex: 1; }
-    .config-item label { display: block; font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 5px; }
-    .config-item input { width: 100%; border: none; background: transparent; font-size: 18px; font-weight: 800; color: var(--primary-color); border-bottom: 2px solid #e2e8f0; outline: none; }
-    button { background: var(--primary-color); color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 10px; font-size: 14px; }
-    .btn-guest { background: #64748b; margin-top: 5px; padding: 10px; font-size: 12px; }
+
+    /* 팀 수 조절 UI (- / +) */
+    .config-card { background: #f8fafc; padding: 18px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .config-label { font-size: 13px; font-weight: 700; color: var(--text-sub); }
+    .stepper { display: flex; align-items: center; background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 4px; }
+    .step-btn { width: 36px; height: 36px; border: none; background: white; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--primary-color); display: flex; align-items: center; justify-content: center; transition: 0.2s; margin: 0; }
+    .step-btn:active { background: #f1f5f9; transform: scale(0.9); }
+    #t-count-display { width: 40px; text-align: center; font-size: 18px; font-weight: 800; color: var(--primary-color); }
+
+    button { background: var(--primary-color); color: white; border: none; padding: 16px; border-radius: 16px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 10px; font-size: 14px; transition: 0.2s; }
+    button:active { transform: scale(0.98); opacity: 0.9; }
+    .btn-guest { background: #64748b; margin-top: 5px; padding: 10px; font-size: 12px; border-radius: 12px; }
+    
+    /* 로딩 및 팀 결과 스타일 */
+    .loading-msg { text-align: center; padding: 40px; color: var(--text-sub); font-size: 13px; }
     .team-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 18px; padding: 18px; margin-bottom: 12px; }
     .team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .stars-wrap { display: flex; gap: 2px; }
-    .star-icon { width: 14px; height: 14px; position: relative; display: inline-block; background-color: #e2e8f0; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+    .star-icon { width: 14px; height: 14px; background-color: #e2e8f0; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
     .star-icon.full { background-color: var(--star-color); }
-    .star-icon.half::before { content: ''; position: absolute; left: 0; top: 0; width: 50%; height: 100%; background-color: var(--star-color); }
-    .loading-msg { text-align: center; padding: 40px; color: var(--text-sub); font-weight: bold; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -40,21 +49,30 @@
 
   <div id="setup-page">
     <div class="config-card">
-      <div class="config-item"><label>Ready to Play</label><div id="att-count" style="font-size: 18px; font-weight: 800;">0 Players</div></div>
-      <div class="config-item"><label>Teams Count</label><input type="number" id="t-count" value="2" min="2"></div>
+      <div>
+        <div class="config-label">Teams Count</div>
+        <div id="att-count" style="font-size: 14px; font-weight: 800; color: var(--accent-color); margin-top: 4px;">0 Players Ready</div>
+      </div>
+      <div class="stepper">
+        <button class="step-btn" onclick="changeTeams(-1)">−</button>
+        <div id="t-count-display">2</div>
+        <button class="step-btn" onclick="changeTeams(1)">+</button>
+      </div>
     </div>
+
     <div class="section-title">Attendance Checklist</div>
-    <div id="loading" class="loading-msg">loading...</div>
+    <div id="loading" class="loading-msg">Loading...</div>
     <div class="attendance-list" id="attendance-list"></div>
+    
     <div id="guest-area" style="margin-bottom:15px;"></div>
     <button class="btn-guest" onclick="addGuest()">+ Add Guest Player</button>
-    <button style="margin-top:25px; height:55px; font-size:15px; background: var(--accent-color);" onclick="makeTeams()">Generate Balanced Teams</button>
+    <button style="margin-top:20px; height:58px; font-size:16px; background: var(--accent-color);" onclick="makeTeams()">Generate Balanced Teams</button>
   </div>
 
   <div id="result-page" class="hidden">
     <header><h1 style="color: var(--accent-color);">Matching Result</h1></header>
     <div id="team-results"></div>
-    <button style="background: #6366f1;" onclick="makeTeams()">Shuffle Mix ⚡</button>
+    <button style="background: #6366f1; height: 50px;" onclick="makeTeams()">Shuffle Mix ⚡</button>
     <button style="background: transparent; color: var(--text-sub); border: 1px solid #e2e8f0;" onclick="goBack()">Back to List</button>
   </div>
 </div>
@@ -65,9 +83,14 @@
   
   let masterPlayers = [];
   let guests = [];
-  let currentTeams = [];
+  let teamCount = 2;
 
-  // 구글 시트에서 실시간으로 데이터 가져오기
+  // 팀 수 조절 함수
+  function changeTeams(val) {
+    teamCount = Math.max(2, teamCount + val);
+    document.getElementById('t-count-display').innerText = teamCount;
+  }
+
   async function fetchMasterData() {
     try {
       const response = await fetch(SHEET_API_URL);
@@ -75,16 +98,14 @@
       document.getElementById('loading').classList.add('hidden');
       renderAttendanceList();
     } catch (e) {
-      document.getElementById('loading').innerText = "명단을 불러오지 못했습니다. URL 설정을 확인하세요.";
+      document.getElementById('loading').innerText = "데이터 로딩 실패. URL을 확인하세요.";
     }
   }
 
   function renderAttendanceList() {
     const box = document.getElementById('attendance-list');
     box.innerHTML = '';
-    // 가나다 순 정렬
     masterPlayers.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'));
-    
     masterPlayers.forEach(p => {
       const card = document.createElement('div');
       card.className = 'player-card';
@@ -101,20 +122,14 @@
 
   function addGuest() { guests.push(`Guest ${guests.length+1}`); renderGuests(); updateCount(); }
   function renderGuests() {
-    document.getElementById('guest-area').innerHTML = guests.map((g, i) => `<div style="display:inline-block; background:#f1f5f9; padding:6px 12px; border-radius:10px; margin:4px; font-size:12px; font-weight:600;">${g} <span style="cursor:pointer; color:#ef4444; margin-left:5px;" onclick="removeGuest(${i})">✕</span></div>`).join('');
+    document.getElementById('guest-area').innerHTML = guests.map((g, i) => 
+      `<div style="display:inline-block; background:#e2e8f0; padding:6px 12px; border-radius:10px; margin:4px; font-size:12px; font-weight:600;">${g} <span style="cursor:pointer; color:#ef4444; margin-left:5px;" onclick="removeGuest(${i})">✕</span></div>`
+    ).join('');
   }
   function removeGuest(i) { guests.splice(i, 1); renderGuests(); updateCount(); }
-  function updateCount() { document.getElementById('att-count').innerText = (document.querySelectorAll('.p-check:checked').length + guests.length) + " Players"; }
-
-  function renderStars(score) {
-    const starVal = score / 20;
-    let html = '<div class="stars-wrap">';
-    for (let i = 1; i <= 5; i++) {
-      if (i <= Math.floor(starVal)) html += '<span class="star-icon full"></span>';
-      else if (i - 0.5 <= starVal) html += '<span class="star-icon half"></span>';
-      else html += '<span class="star-icon"></span>';
-    }
-    return html + '</div>';
+  function updateCount() { 
+    const count = document.querySelectorAll('.p-check:checked').length + guests.length;
+    document.getElementById('att-count').innerText = count + " Players Ready"; 
   }
 
   function makeTeams() {
@@ -127,37 +142,41 @@
     });
     const avg = selected.length > 0 ? total / selected.length : 50;
     guests.forEach(g => players.push({ n: g, s: avg }));
-    const tCount = parseInt(document.getElementById('t-count').value);
     
-    players = players.map(p => ({ ...p, w: p.s + (Math.random() * 30 - 15) }));
+    if(players.length < teamCount) return alert("팀 수보다 인원이 적습니다.");
+
+    // 실력 기반 균등 분배 알고리즘 (랜덤성 추가)
+    players = players.map(p => ({ ...p, w: p.s + (Math.random() * 20 - 10) }));
     players.sort((a,b) => b.w - a.w);
-    let teams = Array.from({length: tCount}, () => ({ members: [], total: 0 }));
+    
+    let teams = Array.from({length: teamCount}, () => ({ members: [], total: 0 }));
     let idx = 0, dir = 1;
     players.forEach(p => { 
       teams[idx].members.push(p.n); 
       teams[idx].total += p.s; 
       idx += dir; 
-      if(idx === tCount || idx === -1) { dir *= -1; idx += dir; } 
+      if(idx === teamCount || idx === -1) { dir *= -1; idx += dir; } 
     });
-    currentTeams = teams.sort(() => Math.random() - 0.5);
-    renderResults();
+
+    renderResults(teams.sort(() => Math.random() - 0.5));
   }
 
-  function renderResults() {
+  function renderResults(teams) {
     const box = document.getElementById('team-results'); box.innerHTML = '';
     document.getElementById('setup-page').classList.add('hidden');
     document.getElementById('result-page').classList.remove('hidden');
-    currentTeams.forEach((t, i) => {
+    
+    teams.forEach((t, i) => {
       const avg = t.total / t.members.length;
       const card = document.createElement('div'); card.className = 'team-card';
-      card.innerHTML = `<div class="team-header"><span class="team-name">🚩 Team ${i+1}</span>${renderStars(avg)}</div><div style="font-size:15px; font-weight:600;">${t.members.sort().join(', ')}</div>`;
+      let stars = '';
+      for(let s=1; s<=5; s++) stars += `<span class="star-icon ${s <= Math.round(avg/20) ? 'full' : ''}"></span>`;
+      card.innerHTML = `<div class="team-header"><span style="font-weight:800;">🚩 Team ${i+1}</span><div class="stars-wrap">${stars}</div></div><div style="font-size:15px; font-weight:600; line-height:1.5;">${t.members.sort().join(', ')}</div>`;
       box.appendChild(card);
     });
   }
 
   function goBack() { document.getElementById('setup-page').classList.remove('hidden'); document.getElementById('result-page').classList.add('hidden'); }
-  
-  // 페이지 로드 시 데이터 가져오기 실행
   window.onload = fetchMasterData;
 </script>
 </body>
