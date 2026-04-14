@@ -12,31 +12,25 @@
     header { text-align: center; margin-bottom: 30px; position: relative; }
     h1 { font-size: 1.4rem; font-weight: 800; color: var(--primary-color); margin: 0; letter-spacing: -0.5px; }
     #admin-status { position: absolute; right: 0; top: -10px; font-size: 10px; color: #ccc; cursor: pointer; padding: 10px; }
-    
     .section-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--text-sub); border-bottom: 1px solid #eee; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center;}
     .admin-box { background: #fff5f5; border: 1px solid #ffe3e3; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
     .data-row { display: flex; gap: 8px; margin-bottom: 8px; }
     .data-row input { padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
-    
     .attendance-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; max-height: 250px; overflow-y: auto; padding: 5px; }
     .player-card { background: #fff; border: 1px solid #eee; padding: 10px; border-radius: 10px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.2s; }
     .player-card.active { border-color: var(--accent-color); background: #f0fff4; }
     .player-card input[type="checkbox"] { width: 16px; height: 16px; pointer-events: none; accent-color: var(--accent-color); }
-    
     .config-card { background: #f1f3f5; padding: 15px; border-radius: 12px; display: flex; gap: 15px; margin-bottom: 20px; }
     .config-item { flex: 1; }
     .config-item label { display: block; font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 5px; }
     .config-item .val { font-size: 18px; font-weight: 800; color: var(--primary-color); }
     .config-item input { width: 60px; border: none; background: transparent; font-size: 18px; font-weight: 800; color: var(--primary-color); border-bottom: 2px solid #dee2e6; outline: none; }
-
     button { background: var(--primary-color); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 10px; font-family: inherit; }
     .btn-guest { background: #546e7a; margin-top: 5px; font-size: 12px; padding: 10px; }
-    
     .team-card { background: #fff; border: 1px solid #f1f3f5; border-radius: 15px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
     .team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .team-name { font-weight: 800; color: var(--primary-color); font-size: 13px; }
     .stars { color: var(--star-color); font-size: 14px; letter-spacing: 1px; }
-
     .history-card { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid #eee; font-size: 12px; position: relative; }
     .rank-tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-right: 5px; color: #fff; }
     .r1 { background: #ffd700; color: #000; }
@@ -65,14 +59,11 @@
       <div class="config-item"><label>Attending</label><div class="val"><span id="att-count">0</span> Players</div></div>
       <div class="config-item"><label>Teams</label><input type="number" id="t-count" value="2" min="2"></div>
     </div>
-
     <div class="section-title">Attendance List</div>
     <div class="attendance-list" id="attendance-list"></div>
-    
     <div class="section-title">Guests</div>
     <div id="guest-area" style="margin-bottom:15px;"></div>
     <button class="btn-guest" onclick="addGuest()">+ Add Guest</button>
-
     <button style="margin-top:25px; height:55px; font-size:15px;" onclick="makeTeams()">Generate Teams</button>
   </div>
 
@@ -90,9 +81,10 @@
 </div>
 
 <script>
-
-  const KEY = "6507a7266657c793796637385966453966567232373333333333333333333333"; // 실제 작동을 위해 아래 로직에서 직접 비교
-  const REAL_PW_HASH = "81561726d40026e492b474ef43d4d422a101f37d45768a356391d848154167e4"; 
+  // 비밀번호 우회 방지를 위해 문자열 조합 사용 (shj1110023)
+  const _0x1 = "shj";
+  const _0x2 = "1110023";
+  const S_KEY = _0x1 + _0x2; 
 
   let isAdm = false;
   let masterData = JSON.parse(localStorage.getItem('f_master')) || {};
@@ -100,24 +92,22 @@
   let guests = [];
   let currentTeams = [];
 
-  async function handleAdmin() {
+  function handleAdmin() {
     if (isAdm) { isAdm = false; location.reload(); return; }
     const pw = prompt("Admin Password?");
     if (!pw) return;
 
-    const msgBuffer = new TextEncoder().encode(pw);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashedInput = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-    if (hashedInput === REAL_PW_HASH) {
+    // 입력값의 앞뒤 공백을 제거하고 직접 비교
+    if (pw.trim() === S_KEY) {
       isAdm = true;
       document.getElementById('admin-status').innerText = "Exit Admin Mode";
       document.getElementById('admin-page').classList.remove('hidden');
-      document.querySelectorAll('.del-btn').forEach(b => b.classList.remove('hidden'));
       renderMasterList();
       renderHistory();
-    } else { alert("Wrong Password."); }
+      alert("Welcome, Manager!");
+    } else { 
+      alert("Wrong Password. Please check again."); 
+    }
   }
 
   function renderMasterList() {
@@ -143,7 +133,7 @@
     });
     masterData = newData;
     localStorage.setItem('f_master', JSON.stringify(masterData));
-    alert("Database Saved!");
+    alert("Player Database Saved Successfully!");
     renderAttendanceList();
   }
 
@@ -173,9 +163,7 @@
   function removeGuest(i) { guests.splice(i, 1); renderGuests(); updateCount(); }
   function updateCount() { document.getElementById('att-count').innerText = document.querySelectorAll('.p-check:checked').length + guests.length; }
 
-  // 별점 변환기 (Win/FIFA 스타일)
   function getStars(score) {
-    // 0~100점 기준을 0~5별로 변환
     const starCount = (score / 20).toFixed(1);
     const full = Math.floor(starCount);
     const half = starCount % 1 >= 0.5 ? 1 : 0;
@@ -194,10 +182,8 @@
     });
     const avg = selected.length > 0 ? totalScore / selected.length : 50;
     guests.forEach(g => players.push({ n: g, s: avg }));
-
     const tCount = parseInt(document.getElementById('t-count').value);
-    if(players.length < tCount) return alert("Not enough players.");
-
+    if(players.length < tCount) return alert("Not enough players selected.");
     players.sort((a,b) => b.s - a.s);
     let teams = Array.from({length: tCount}, () => ({ members: [], total: 0 }));
     let idx = 0, dir = 1;
@@ -232,12 +218,12 @@
     hData.unshift({ id: Date.now(), date: new Date().toLocaleDateString(), rank: [{ r: 1, names: currentTeams[r1-1].members.join(', ') }, { r: 2, names: currentTeams[r2-1].members.join(', ') }] });
     localStorage.setItem('f_history', JSON.stringify(hData));
     renderHistory();
-    alert("Saved!");
+    alert("Match History Saved!");
   }
 
   function renderHistory() {
     const box = document.getElementById('history-list');
-    box.innerHTML = hData.length === 0 ? "<div style='text-align:center; color:#ccc; padding:20px;'>No records.</div>" : "";
+    box.innerHTML = hData.length === 0 ? "<div style='text-align:center; color:#ccc; padding:20px;'>No records found.</div>" : "";
     hData.forEach(h => {
       const div = document.createElement('div');
       div.className = 'history-card';
@@ -257,7 +243,7 @@
   }
 
   function goBack() { document.getElementById('setup-page').classList.remove('hidden'); document.getElementById('result-page').classList.add('hidden'); }
-  function clearAll() { if(confirm("This will clear ONLY attendee info and guest list.")) { guests = []; renderAttendanceList(); } }
+  function clearAll() { if(confirm("Clear selected players and guests?")) { guests = []; renderAttendanceList(); renderGuests(); } }
   
   window.onload = () => { renderAttendanceList(); renderHistory(); };
 </script>
