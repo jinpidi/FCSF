@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>풋살 밸런스 팀 메이커 ⚽</title>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    :root {
+      --primary-color: #2e7d32;
+      --admin-color: #d32f2f;
+      --bg-color: #f0f4f0;
+      --box-bg: #ffffff;
+      --text-color: #333;
+    }
+    body {
+      font-family: 'Pretendard', -apple-system, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0; padding: 15px;
+      display: flex; justify-content: center;
+      font-size: 14px; /* 전체 폰트 크기 축소 */
+    }
+    .container {
+      background-color: var(--box-bg);
+      width: 100%; max-width: 500px;
+      padding: 20px; border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+    h1 { text-align: center; color: var(--primary-color); font-size: 1.5rem; margin-bottom: 20px; }
+    
+    #admin-status { font-size: 11px; color: #999; cursor: pointer; text-decoration: underline; }
+    
+    .header-config { display: flex; gap: 10px; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 8px; }
+    .config-item { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .config-item label { font-size: 12px; font-weight: bold; color: #666; }
+    
+    input, select { padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; font-family: inherit; }
+    
+    .player-list-header { display: flex; gap: 8px; padding: 5px 0; border-bottom: 2px solid #eee; margin-bottom: 10px; font-weight: bold; font-size: 12px; color: #777; }
+    .player-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+    .player-row input[type="text"] { flex: 2; }
+    .player-row input[type="number"] { width: 45px; text-align: center; }
+    
+    .team-card { background: #f1f8e9; border: 1px solid #dcedc8; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .team-header { display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #c8e6c9; margin-bottom: 6px; padding-bottom: 4px; }
+    
+    button { 
+        background-color: var(--primary-color); color: white; border: none; 
+        padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; font-size: 14px;
+    }
+    button:hover { opacity: 0.9; }
+    .admin-only-btn { background-color: #546e7a; margin-top: 10px; font-size: 12px; padding: 8px; }
+    
+    .history-section { margin-top: 25px; border-top: 1px dashed #ccc; padding-top: 15px; }
+    .history-item { font-size: 12px; color: #666; background: #fff; padding: 6px; border-radius: 4px; margin-bottom: 4px; border-left: 3px solid #ddd; }
+    
+    .hidden { display: none !important; }
+    .admin-text { color: var(--admin-color); font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="text-align: right; margin-bottom: 10px;">
+        <span id="admin-status" onclick="toggleAdmin()">🔒 Admin Login</span>
+    </div>
+
+    <div id="setup-section">
+        <h1>⚽ 풋살 팀 메이커</h1>
+        
+        <div class="header-config">
+            <div class="config-item">
+                <label>총 인원</label>
+                <input type="number" id="player-count" value="12" onchange="renderPlayerInputs()">
+            </div>
+            <div class="config-item">
+                <label>팀 수</label>
+                <input type="number" id="team-count" value="2">
+            </div>
+        </div>
+
+        <div class="player-list-header">
+            <span style="width:20px">#</span>
+            <span style="flex:2">이름</span>
+            <span id="score-label" class="hidden" style="width:45px">점수</span>
+        </div>
+        <div id="player-inputs"></div>
+
+        <button onclick="generateBalancedTeams()">팀 나누기 & 밸런싱</button>
+    </div>
+
+    <div id="result-section" class="hidden">
+        <h1>🎉 배정 결과</h1>
+        <div id="result-container"></div>
+        <button onclick="saveMatchHistory()" id="save-btn" style="background-color: #1976d2;">오늘의 경기 저장</button>
+        <button onclick="hideResult()" style="background: #757575; margin-top: 8px;">수정하러 가기</button>
+    </div>
+
+    <div class="history-section">
+        <h3 style="font-size: 14px; margin-bottom: 10px;">📅 최근 경기 기록</h3>
+        <div id="history-container"></div>
+        <button onclick="clearHistory()" class="admin-only-btn admin-only hidden">기록 전체 삭제</button>
+    </div>
+</div>
+
+<script>
+    // 1110023을 SHA-256으로 암호화한 값
+    const ADMIN_HASH = "867e3a9856f64243a8594248550774a3832d787037704870f20224419842f1f3";
+    let isAdmin = false;
+    let playersData = JSON.parse(localStorage.getItem('futsal_players')) || {};
+    let matchHistory = JSON.parse(localStorage.getItem('futsal_history')) || [];
+    let currentTeams = [];
+
+    // --- 보안 로그인 (SHA-256) ---
+    async function toggleAdmin() {
+        if (!isAdmin) {
+            const pw = prompt("관리자 비밀번호를 입력하세요.");
+            if (!pw) return;
+
+            const encoder = new TextEncoder();
+            const data = encoder.encode(pw);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashedInput = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            if (hashedInput === ADMIN_HASH) {
+                isAdmin = true;
+                document.getElementById('admin-status').innerHTML = "<span class='admin-text'>🔓 Admin Mode</span>";
+                document.getElementById('score-label').classList.remove('hidden');
+                document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+                renderPlayerInputs();
+            } else {
+                alert("비밀번호가 틀렸습니다.");
+            }
+        } else {
+            isAdmin = false;
+            document.getElementById('admin-status').innerText = "🔒 Admin Login";
+            document.getElementById('score-label').classList.add('hidden');
+            document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+            renderPlayerInputs();
+        }
+    }
+
+    // --- 입력창 렌더링 ---
+    function renderPlayerInputs() {
+        const count = document.getElementById('player-count').value;
+        const container = document.getElementById('player-inputs');
+        container.innerHTML = '';
+
+        for (let i = 1; i <= count; i++) {
+            const row = document.createElement('div');
+            row.className = 'player-row';
+            const pName = playersData[i]?.name || "";
+            const pScore = playersData[i]?.score || 50;
+
+            row.innerHTML = `
+                <span style="width:20px; font-size:11px; color:#999;">${i}</span>
+                <input type="text" placeholder="선수 이름" class="p-name" value="${pName}" onchange="updateData(${i})">
+                <input type="number" class="p-score ${isAdmin ? '' : 'hidden'}" value="${pScore}" min="1" max="100" onchange="updateData(${i})">
+            `;
+            container.appendChild(row);
+        }
+    }
+
+    function updateData(index) {
+        const rows = document.querySelectorAll('.player-row');
+        const name = rows[index-1].querySelector('.p-name').value;
+        const score = parseInt(rows[index-1].querySelector('.p-score').value) || 50;
+        playersData[index] = { name, score };
+        localStorage.setItem('futsal_players', JSON.stringify(playersData));
+    }
+
+    // --- 팀 생성 및 밸런싱 ---
+    function generateBalancedTeams() {
+        let activePlayers = [];
+        document.querySelectorAll('.player-row').forEach(row => {
+            const name = row.querySelector('.p-name').value.trim();
+            const score = parseInt(row.querySelector('.p-score').value);
+            if(name) activePlayers.push({ name, score });
+        });
+
+        const numTeams = parseInt(document.getElementById('team-count').value);
+        if (activePlayers.length < numTeams) return alert("선수 이름이 팀 수보다 적습니다.");
+
+        // 점수순 정렬 후 스네이크 배정
+        activePlayers.sort((a, b) => b.score - a.score);
+        let teams = Array.from({ length: numTeams }, () => ({ members: [], totalScore: 0 }));
+        
+        let teamIdx = 0;
+        let direction = 1;
+
+        activePlayers.forEach(p => {
+            teams[teamIdx].members.push(p);
+            teams[teamIdx].totalScore += p.score;
+            teamIdx += direction;
+            if (teamIdx === numTeams || teamIdx === -1) {
+                direction *= -1;
+                teamIdx += direction;
+            }
+        });
+
+        currentTeams = teams;
+        showResults(teams);
+    }
+
+    function showResults(teams) {
+        const container = document.getElementById('result-container');
+        container.innerHTML = '';
+        document.getElementById('setup-section').classList.add('hidden');
+        document.getElementById('result-section').classList.remove('hidden');
+
+        teams.forEach((team, i) => {
+            const avg = (team.totalScore / team.members.length).toFixed(1);
+            const div = document.createElement('div');
+            div.className = 'team-card';
+            div.innerHTML = `
+                <div class="team-header"><span>팀 ${i+1}</span> <span>평균 ${avg}점</span></div>
+                <div style="font-size:15px; letter-spacing: 0.5px;">${team.members.map(m => m.name).join(', ')}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function hideResult() {
+        document.getElementById('setup-section').classList.remove('hidden');
+        document.getElementById('result-section').classList.add('hidden');
+    }
+
+    // --- 기록 관리 ---
+    function saveMatchHistory() {
+        if(!confirm("오늘의 경기 구성을 저장할까요?")) return;
+        const historyData = {
+            date: new Date().toLocaleDateString(),
+            teams: currentTeams.map(t => t.members.map(m => m.name))
+        };
+        matchHistory.unshift(historyData);
+        if(matchHistory.length > 10) matchHistory.pop();
+        localStorage.setItem('futsal_history', JSON.stringify(matchHistory));
+        renderHistory();
+        alert("저장되었습니다.");
+    }
+
+    function renderHistory() {
+        const container = document.getElementById('history-container');
+        container.innerHTML = matchHistory.length === 0 ? "<div style='color:#ccc; text-align:center;'>기록이 없습니다.</div>" : "";
+        matchHistory.forEach(h => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `<strong>${h.date}</strong><br>${h.teams.map(t => t.join(', ')).join(' <span style="color:red">VS</span> ')}`;
+            container.appendChild(div);
+        });
+    }
+
+    function clearHistory() {
+        if(confirm("모든 기록을 삭제하시겠습니까?")) {
+            localStorage.removeItem('futsal_history');
+            matchHistory = [];
+            renderHistory();
+        }
+    }
+
+    window.onload = () => { renderPlayerInputs(); renderHistory(); };
+</script>
+
+</body>
+</html>
