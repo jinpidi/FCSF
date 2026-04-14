@@ -17,9 +17,39 @@
     /* [Update] Match Type Selector UI */
     .config-card { background: #f8fafc; padding: 18px; border-radius: 20px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
     .config-label { font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 10px; text-transform: uppercase; text-align: center; }
-    .match-type-selector { display: flex; gap: 8px; }
-    .type-btn { flex: 1; padding: 12px; border: 2px solid #e2e8f0; background: white; border-radius: 14px; cursor: pointer; font-weight: 800; color: var(--text-sub); transition: 0.2s; font-size: 13px; }
-    .type-btn.active { border-color: var(--primary-color); background: var(--primary-color); color: white; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15); }
+    .match-type-selector { 
+      display: flex; 
+      gap: 8px; 
+    }
+
+    .type-btn { 
+      flex: 1; 
+      padding: 12px 5px; 
+      border: 2px solid #e2e8f0; 
+      background: white; 
+      border-radius: 14px; 
+      cursor: pointer; 
+      font-weight: 800; 
+      color: var(--text-sub); 
+      transition: 0.2s; 
+      line-height: 1.3; /* 줄 간격을 좁혀서 위아래 글씨가 조화롭게 보임 */
+    }
+
+    .type-btn.active { 
+      border-color: var(--primary-color); 
+      background: var(--primary-color); 
+      color: white; 
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15); 
+    }
+
+    /* 2. 이 부분은 새로 추가되는 '작은 글씨' 전용 스타일입니다. 맨 뒤에 붙여넣으셔도 됩니다. */
+    .type-btn span { 
+      display: block;      /* 자동으로 줄바꿈이 일어납니다 */
+      font-size: 10px;     /* 아래 (2-TEAM) 글씨는 작게 */
+      font-weight: 500; 
+      opacity: 0.8; 
+      margin-top: 2px;
+    }
 
     .attendance-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; max-height: 280px; overflow-y: auto; padding-right: 2px; }
     .player-card { background: #f8fafc; border: 2px solid #f1f5f9; padding: 14px 10px; border-radius: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; min-height: 52px; }
@@ -52,10 +82,14 @@
   <div id="setup-page">
     <div class="config-card">
       <div class="config-label">Choose Match Format</div>
-      <div class="match-type-selector">
-        <button id="btn-2team" class="type-btn active" onclick="setTeamCount(2)">DUEL (2-TEAM)</button>
-        <button id="btn-3team" class="type-btn" onclick="setTeamCount(3)">TRIANGLE (3-TEAM)</button>
-      </div>
+   <div class="match-type-selector">
+      <button id="btn-2team" class="type-btn active" onclick="setTeamCount(2)">
+        VERSUS<span>(2-TEAM)</span>
+      </button>
+      <button id="btn-3team" class="type-btn" onclick="setTeamCount(3)">
+        TRI-MATCH<span>(3-TEAM)</span>
+      </button>
+    </div>
       <div id="att-count" style="text-align: center; font-size: 13px; font-weight: 800; color: var(--accent-color); margin-top: 15px;">0 Players Ready</div>
     </div>
 
