@@ -44,7 +44,7 @@
       <div class="config-item"><label>Teams Count</label><input type="number" id="t-count" value="2" min="2"></div>
     </div>
     <div class="section-title">Attendance Checklist</div>
-    <div id="loading" class="loading-msg">구글 시트에서 명단을 가져오는 중...</div>
+    <div id="loading" class="loading-msg">loading...</div>
     <div class="attendance-list" id="attendance-list"></div>
     <div id="guest-area" style="margin-bottom:15px;"></div>
     <button class="btn-guest" onclick="addGuest()">+ Add Guest Player</button>
@@ -61,7 +61,7 @@
 
 <script>
   // 
-  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyQ6nY5N-NS4C30KkqF7gqfdwIOqEHcy-Kix6q7nYc_qGabN3Pdjz_5WDXc1dgVEfdA/exec";
+  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyuMHd-fAC1m-E_6exvPwKunMqFBvGTuCIxFT3A1RqW-Z0nsDYr_0kgFSP0495hC6OF/exec";
   
   let masterPlayers = [];
   let guests = [];
