@@ -7,8 +7,8 @@
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <style>
     :root {
-      --primary-color: #1a237e; /* 신뢰감 있는 네이비 */
-      --accent-color: #00c853;  /* 활기찬 잔디색 */
+      --primary-color: #1a237e;
+      --accent-color: #00c853;
       --bg-color: #f8f9fa;
       --card-bg: #ffffff;
       --text-main: #212121;
@@ -33,12 +33,12 @@
     }
 
     header { text-align: center; margin-bottom: 30px; position: relative; }
-    h1 { font-size: 1.2rem; font-weight: 800; color: var(--primary-color); margin: 0; letter-spacing: -0.5px; }
+    h1 { font-size: 1.1rem; font-weight: 800; color: var(--primary-color); margin: 0; letter-spacing: -0.5px; }
     .icon-top { font-size: 24px; display: block; margin-bottom: 5px; }
 
     #admin-status { 
-      position: absolute; right: 0; top: 0;
-      font-size: 10px; color: #ddd; cursor: pointer; 
+      position: absolute; right: 0; top: -10px;
+      font-size: 10px; color: #ccc; cursor: pointer; padding: 10px;
     }
 
     .config-card {
@@ -58,7 +58,7 @@
     .player-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
     .player-row input[type="text"] { 
       flex: 1; padding: 10px 15px; border: 1px solid #eee; border-radius: 10px; 
-      background: #fff; transition: 0.2s;
+      background: #fff; transition: 0.2s; font-size: 14px;
     }
     .player-row input[type="text"]:focus { border-color: var(--accent-color); outline: none; }
     .p-score { width: 45px; padding: 8px; border-radius: 8px; border: 1px solid #eee; text-align: center; font-weight: bold; color: var(--accent-color); }
@@ -66,12 +66,11 @@
     button { 
       background: var(--primary-color); color: white; border: none; 
       padding: 15px; border-radius: 12px; font-weight: 700; cursor: pointer; 
-      width: 100%; transition: 0.3s; margin-top: 10px;
+      width: 100%; transition: 0.3s; margin-top: 10px; font-family: inherit;
     }
     button:active { transform: scale(0.98); }
     .btn-save { background: var(--accent-color); margin-top: 20px; }
 
-    .team-section { margin-top: 20px; }
     .team-card { 
       background: #fff; border: 1px solid #f1f3f5; border-radius: 15px; 
       padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
@@ -79,7 +78,6 @@
     .team-name { font-weight: 800; color: var(--primary-color); font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
     .team-members { font-size: 14px; color: #444; font-weight: 500; }
 
-    .history-section { margin-top: 40px; }
     .history-card { 
       background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 10px;
       border: 1px solid #eee; font-size: 12px;
@@ -111,180 +109,4 @@
       </div>
       <div class="config-item">
         <label>TEAMS</label>
-        <input type="number" id="t-count" value="2">
-      </div>
-    </div>
-
-    <div class="list-title">
-      <span>ENTRY LIST</span>
-      <span id="score-head" class="hidden">ABILITY</span>
-    </div>
-    <div id="player-list"></div>
-
-    <button onclick="makeTeams()">GENERATE TEAMS</button>
-  </div>
-
-  <div id="result-page" class="hidden">
-    <header>
-      <span class="icon-top">🏆</span>
-      <h1 style="color: var(--accent-color);">MATCH ASSIGNMENT</h1>
-    </header>
-    <div id="team-results"></div>
-    
-    <button class="btn-save" onclick="saveHistory()">SAVE RANKINGS</button>
-    <button style="background: #e9ecef; color: #495057;" onclick="goBack()">EDIT LIST</button>
-  </div>
-
-  <div class="history-section">
-    <div class="list-title">RECENT MATCH RECORDS</div>
-    <div id="history-list"></div>
-    <button onclick="clearAll()" class="admin-only hidden" style="background: #f8f9fa; color: #adb5bd; font-size: 10px; padding: 5px;">CLEAR ALL DATA</button>
-  </div>
-</div>
-
-<script>
-  // 비밀번호 1110023 해시값
-  const H = "867e3a9856f64243a8594248550774a3832d787037704870f20224419842f1f3";
-  let isAdm = false;
-  let pData = JSON.parse(localStorage.getItem('f_players')) || {};
-  let hData = JSON.parse(localStorage.getItem('f_history')) || [];
-  let currentTeams = [];
-
-  async function toggleAdmin() {
-    if (!isAdm) {
-      const pw = prompt("Admin Password?");
-      if (!pw) return;
-      const msg = new TextEncoder().encode(pw);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', msg);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashed = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-      if (hashed === H) {
-        isAdm = true;
-        document.getElementById('admin-status').innerText = "Admin Mode Active";
-        document.getElementById('admin-status').classList.add('admin-mode-on');
-        document.getElementById('score-head').classList.remove('hidden');
-        document.querySelectorAll('.admin-only').forEach(e => e.classList.remove('hidden'));
-        initList();
-      } else { alert("Wrong Password"); }
-    }
-  }
-
-  function initList() {
-    const c = document.getElementById('p-count').value;
-    const box = document.getElementById('player-list');
-    box.innerHTML = '';
-    for (let i = 1; i <= c; i++) {
-      const d = pData[i] || { name: "", score: 50 };
-      const row = document.createElement('div');
-      row.className = 'player-row';
-      row.innerHTML = `
-        <input type="text" placeholder="Player ${i}" class="in-name" value="${d.name}" onchange="upd(${i})">
-        <input type="number" class="p-score ${isAdm ? '' : 'hidden'}" value="${d.score}" onchange="upd(${i})">
-      `;
-      box.appendChild(row);
-    }
-  }
-
-  function upd(i) {
-    const rows = document.querySelectorAll('.player-row');
-    const name = rows[i-1].querySelector('.in-name').value;
-    const score = parseInt(rows[i-1].querySelector('.p-score').value) || 50;
-    pData[i] = { name, score };
-    localStorage.setItem('f_players', JSON.stringify(pData));
-  }
-
-  function makeTeams() {
-    let players = [];
-    document.querySelectorAll('.player-row').forEach(r => {
-      const n = r.querySelector('.in-name').value.trim();
-      const s = parseInt(r.querySelector('.p-score').value);
-      if(n) players.push({ n, s });
-    });
-
-    const tCount = parseInt(document.getElementById('t-count').value);
-    if(players.length < tCount) return alert("Not enough players");
-
-    // 실력순 정렬 후 스네이크 배정
-    players.sort((a,b) => b.s - a.s);
-    let teams = Array.from({length: tCount}, () => ({ members: [], score: 0 }));
-    
-    let idx = 0, dir = 1;
-    players.forEach(p => {
-      teams[idx].members.push(p.n);
-      idx += dir;
-      if(idx === tCount || idx === -1) { dir *= -1; idx += dir; }
-    });
-
-    currentTeams = teams;
-    renderResults();
-  }
-
-  function renderResults() {
-    const box = document.getElementById('team-results');
-    box.innerHTML = '';
-    document.getElementById('setup-page').classList.add('hidden');
-    document.getElementById('result-page').classList.remove('hidden');
-
-    currentTeams.forEach((t, i) => {
-      t.members.sort(); // 가나다순 정렬
-      const card = document.createElement('div');
-      card.className = 'team-card';
-      card.innerHTML = `
-        <div class="team-name">🚩 TEAM ${i+1}</div>
-        <div class="team-members">${t.members.join(', ')}</div>
-      `;
-      box.appendChild(card);
-    });
-  }
-
-  function saveHistory() {
-    const r1 = prompt("1등 팀 번호는?");
-    const r2 = prompt("2등 팀 번호는?");
-    const r3 = prompt("3등 팀 번호는? (없으면 엔터)");
-    
-    if(!r1 || !r2) return alert("Rank 1 and 2 are required.");
-
-    const entry = {
-      date: new Date().toLocaleDateString(),
-      rank: [
-        { r: 1, names: currentTeams[r1-1].members.join(', ') },
-        { r: 2, names: currentTeams[r2-1].members.join(', ') }
-      ]
-    };
-    if(r3) entry.rank.push({ r: 3, names: currentTeams[r3-1].members.join(', ') });
-
-    hData.unshift(entry);
-    if(hData.length > 10) hData.pop();
-    localStorage.setItem('f_history', JSON.stringify(hData));
-    renderHistory();
-    alert("Record Saved!");
-  }
-
-  function renderHistory() {
-    const box = document.getElementById('history-list');
-    box.innerHTML = hData.length === 0 ? "<div style='text-align:center; color:#ccc; padding:20px;'>No records yet.</div>" : "";
-    
-    hData.forEach(h => {
-      const card = document.createElement('div');
-      card.className = 'history-card';
-      let html = `<div style="font-weight:bold; margin-bottom:5px;">📅 ${h.date}</div>`;
-      h.rank.forEach(rk => {
-        html += `<div><span class="rank-tag r${rk.r}">${rk.r}st</span> ${rk.names}</div>`;
-      });
-      card.innerHTML = html;
-      box.appendChild(card);
-    });
-  }
-
-  function goBack() {
-    document.getElementById('setup-page').classList.remove('hidden');
-    document.getElementById('result-page').classList.add('hidden');
-  }
-
-  function clearAll() { if(confirm("Delete all history?")) { localStorage.clear(); location.reload(); } }
-
-  window.onload = () => { initList(); renderHistory(); };
-</script>
-</body>
-</html>
+        <input type="
