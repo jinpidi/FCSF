@@ -74,6 +74,7 @@
 <div class="container">
   <div id="setup-page">
     <header><h1>Futsal Manager Pro</h1><span id="display-team-name" class="team-title-label"></span></header>
+    <div id="sheet-sync-note" class="hidden" style="font-size:11px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px 10px;margin:8px 0 0;text-align:center;font-weight:600;line-height:1.35;"></div>
     
     <div id="saved-matches-section" class="hidden">
         <div class="section-title">Ready to Play</div>
@@ -145,6 +146,7 @@
   const TEAM_NAME = "FC 서울숲";
   const ADMIN_PW = "1110023";
   const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzo_9mYhtzTFQ6oFh9Xd-RaVf6degYYeEI9mCNrgyyaku4jnjNKVo7WIBaf2otYIVwB/exec"; 
+  const LOCAL_HISTORY_KEY = 'futsal_manager_local_history_v1';
 
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let recordDedupeKey = '';
@@ -184,6 +186,37 @@
     return (h && h.date) ? h.date : '';
   }
 
+  function loadLocalHistory() {
+    try {
+      const raw = localStorage.getItem(LOCAL_HISTORY_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+  }
+
+  function saveLocalHistory() {
+    try {
+      if (Array.isArray(hData) && hData.length) localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(hData));
+      else localStorage.removeItem(LOCAL_HISTORY_KEY);
+    } catch (e) { /* quota */ }
+  }
+
+  function mergeHistoryById(serverArr, localArr) {
+    const map = new Map();
+    (Array.isArray(localArr) ? localArr : []).forEach(h => { if (h && h.id != null) map.set(Number(h.id), h); });
+    (Array.isArray(serverArr) ? serverArr : []).forEach(h => { if (h && h.id != null) map.set(Number(h.id), h); });
+    return Array.from(map.values()).sort((a, b) => Number(b.id) - Number(a.id));
+  }
+
+  function setSyncNote(msg) {
+    const el = document.getElementById('sheet-sync-note');
+    if (!el) return;
+    if (!msg) { el.classList.add('hidden'); el.textContent = ''; return; }
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
   async function fetchMasterData() {
     const loadingEl = document.getElementById('loading');
     const setLoadingVisible = () => { loadingEl.classList.remove('hidden'); loadingEl.innerHTML = 'Loading<span class="loading-dots"></span>'; loadingEl.style.textAlign = 'center'; loadingEl.style.color = 'var(--text-sub)'; };
@@ -191,12 +224,12 @@
       loadingEl.classList.remove('hidden');
       loadingEl.style.textAlign = 'center';
       loadingEl.style.color = '#b91c1c';
-      loadingEl.innerHTML = '<div style="font-weight:800;margin-bottom:6px;">동기화 실패</div><div style="font-size:11px;color:#64748b;line-height:1.4;margin-bottom:10px;">네트워크·배포 URL·시트 권한을 확인해 주세요.<br>(로컬 파일로 열면 브라우저에서 차단될 수 있습니다.)</div><button type="button" class="btn-outline" style="margin-top:0;" onclick="fetchMasterData()">다시 시도</button>';
+      loadingEl.innerHTML = '<div style="font-weight:800;margin-bottom:6px;">동기화 실패</div><div style="font-size:11px;color:#64748b;line-height:1.4;margin-bottom:10px;">네트워크·웹앱 배포 URL·실행 권한(누구나)을 확인해 주세요.<br>HTML을 파일로만 열면 구글 요청이 차단될 수 있습니다.</div><button type="button" class="btn-outline" style="margin-top:0;" onclick="fetchMasterData()">다시 시도</button>';
     };
+    setSyncNote('');
     setLoadingVisible();
     try {
-      const url = SHEET_API_URL + (SHEET_API_URL.includes('?') ? '&' : '?') + 'cb=' + Date.now();
-      const response = await fetch(url, { method: 'GET', mode: 'cors', cache: 'no-store', redirect: 'follow', headers: { Accept: 'application/json,text/plain,*/*' } });
+      const response = await fetch(SHEET_API_URL, { method: 'GET', mode: 'cors', cache: 'no-store', redirect: 'follow', headers: { Accept: 'application/json,text/plain,*/*' } });
       const text = (await response.text()).replace(/^\uFEFF/, '').trim();
       let result;
       try {
@@ -213,19 +246,34 @@
         score: Number(p.score != null ? p.score : (p.Score != null ? p.Score : (p.s != null ? p.s : 0))) || 0
       })).filter(p => p.name);
       let hist = result.history != null ? result.history : result.History;
-      hData = Array.isArray(hist) ? [...hist] : [];
+      const serverHist = Array.isArray(hist) ? hist : [];
+      const localHist = loadLocalHistory();
+      hData = mergeHistoryById(serverHist, localHist);
+      saveLocalHistory();
       loadingEl.classList.add('hidden');
+      if (!masterPlayers.length) setSyncNote('시트에서 명단(players)을 불러오지 못했습니다. 시트/스크립트 응답을 확인해 주세요.');
       renderAttendanceList();
       renderHistory();
       renderSavedMatches();
     } catch (e) {
       console.error(e);
-      masterPlayers = [];
-      hData = Array.isArray(hData) ? hData : [];
-      showSyncFailed();
-      renderAttendanceList();
-      renderHistory();
-      renderSavedMatches();
+      const localH = loadLocalHistory();
+      if (localH.length) {
+        hData = localH;
+        masterPlayers = [];
+        loadingEl.classList.add('hidden');
+        setSyncNote('구글 시트와 연결하지 못했습니다. 이 기기에 저장된 경기 기록·랭킹만 표시합니다. (명단은 시트 연결 후 다시 받아옵니다)');
+        renderAttendanceList();
+        renderHistory();
+        renderSavedMatches();
+      } else {
+        masterPlayers = [];
+        hData = [];
+        showSyncFailed();
+        renderAttendanceList();
+        renderHistory();
+        renderSavedMatches();
+      }
     }
   }
 
@@ -464,6 +512,7 @@
     localStorage.removeItem('saved_manager_match'); 
     if (!Array.isArray(hData)) hData = [];
     hData.push(log); 
+    saveLocalHistory();
     
     document.body.style.opacity = "1";
     document.getElementById('match-page').classList.add('hidden');
@@ -506,7 +555,7 @@
             }).join('') + `</div>`;
         }
         mHtml += `<div class="history-card" style="background:#fff; padding:10px; border-radius:12px; border:1px solid #eee; margin-bottom:8px; position:relative;"><div style="font-size:10px; font-weight:800; margin-bottom:4px;">${displayDateFromMatch(h)} <span class="admin-del" style="position:absolute; top:8px; right:8px;" onclick="deleteCloudMatch(${h.id})">✕</span></div>`;
-        h.rank.forEach(rk=>{
+        (Array.isArray(h.rank) ? h.rank : []).forEach(rk=>{
           const rec = (rk.record != null && rk.record !== '') ? ` · <small style="color:#64748b;font-weight:700;">${rk.record}</small>` : '';
           mHtml += `<div style="font-size:9.5px; display:flex; justify-content:space-between; margin-bottom:2px;"><span><b>${rk.r}${rk.sfx}</b> ${rk.names} <small>(Rating:${rk.ovr})</small>${rec}</span><span style="color:var(--accent-color); font-weight:800;">${rk.pts}pt</span></div>`;
         });
@@ -527,13 +576,14 @@
       }).catch(e => console.log("Bypass"));
       
       hData = hData.filter(h => h.id !== id);
+      saveLocalHistory();
       renderHistory();
       alert("Deleted!"); 
     }
   }
 
   function renderLeaderboard() {
-    const stats = {}; hData.forEach(h => { h.rank.forEach(rk => { const names = rk.names.split(',').map(n=>n.trim()); names.forEach(name => { if(name.toLowerCase().includes('guest')) return; if(!stats[name]) stats[name] = { play:0, win:0 }; stats[name].play++; if(rk.r === 1) stats[name].win++; }); }); });
+    const stats = {}; hData.forEach(h => { if (!h || !Array.isArray(h.rank)) return; h.rank.forEach(rk => { const names = rk.names.split(',').map(n=>n.trim()); names.forEach(name => { if(name.toLowerCase().includes('guest')) return; if(!stats[name]) stats[name] = { play:0, win:0 }; stats[name].play++; if(rk.r === 1) stats[name].win++; }); }); });
     const sorted = Object.entries(stats).sort((a,b) => (b[1].win/b[1].play) - (a[1].win/a[1].play) || b[1].play - a[1].play).slice(0,10);
     let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th>WIN PROB.</th><th>STREAK</th><th>GAMES</th></tr></thead><tbody>`;
     sorted.forEach(([name, s], i) => { html += `<tr><td><b>${i+1}</b></td><td>${name}</td><td><span class="prob-badge">${((s.win/s.play)*100).toFixed(0)}%</span></td><td>${s.win}승</td><td>${s.play}회</td></tr>`; });
@@ -564,6 +614,11 @@
   function addDraftGuestModal() { addLastMinutePlayer(`Guest ${document.querySelectorAll('.drag-item').length + 1}`, getGuestScore()); }
   function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
   (function initApp() {
+    const lh = loadLocalHistory();
+    if (lh.length) {
+      hData = lh;
+      renderHistory();
+    }
     renderSavedMatches();
     fetchMasterData();
   })();
