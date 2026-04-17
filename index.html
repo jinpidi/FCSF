@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Match Maker Pro</title>
+  <title>Futsal Team Manager Pro</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <style>
     :root { --primary-color: #0f172a; --accent-color: #10b981; --bg-color: #f1f5f9; --card-bg: #ffffff; --text-main: #1e293b; --text-sub: #64748b; --star-color: #fbbf24; }
@@ -13,7 +13,7 @@
     header { text-align: center; margin-bottom: 25px; }
     h1 { font-size: 1.4rem; font-weight: 800; color: var(--primary-color); margin: 0; letter-spacing: -1px; }
     .section-title { font-size: 12px; font-weight: 700; margin: 20px 0 12px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center;}
-    
+
     .config-card { background: #f8fafc; padding: 18px; border-radius: 20px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
     .match-type-selector { display: flex; gap: 8px; }
     .type-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; background: white; border-radius: 14px; cursor: pointer; font-weight: 800; color: var(--text-sub); transition: 0.2s; line-height: 1.3; }
@@ -49,7 +49,22 @@
     .del-btn { color: #f87171; font-weight: 800; cursor: pointer; padding: 0 5px; font-size: 11px; }
 
     .hidden { display: none !important; }
-    .loading-msg { text-align: center; padding: 30px; color: var(--text-sub); }
+    .loading-msg { text-align: center; padding: 30px; color: var(--text-sub); font-weight: 600; }
+
+    /* 로딩 애니메이션 dots 추가 */
+    .dots::after {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      text-align: left;
+      animation: dots 1.5s infinite;
+    }
+    @keyframes dots {
+      0% { content: ''; }
+      33% { content: '.'; }
+      66% { content: '..'; }
+      100% { content: '...'; }
+    }
   </style>
 </head>
 <body>
@@ -65,7 +80,7 @@
       <div id="att-count" style="text-align:center; font-size:13px; font-weight:800; color:var(--accent-color); margin-top:15px;">0 Players Ready</div>
     </div>
     <div class="section-title">Attendance Checklist</div>
-    <div id="loading" class="loading-msg">Loading...</div>
+    <div id="loading" class="loading-msg"><span class="dots">Loading Player List</span></div>
     <div class="attendance-list" id="attendance-list"></div>
     <div id="guest-area" style="margin: 10px 0;"></div>
     <button class="btn-guest" onclick="addGuest()">+ Add Guest</button>
@@ -90,16 +105,16 @@
   </div>
 
   <div id="history-section" style="margin-top: 40px;">
-    <div class="section-title">Match History </div>
+    <div class="section-title">Match History</div>
     <div id="history-list"></div>
     <div id="mvp-stats-container" style="margin-top: 40px;"></div>
   </div>
 </div>
 
 <script>
-  // [중요] 본인의 구글 웹 앱 URL을 여기에 넣어주세요
-  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbxlHYnFXUq8rjRyIh0zm7OXC7maQAoyPKB6gnqop3wju7HBoY_dbP_kge06IMopEHvw/exec"; 
-  
+  // 1번 수정: 중복 선언된 SHEET_API_URL 통합 (가장 최신 URL 유지)
+  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzo_9mYhtzTFQ6oFh9Xd-RaVf6degYYeEI9mCNrgyyaku4jnjNKVo7WIBaf2otYIVwB/exec"; 
+
   let masterPlayers = [], guests = [], teamCount = 2, currentTeams = [], hData = [];
   let rounds = [];
 
@@ -232,7 +247,6 @@
     catch (e) { alert("Save Failed."); document.body.style.opacity = "1"; }
   }
 
-  // 매치 히스토리 (최신순 + 월별 그룹화)
   function renderHistory() {
     const box = document.getElementById('history-list');
     if (hData.length === 0) { box.innerHTML = "<div class='loading-msg'>No records.</div>"; return; }
@@ -259,7 +273,6 @@
     renderMVPStats(); 
   }
 
-  // MVP 랭킹 통계
   function renderMVPStats() {
     const statsContainer = document.getElementById('mvp-stats-container');
     if (!statsContainer || hData.length === 0) return;
@@ -305,34 +318,20 @@
     alert(msg);
   }
 
-  async function secureDelete(e, id) { 
-  e.stopPropagation(); 
-  const pw = prompt("Admin Password:"); 
-  // 비밀번호 확인 (기존 로직 유지)
-  if (pw && (parseInt(pw) + 77 == 1110100)) { 
-    if(confirm("이 기록을 구글 시트에서 영구히 삭제하시겠습니까?")) {
-      try {
-        // 서버(구글 시트)에 삭제 요청 전송
-        const response = await fetch(SHEET_API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: "DELETE", id: id })
-        });
-        
-        if (await response.text() === "Deleted") {
-          alert("시트 데이터가 삭제되었습니다.");
-          hData = hData.filter(h => h.id !== id);
-          renderHistory(); // 화면 갱신
-        } else {
-          alert("삭제 실패 (이미 지워졌거나 데이터를 찾을 수 없음)");
-        }
-      } catch (err) {
-        alert("서버 통신 오류가 발생했습니다.");
+  function secureDelete(e, id) { 
+    e.stopPropagation(); 
+    const pw = prompt("Admin Password:"); 
+    if (pw && (parseInt(pw) + 77 == 1110100)) { 
+      if(confirm("이 기록을 화면에서 숨길까요?")) {
+        hData = hData.filter(h => h.id !== id);
+        renderHistory();
       }
-    }
-  } else if (pw !== null) { 
-    alert("Wrong Password."); 
+    } else if (pw !== null) { alert("Wrong Password."); }
   }
-}
+
+  function confirmReset() { if(confirm("Cancel current match?")) location.reload(); }
+  function goBack() { document.getElementById('result-page').classList.add('hidden'); document.getElementById('setup-page').classList.remove('hidden'); }
+  window.onload = fetchMasterData;
 </script>
 </body>
 </html>
