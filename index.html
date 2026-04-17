@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v12.0</title>
+  <title>Futsal Manager Pro v12.1</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -267,7 +267,6 @@
     const section = document.getElementById('saved-matches-section');
     if(mStr) {
       const m = JSON.parse(mStr); section.classList.remove('hidden');
-      // [수정] Ready -> Match Day 문환 변경
       document.getElementById('saved-list').innerHTML = `<div class="saved-match-card"><div onclick="loadSavedMatch()" style="flex:1; font-weight:800; color:#065f46; font-size:11px; cursor:pointer;">⚽ Match Day: <span class="date-badge">${m.date}</span></div><span class="admin-del" onclick="deleteLocalMatch()">✕</span></div>`;
     } else { section.classList.add('hidden'); }
   }
@@ -341,7 +340,7 @@
     document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
   }
 
-  // [수정] 클라우드 저장 로직 강제 최적화
+  // [수정] 충돌 방지를 위한 완벽한 원래 방식(location.reload)으로 복구
   async function finishMatch() {
     if(!confirm("Cloud Archive?")) return; 
     document.body.style.opacity = "0.5";
@@ -361,23 +360,10 @@
     const log = { id:activeMatch.id, date:activeMatch.date, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
     
     try { 
-      // 1. 클라우드 전송
-      const res = await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify(log) }); 
-      
-      if(res.ok) {
-        // 2. 로컬 데이터 삭제
-        localStorage.removeItem('saved_manager_match'); 
-        
-        // 3. UI 복구 및 로딩 표시
-        alert("Archived Successfully!"); 
-        document.body.style.opacity = "1";
-        document.getElementById('match-page').classList.add('hidden');
-        document.getElementById('setup-page').classList.remove('hidden');
-        document.getElementById('loading').classList.remove('hidden');
-        
-        // 4. 강제 데이터 새로고침 (이 부분이 메인 화면의 기록과 랭킹을 즉시 업데이트함)
-        await fetchMasterData(); 
-      }
+      await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify(log) }); 
+      localStorage.removeItem('saved_manager_match'); 
+      alert("Archived Successfully!"); 
+      location.reload(); 
     }
     catch(e) { 
       alert("Archive Failed. Check Network."); 
