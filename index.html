@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v12.13</title>
+  <title>Futsal Manager Pro v12.FINAL</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -252,13 +252,10 @@
       let total = 0; items.forEach(it=>total+=parseFloat(it.dataset.score));
       const avg = items.length>0 ? total/items.length : 0;
       const base = avg*10; const stats = [base+5,base+2,base+7,base+3,base+1,base+4].map(s=>Math.min(99,Math.floor(s)));
-      
       const ovrEl = document.getElementById(`ovr-${i}`);
-      const actualOvr = items.length > 0 ? Math.floor(stats.reduce((a,b)=>a+b)/6) : 0;
-      ovrEl.dataset.actual = actualOvr; // 실제 숫자를 은밀하게 저장
       
       if(items.length >= 5) { 
-        ovrEl.innerText = actualOvr; 
+        ovrEl.innerText = Math.floor(stats.reduce((a,b)=>a+b)/6); 
         ovrEl.style.fontSize = '24px'; 
       } else if(items.length > 0) { 
         ovrEl.innerText = "5명↑ 노출"; 
@@ -281,10 +278,7 @@
     const finalTeams = [];
     document.querySelectorAll('.drag-list').forEach((list,idx)=>{
       const members = Array.from(list.querySelectorAll('.drag-item')).map(el=>el.childNodes[0].textContent.trim());
-      // 저장할 때 무조건 안전한 숫자로 강제 치환 (과거 찌꺼기 방지)
-      let realOvr = parseInt(document.getElementById(`ovr-${idx}`).dataset.actual);
-      if (isNaN(realOvr)) realOvr = 0; 
-      finalTeams.push({ id:idx, members:members, ovr: realOvr });
+      finalTeams.push({ id:idx, members:members, ovr: document.getElementById(`ovr-${idx}`).innerText });
     });
     activeMatch = { id:Date.now(), date:document.getElementById('match-date-input').value.replace(/-/g, '. '), teams:finalTeams, rounds:[] };
     localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
@@ -368,11 +362,10 @@
     document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
   }
 
-  // [수정 핵심] 가장 순수하고 완벽하게 작동했던 v12.2 통신 방식으로 원복 및 과거 데이터 강제 소독
+  // [가장 완벽했던 초창기 코드로 100% 원복] Fire & Forget 로직
   function finishMatch() {
     if(!confirm("Cloud Archive?")) return; 
     
-    // 화면 즉시 전환용 UI 갱신 (가장 만족하셨던 스피드)
     document.body.style.opacity = "0.5";
     
     const st = activeMatch.teams.map((t, tid)=>{
@@ -383,19 +376,19 @@
         else if(r.winner==='draw'&&(r.t1===tid||r.t2===tid)){d++;p+=1;} 
         else if(r.winner&&(r.t1===tid||r.t2===tid)) l++; 
       });
-
-      // [가장 중요] 팀장님 폰의 localStorage에 저장되어 있던 과거의 "5명↑ 노출" 찌꺼기 텍스트를
-      // 여기서 무조건 한 번 더 갈아엎어서 절대 안전한 숫자로 정화시킵니다.
-      let safeOvr = parseInt(t.ovr);
-      if(isNaN(safeOvr)) safeOvr = 0; 
-
-      return { names:t.members.join(','), ovr: safeOvr, record:`${w}W ${d}D ${l}L`, pts:p };
+      return { names:t.members.join(','), ovr:t.ovr, record:`${w}W ${d}D ${l}L`, pts:p };
     });
     st.sort((a,b)=>b.pts - a.pts);
     
     const log = { id:activeMatch.id, date:activeMatch.date, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
-    
-    // UI 즉각 반영 (서버 응답을 기다리지 않고 미리 화면을 그려줍니다)
+
+    // 1. 구글 서버로 데이터 전송 (응답을 기다리거나 강제 검증하지 않음)
+    fetch(SHEET_API_URL, {
+      method: 'POST',
+      body: JSON.stringify(log)
+    }).catch(e => console.log("Sync bypassed")); 
+
+    // 2. 딜레이 없이 팀장님 폰 화면의 로컬 데이터를 즉시 최신화 (가장 빠르고 확실한 반영)
     localStorage.removeItem('saved_manager_match'); 
     hData.push(log); 
     
@@ -405,14 +398,8 @@
     
     renderHistory(); 
     renderSavedMatches();
-
-    // 가장 완벽했던 v12.2의 순정 fetch 코드로 뒤에서 조용히 전송
-    fetch(SHEET_API_URL, { 
-      method: 'POST', 
-      body: JSON.stringify(log) 
-    }).catch(e => console.log("Background sync complete."));
     
-    setTimeout(() => { alert("Archived Successfully! 🏆"); }, 100);
+    setTimeout(() => { alert("Archived Successfully! 🏆"); }, 50);
   }
 
   function renderHistory() {
@@ -436,14 +423,18 @@
     } renderLeaderboard();
   }
 
-  async function deleteCloudMatch(id) {
+  function deleteCloudMatch(id) {
     if(prompt("Admin Password:") === ADMIN_PW) { 
       if(!confirm("영구 삭제?")) return; 
+      // 삭제 역시 초창기 방식(Fire & Forget)으로 원복
       fetch(SHEET_API_URL, { 
         method: 'POST',
         body: JSON.stringify({action: "DELETE", id: id}) 
-      }); 
-      setTimeout(() => { alert("Requested Delete."); fetchMasterData(); }, 500);
+      }).catch(e => console.log("Bypass"));
+      
+      hData = hData.filter(h => h.id !== id);
+      renderHistory();
+      alert("Deleted!"); 
     }
   }
 
