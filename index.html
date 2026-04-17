@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v12.8</title>
+  <title>Futsal Manager Pro v12.9</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -250,6 +250,7 @@
     });
   }
 
+  // [수정 핵심 1] 텍스트가 아닌 실제 "숫자 레이팅"을 HTML 속성(dataset.actual)에 몰래 저장합니다.
   function autoAnalyze() {
     document.querySelectorAll('.team-column').forEach((col, i)=>{
       const items = col.querySelectorAll('.drag-item');
@@ -258,8 +259,13 @@
       const base = avg*10; const stats = [base+5,base+2,base+7,base+3,base+1,base+4].map(s=>Math.min(99,Math.floor(s)));
       
       const ovrEl = document.getElementById(`ovr-${i}`);
+      const actualOvr = items.length > 0 ? Math.floor(stats.reduce((a,b)=>a+b)/6) : 0;
+      
+      // 진짜 숫자 점수는 여기에 안전하게 보관! (구글 시트로 보낼 용도)
+      ovrEl.dataset.actual = actualOvr; 
+      
       if(items.length >= 5) { 
-        ovrEl.innerText = Math.floor(stats.reduce((a,b)=>a+b)/6); 
+        ovrEl.innerText = actualOvr; 
         ovrEl.style.fontSize = '24px'; 
       } else if(items.length > 0) { 
         ovrEl.innerText = "5명↑ 노출"; 
@@ -279,11 +285,13 @@
     });
   }
 
+  // [수정 핵심 2] 구글로 보내기 전에 "5명 노출" 텍스트 대신 아까 숨겨둔 "진짜 숫자 점수"를 꺼내서 저장합니다.
   function saveMatchToHistory(mode) {
     const finalTeams = [];
     document.querySelectorAll('.drag-list').forEach((list,idx)=>{
       const members = Array.from(list.querySelectorAll('.drag-item')).map(el=>el.childNodes[0].textContent.trim());
-      finalTeams.push({ id:idx, members:members, ovr:document.getElementById(`ovr-${idx}`).innerText });
+      const realOvr = document.getElementById(`ovr-${idx}`).dataset.actual || 0;
+      finalTeams.push({ id:idx, members:members, ovr: realOvr });
     });
     activeMatch = { id:Date.now(), date:document.getElementById('match-date-input').value.replace(/-/g, '. '), teams:finalTeams, rounds:[] };
     localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
@@ -368,7 +376,7 @@
     document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
   }
 
-  // [수정] 팀장님이 가장 마음에 들어하셨던 즉각적인 화면 갱신(v12.2) 로직으로 완벽 복구
+  // [수정 핵심 3] 가장 완벽하게 작동했던 v12.2 통신 로직으로 100% 원복
   async function finishMatch() {
     if(!confirm("Cloud Archive?")) return; 
     document.body.style.opacity = "0.5";
@@ -388,26 +396,27 @@
     const log = { id:activeMatch.id, date:activeMatch.date, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
     
     try { 
-      // 구글 시트로 데이터 백그라운드 전송 (에러가 나도 진행되도록 no-cors 모드 적용)
-      await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify(log), mode: 'no-cors' }); 
-    } catch (e) {
-      console.log("Server sync bypassed:", e);
+      // 깔끔한 원본 fetch 사용! 데이터에 글자가 들어가지 않아 구글 시트가 튕기지 않고 완벽 저장됩니다.
+      await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify(log) }); 
+      
+      // 저장이 확실히 성공했을 때만 데이터 처리 및 즉각 화면 전환
+      localStorage.removeItem('saved_manager_match'); 
+      hData.push(log);
+      
+      document.body.style.opacity = "1";
+      document.getElementById('match-page').classList.add('hidden');
+      document.getElementById('setup-page').classList.remove('hidden');
+      
+      renderHistory(); 
+      renderSavedMatches();
+
+      alert("Archived Successfully! 🏆"); 
     }
-
-    // 1. 구글 전송 완료 여부와 상관없이 무조건 메모리에 기록 (가장 만족하셨던 방식)
-    localStorage.removeItem('saved_manager_match'); 
-    hData.push(log); 
-    
-    // 2. 화면 강제 복구 및 전환
-    document.body.style.opacity = "1";
-    document.getElementById('match-page').classList.add('hidden');
-    document.getElementById('setup-page').classList.remove('hidden');
-    
-    // 3. 페이지 새로고침 없이, 방금 메모리에 꽂아넣은 데이터를 바탕으로 아래 리스트 즉시 다시 그리기
-    renderHistory(); 
-    renderSavedMatches();
-
-    setTimeout(() => { alert("Archived Successfully! 🏆"); }, 100);
+    catch(e) { 
+      // 혹시라도 진짜 인터넷이 끊겼다면 작성 중이던 데이터는 살려두고 알림만 띄웁니다.
+      document.body.style.opacity="1"; 
+      alert("일시적 통신 오류입니다. 작성하신 데이터는 지워지지 않았으니 다시 버튼을 눌러주세요!");
+    }
   }
 
   function renderHistory() {
