@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v11.8</title>
+  <title>Futsal Manager Pro v11.9</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -281,7 +281,6 @@
     document.getElementById('match-date-input').value = activeMatch.date.replace(/\. /g, '-');
     renderVSMode(activeMatch.teams.map(t=>({ members: t.members.map(n=>({n, s: (masterPlayers.find(p=>p.name===n)||{score:5}).score}))})));
     
-    // [추가] 실시간 기록이 있는 경우 대시보드로 바로 이동 여부 확인
     if (activeMatch.rounds && activeMatch.rounds.some(r => r.winner !== null)) {
       if (confirm("이전에 기록하던 경기 데이터가 있습니다. 대시보드로 바로 이동할까요?")) {
         startDashboard(activeMatch);
@@ -322,14 +321,10 @@
     updateLiveRanking();
   }
 
-  // [수정] 승무패 기록 시 즉시 브라우저에 실시간 자동 저장
   function record(rid, res) { 
     const r = activeMatch.rounds.find(x=>x.id===rid); 
     r.winner = (r.winner===res)?null:res; 
-    
-    // 실시간 자동 저장 로직
     localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
-    
     renderRoundList(); 
   }
 
@@ -345,6 +340,7 @@
     document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
   }
 
+  // [수정] 클라우드 저장 후 메인 화면 갱신 로직 복구
   async function finishMatch() {
     if(!confirm("Cloud Archive?")) return; document.body.style.opacity = "0.5";
     const st = activeMatch.teams.map((t, tid)=>{
@@ -361,7 +357,7 @@
       document.getElementById('setup-page').classList.remove('hidden');
       document.getElementById('match-page').classList.add('hidden');
       document.getElementById('loading').classList.remove('hidden');
-      fetchMasterData(); 
+      fetchMasterData(); // 클라우드 저장 후 데이터 즉시 새로고침
     }
     catch(e) { alert("Error"); document.body.style.opacity="1"; }
   }
