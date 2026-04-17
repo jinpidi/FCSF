@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v10.8</title>
+  <title>Futsal Manager Pro v10.9</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,21 +16,18 @@
     h1 { font-size: 1.3rem; font-weight: 900; color: var(--primary-color); margin: 0; letter-spacing: -1.2px; text-transform: uppercase; }
     .team-title-label { font-size: 13px; font-weight: 700; color: var(--accent-color); margin-top: 2px; display: block; }
     
-    /* 섹션 타이틀 공통 */
     .section-title { font-size: 9px; font-weight: 800; margin: 12px 0 6px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 3px; }
     
-    /* 상단 대기 중인 게임 카드 */
-    .saved-match-card { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 18px; padding: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
-    .share-btn { background: #e0f2fe; color: #0369a1; border: none; padding: 5px 10px; border-radius: 8px; font-size: 10px; cursor: pointer; font-weight: 800; margin-right: 5px; }
+    /* [수정] 대기 중인 게임 최상단 강제 노출 */
+    .saved-match-card { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 18px; padding: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    .share-btn { background: #e0f2fe; color: #0369a1; border: none; padding: 5px 10px; border-radius: 8px; font-size: 10px; cursor: pointer; font-weight: 800; }
     .admin-del { color: #f87171; cursor: pointer; font-weight: 900; margin-left: 8px; padding: 0 4px; }
 
-    /* 퀵 세팅 바 */
     .simple-config-bar { display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 8px 12px; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 12px; }
     .match-type-selector { display: flex; gap: 5px; flex: 1; }
     .type-btn { flex: 1; padding: 8px 0; border: 1px solid #cbd5e1; background: white; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 10.5px; color: var(--text-sub); }
     .type-btn.active { border-color: var(--primary-color); background: var(--primary-color); color: white; }
 
-    /* 전략 브리핑 VS 그리드 */
     .vs-grid { display: flex; gap: 8px; align-items: stretch; margin-top: 5px; overflow-x: auto; padding-bottom: 5px; }
     .team-column { flex: 1; min-width: 165px; display: flex; flex-direction: column; gap: 8px; }
     .team-box { background: #f8fafc; border-radius: 14px; padding: 10px; border: 1px solid #e2e8f0; flex: 1; }
@@ -39,33 +36,32 @@
 
     .tactical-card { background: #111827; color: #fff; padding: 10px; border-radius: 14px; text-align: center; }
     .ovr-val { font-size: 24px; font-weight: 900; color: var(--accent-color); line-height: 1; }
-    .ovr-lbl { font-size: 9px; opacity: 0.6; font-weight: 700; margin-bottom: 2px; }
     .chart-mini-box { background: rgba(255,255,255,0.03); border-radius: 10px; height: 160px; position: relative; margin-top: 3px; }
 
-    /* 대시보드 1줄 카드 */
-    .match-card { background: #f8fafc; border-radius: 14px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .round-info { font-size: 10px; font-weight: 900; color: var(--accent-color); min-width: 40px; }
-    .score-btns { display: flex; gap: 3px; flex: 1; max-width: 160px; }
-    .s-btn { flex: 1; padding: 7px 0; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-size: 10px; font-weight: 700; cursor: pointer; }
+    /* [수정] 대시보드 1줄 고정 레이아웃 */
+    .match-card { background: #f8fafc; border-radius: 14px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: row !important; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+    .round-info { font-size: 10px; font-weight: 900; color: var(--accent-color); min-width: 40px; text-align: left; }
+    .vs-area { display: flex; flex-direction: row !important; align-items: center; flex: 1; gap: 8px; justify-content: center; }
+    .score-btns { display: flex; flex-direction: row !important; gap: 3px; flex: 1; max-width: 180px; }
+    .s-btn { flex: 1; padding: 7px 0; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; }
     .s-btn.selected { background: var(--primary-color); color: white; border-color: var(--primary-color); }
 
     button { background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; font-size: 13px; margin-top: 6px; }
     .btn-accent { background: var(--accent-color); height: 50px; font-size: 15px; }
     .btn-outline { background: transparent; color: var(--text-sub); border: 1px solid #e2e8f0; }
 
-    /* 출석 명단 3열 */
     .attendance-list { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; max-height: 250px; overflow-y: auto; }
     .player-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 5px; border-radius: 10px; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; font-size: 11px; }
     .player-card.active { border-color: var(--accent-color); background: #ecfdf5; font-weight: 800; }
     
     .loading-msg { text-align: center; padding: 25px; color: var(--text-sub); font-weight: 600; }
     .hidden { display: none !important; }
-    .date-input-container { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 12px; margin-top: 10px; display: flex; align-items: center; gap: 8px; }
-    input[type="date"] { border: none; background: transparent; font-family: inherit; font-weight: 700; color: var(--primary-color); flex: 1; cursor: pointer; font-size: 12px; }
-    
-    .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; background: white; border-radius: 16px; overflow: hidden; border: 1px solid #eee; }
-    .leaderboard-table th { background: #f8fafc; padding: 10px; text-align: left; color: var(--text-sub); font-size: 10px; }
+
+    /* 파워 랭킹 테이블 */
+    .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; background: white; border-radius: 16px; overflow: hidden; border: 1px solid #eee; }
+    .leaderboard-table th { background: #f8fafc; padding: 10px; text-align: left; color: var(--text-sub); font-size: 9px; }
     .leaderboard-table td { padding: 10px; border-bottom: 1px solid #f8fafc; }
+    .prob-badge { background: #ecfdf5; color: #059669; padding: 2px 6px; border-radius: 6px; font-weight: 800; font-size: 10px; }
   </style>
 </head>
 <body>
@@ -99,9 +95,9 @@
   <div id="result-page" class="hidden">
     <header><h1 style="color:var(--accent-color);">Match Briefing</h1></header>
     <div id="vs-display-grid" class="vs-grid"></div>
-    <div class="date-input-container">
+    <div class="date-input-container" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 12px; margin-top: 10px; display: flex; align-items: center; gap: 8px;">
       <label style="font-size:10px; font-weight:800; color:var(--text-sub);">MATCH DATE</label>
-      <input type="date" id="match-date-input">
+      <input type="date" id="match-date-input" style="border: none; background: transparent; font-family: inherit; font-weight: 700; color: var(--primary-color); flex: 1; cursor: pointer; font-size: 12px;">
     </div>
     <button class="btn-outline" style="margin-top: 12px;" onclick="openAddPlayerModal()">+ Add Last-minute Player</button>
     <button class="btn-outline" onclick="saveMatchToHistory('exit')">Save Game Plan 💾</button>
@@ -120,13 +116,18 @@
   <div id="add-modal" class="modal hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 100; padding: 20px;">
     <div style="background: #fff; width: 100%; max-width: 400px; border-radius: 20px; padding: 20px;">
       <div class="section-title">Last-minute Entry</div>
-      <div id="modal-player-list" class="attendance-list" style="margin-bottom:12px;"></div>
+      <div id="modal-player-list" class="attendance-list" style="margin-bottom:12px; grid-template-columns: 1fr 1fr;"></div>
       <button class="btn-outline" onclick="addDraftGuestModal()">+ Add New Guest</button>
       <button class="btn-outline" onclick="closeModal()">Close</button>
     </div>
   </div>
 
-  <div id="history-section" style="margin-top: 30px;"><div class="section-title">Monthly Records</div><div id="history-list"></div><div class="section-title">Leaderboard (Best 10)</div><div id="leaderboard-area"></div></div>
+  <div id="history-section" style="margin-top: 30px;">
+    <div class="section-title">Monthly Records</div>
+    <div id="history-list"></div>
+    <div class="section-title">Player Power Rankings ( 기여도 기반 )</div>
+    <div id="leaderboard-area"></div>
+  </div>
 </div>
 
 <script>
@@ -261,7 +262,6 @@
     else { alert("Game Plan Saved!"); location.reload(); }
   }
 
-  // [수정] 메인 상단 Ready to Play 렌더링
   function renderSavedMatches() {
     const m = JSON.parse(localStorage.getItem('saved_manager_match'));
     if(m) {
@@ -269,7 +269,7 @@
       document.getElementById('saved-list').innerHTML = `
         <div class="saved-match-card">
           <div onclick="loadSavedMatch()" style="flex:1; font-weight:900; color:#065f46; font-size:11px; cursor:pointer;">⚽ Ready: ${m.date}</div>
-          <div style="display:flex; align-items:center;">
+          <div style="display:flex; gap:5px;">
              <button class="share-btn" onclick="shareMatchLink()">Share URL</button>
              <span class="admin-del" onclick="deleteLocalMatch()">✕</span>
           </div>
@@ -391,10 +391,10 @@
       });
     });
     const sorted = Object.entries(stats).sort((a,b) => b[1].win - a[1].win || b[1].pts - a[1].pts).slice(0,10);
-    let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th>WIN</th><th>RATE</th><th>TOTAL</th></tr></thead><tbody>`;
+    let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th>WIN PROB.</th><th>STREAK</th><th>GAMES</th></tr></thead><tbody>`;
     sorted.forEach(([name, s], i) => {
-      const rate = ((s.win/s.play)*100).toFixed(0);
-      html += `<tr><td><b>${i+1}</b></td><td>${name}</td><td>${s.win}승</td><td>${rate}%</td><td>${s.play}회</td></tr>`;
+      const prob = ((s.win/s.play)*100).toFixed(0);
+      html += `<tr><td><b>${i+1}</b></td><td>${name}</td><td><span class="prob-badge">${prob}%</span></td><td>${s.win}승</td><td>${s.play}회</td></tr>`;
     });
     document.getElementById('leaderboard-area').innerHTML = html + `</tbody></table>`;
   }
