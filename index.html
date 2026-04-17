@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v10.7</title>
+  <title>Futsal Manager Pro v10.8</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,13 +16,21 @@
     h1 { font-size: 1.3rem; font-weight: 900; color: var(--primary-color); margin: 0; letter-spacing: -1.2px; text-transform: uppercase; }
     .team-title-label { font-size: 13px; font-weight: 700; color: var(--accent-color); margin-top: 2px; display: block; }
     
-    .simple-config-bar { display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 8px 12px; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 12px; }
-    .match-type-selector { display: flex; gap: 5px; flex: 1; }
-    .type-btn { flex: 1; padding: 8px 0; border: 1px solid #cbd5e1; background: white; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 10.5px; color: var(--text-sub); }
-    .type-btn.active { border-color: var(--primary-color); background: var(--primary-color); color: white; }
-
+    /* 섹션 타이틀 공통 */
     .section-title { font-size: 9px; font-weight: 800; margin: 12px 0 6px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 3px; }
     
+    /* 상단 대기 중인 게임 카드 */
+    .saved-match-card { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 18px; padding: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .share-btn { background: #e0f2fe; color: #0369a1; border: none; padding: 5px 10px; border-radius: 8px; font-size: 10px; cursor: pointer; font-weight: 800; margin-right: 5px; }
+    .admin-del { color: #f87171; cursor: pointer; font-weight: 900; margin-left: 8px; padding: 0 4px; }
+
+    /* 퀵 세팅 바 */
+    .simple-config-bar { display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 8px 12px; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 12px; }
+    .match-type-selector { display: flex; gap: 5px; flex: 1; }
+    .type-btn { flex: 1; padding: 8px 0; border: 1px solid #cbd5e1; background: white; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 10.5px; color: var(--text-sub); }
+    .type-btn.active { border-color: var(--primary-color); background: var(--primary-color); color: white; }
+
+    /* 전략 브리핑 VS 그리드 */
     .vs-grid { display: flex; gap: 8px; align-items: stretch; margin-top: 5px; overflow-x: auto; padding-bottom: 5px; }
     .team-column { flex: 1; min-width: 165px; display: flex; flex-direction: column; gap: 8px; }
     .team-box { background: #f8fafc; border-radius: 14px; padding: 10px; border: 1px solid #e2e8f0; flex: 1; }
@@ -34,6 +42,7 @@
     .ovr-lbl { font-size: 9px; opacity: 0.6; font-weight: 700; margin-bottom: 2px; }
     .chart-mini-box { background: rgba(255,255,255,0.03); border-radius: 10px; height: 160px; position: relative; margin-top: 3px; }
 
+    /* 대시보드 1줄 카드 */
     .match-card { background: #f8fafc; border-radius: 14px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .round-info { font-size: 10px; font-weight: 900; color: var(--accent-color); min-width: 40px; }
     .score-btns { display: flex; gap: 3px; flex: 1; max-width: 160px; }
@@ -44,7 +53,7 @@
     .btn-accent { background: var(--accent-color); height: 50px; font-size: 15px; }
     .btn-outline { background: transparent; color: var(--text-sub); border: 1px solid #e2e8f0; }
 
-    /* [수정] 출석 명단 3열 레이아웃 */
+    /* 출석 명단 3열 */
     .attendance-list { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; max-height: 250px; overflow-y: auto; }
     .player-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 5px; border-radius: 10px; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; font-size: 11px; }
     .player-card.active { border-color: var(--accent-color); background: #ecfdf5; font-weight: 800; }
@@ -53,8 +62,10 @@
     .hidden { display: none !important; }
     .date-input-container { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 12px; margin-top: 10px; display: flex; align-items: center; gap: 8px; }
     input[type="date"] { border: none; background: transparent; font-family: inherit; font-weight: 700; color: var(--primary-color); flex: 1; cursor: pointer; font-size: 12px; }
-    .admin-del { color: #f87171; cursor: pointer; font-weight: 900; margin-left: 8px; padding: 0 4px; }
-    .share-btn { background: #e0f2fe; color: #0369a1; border: none; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer; font-weight: 800; }
+    
+    .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; background: white; border-radius: 16px; overflow: hidden; border: 1px solid #eee; }
+    .leaderboard-table th { background: #f8fafc; padding: 10px; text-align: left; color: var(--text-sub); font-size: 10px; }
+    .leaderboard-table td { padding: 10px; border-bottom: 1px solid #f8fafc; }
   </style>
 </head>
 <body>
@@ -76,7 +87,8 @@
       </div>
       <div id="att-count">0 Selected</div>
     </div>
-    <div class="section-title">Attendance Checklist (3-Col)</div>
+
+    <div class="section-title">Attendance Checklist</div>
     <div id="loading" class="loading-msg">Loading Player List... <div id="load-timer" style="font-size:10px; opacity:0.6;">3s left</div></div>
     <div class="attendance-list" id="attendance-list"></div>
     <div id="guest-draft-area" style="margin-top:8px; display:flex; gap:4px; flex-wrap: wrap;"></div>
@@ -91,7 +103,6 @@
       <label style="font-size:10px; font-weight:800; color:var(--text-sub);">MATCH DATE</label>
       <input type="date" id="match-date-input">
     </div>
-    
     <button class="btn-outline" style="margin-top: 12px;" onclick="openAddPlayerModal()">+ Add Last-minute Player</button>
     <button class="btn-outline" onclick="saveMatchToHistory('exit')">Save Game Plan 💾</button>
     <button class="btn-accent" onclick="saveMatchToHistory('dashboard')">Start Game Now ⚽</button>
@@ -250,14 +261,15 @@
     else { alert("Game Plan Saved!"); location.reload(); }
   }
 
+  // [수정] 메인 상단 Ready to Play 렌더링
   function renderSavedMatches() {
     const m = JSON.parse(localStorage.getItem('saved_manager_match'));
     if(m) {
       document.getElementById('saved-matches-section').classList.remove('hidden');
       document.getElementById('saved-list').innerHTML = `
-        <div class="saved-match-card" style="background:#f0fdf4; padding:12px; border-radius:18px; display:flex; justify-content:space-between; align-items:center;">
+        <div class="saved-match-card">
           <div onclick="loadSavedMatch()" style="flex:1; font-weight:900; color:#065f46; font-size:11px; cursor:pointer;">⚽ Ready: ${m.date}</div>
-          <div style="display:flex; gap:5px;">
+          <div style="display:flex; align-items:center;">
              <button class="share-btn" onclick="shareMatchLink()">Share URL</button>
              <span class="admin-del" onclick="deleteLocalMatch()">✕</span>
           </div>
