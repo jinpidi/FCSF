@@ -305,20 +305,34 @@
     alert(msg);
   }
 
-  function secureDelete(e, id) { 
-    e.stopPropagation(); 
-    const pw = prompt("Admin Password:"); 
-    if (pw && (parseInt(pw) + 77 == 1110100)) { 
-      if(confirm("이 기록을 화면에서 숨길까요?")) {
-        hData = hData.filter(h => h.id !== id);
-        renderHistory();
+  async function secureDelete(e, id) { 
+  e.stopPropagation(); 
+  const pw = prompt("Admin Password:"); 
+  // 비밀번호 확인 (기존 로직 유지)
+  if (pw && (parseInt(pw) + 77 == 1110100)) { 
+    if(confirm("이 기록을 구글 시트에서 영구히 삭제하시겠습니까?")) {
+      try {
+        // 서버(구글 시트)에 삭제 요청 전송
+        const response = await fetch(SHEET_API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: "DELETE", id: id })
+        });
+        
+        if (await response.text() === "Deleted") {
+          alert("시트 데이터가 삭제되었습니다.");
+          hData = hData.filter(h => h.id !== id);
+          renderHistory(); // 화면 갱신
+        } else {
+          alert("삭제 실패 (이미 지워졌거나 데이터를 찾을 수 없음)");
+        }
+      } catch (err) {
+        alert("서버 통신 오류가 발생했습니다.");
       }
-    } else if (pw !== null) { alert("Wrong Password."); }
+    }
+  } else if (pw !== null) { 
+    alert("Wrong Password."); 
   }
-
-  function confirmReset() { if(confirm("Cancel current match?")) location.reload(); }
-  function goBack() { document.getElementById('result-page').classList.add('hidden'); document.getElementById('setup-page').classList.remove('hidden'); }
-  window.onload = fetchMasterData;
+}
 </script>
 </body>
 </html>
