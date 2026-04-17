@@ -425,8 +425,23 @@
     for(const m in groups) {
       let mHtml = `<div class="history-month-group"><div style="font-weight:900; font-size:11px; margin-bottom:8px;">${m} SUMMARY</div>`;
       groups[m].forEach(h=>{
+        let roundLine = '';
+        if (h.rounds && h.rounds.length) {
+          roundLine = `<div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.35;border-top:1px solid #f1f5f9;padding-top:6px;">` +
+            h.rounds.map(r => {
+              let tag = '—';
+              if (r.winner === 't1') tag = `T${r.t1 + 1} 승`;
+              else if (r.winner === 't2') tag = `T${r.t2 + 1} 승`;
+              else if (r.winner === 'draw') tag = '무승부';
+              return `<span style="margin-right:8px;"><b>R${r.id}</b> ${tag}</span>`;
+            }).join('') + `</div>`;
+        }
         mHtml += `<div class="history-card" style="background:#fff; padding:10px; border-radius:12px; border:1px solid #eee; margin-bottom:8px; position:relative;"><div style="font-size:10px; font-weight:800; margin-bottom:4px;">${h.date} <span class="admin-del" style="position:absolute; top:8px; right:8px;" onclick="deleteCloudMatch(${h.id})">✕</span></div>`;
-        h.rank.forEach(rk=>{ mHtml += `<div style="font-size:9.5px; display:flex; justify-content:space-between; margin-bottom:2px;"><span><b>${rk.r}${rk.sfx}</b> ${rk.names} <small>(Rating:${rk.ovr})</small></span><span style="color:var(--accent-color); font-weight:800;">${rk.pts}pt</span></div>`; });
+        h.rank.forEach(rk=>{
+          const rec = (rk.record != null && rk.record !== '') ? ` · <small style="color:#64748b;font-weight:700;">${rk.record}</small>` : '';
+          mHtml += `<div style="font-size:9.5px; display:flex; justify-content:space-between; margin-bottom:2px;"><span><b>${rk.r}${rk.sfx}</b> ${rk.names} <small>(Rating:${rk.ovr})</small>${rec}</span><span style="color:var(--accent-color); font-weight:800;">${rk.pts}pt</span></div>`;
+        });
+        mHtml += roundLine;
         mHtml += `</div>`;
       }); box.innerHTML += mHtml + `</div>`;
     } renderLeaderboard();
