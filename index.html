@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v12.2</title>
+  <title>Futsal Manager Pro v12.3</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -147,6 +147,11 @@
   document.getElementById('match-date-input').value = todayStr;
   document.getElementById('display-team-name').innerText = TEAM_NAME;
 
+  // [수정] 전체 플레이어의 평균 점수를 구하는 함수 (게스트용)
+  function getGuestScore() {
+    return masterPlayers.length ? parseFloat((masterPlayers.reduce((s,p)=>s+p.score,0)/masterPlayers.length).toFixed(1)) : 5;
+  }
+
   async function fetchMasterData() {
     try {
       const response = await fetch(SHEET_API_URL);
@@ -185,7 +190,7 @@
   }
 
   function addDraftGuest() {
-    draftGuests.push({ n: `Guest ${draftGuests.length+1}`, s: 5 });
+    draftGuests.push({ n: `Guest ${draftGuests.length+1}`, s: getGuestScore() });
     renderDraftGuests(); updateCount();
   }
 
@@ -235,17 +240,31 @@
     });
   }
 
+  // [수정] 5명 미만일 경우 개인 스코어 노출 및 유추 방지 로직
   function autoAnalyze() {
     document.querySelectorAll('.team-column').forEach((col, i)=>{
       const items = col.querySelectorAll('.drag-item');
       let total = 0; items.forEach(it=>total+=parseFloat(it.dataset.score));
       const avg = items.length>0 ? total/items.length : 0;
       const base = avg*10; const stats = [base+5,base+2,base+7,base+3,base+1,base+4].map(s=>Math.min(99,Math.floor(s)));
-      document.getElementById(`ovr-${i}`).innerText = items.length>0 ? Math.floor(stats.reduce((a,b)=>a+b)/6) : 0;
+      
+      const ovrEl = document.getElementById(`ovr-${i}`);
+      if(items.length >= 5) { 
+        ovrEl.innerText = Math.floor(stats.reduce((a,b)=>a+b)/6); 
+        ovrEl.style.fontSize = '24px'; 
+      } else if(items.length > 0) { 
+        ovrEl.innerText = "5명↑ 노출"; 
+        ovrEl.style.fontSize = '12px'; 
+      } else { 
+        ovrEl.innerText = "--"; 
+        ovrEl.style.fontSize = '24px'; 
+      }
+      
+      const cData = items.length >= 5 ? stats : [0,0,0,0,0,0];
       const ctx = document.getElementById(`radar-${i}`).getContext('2d');
       if(charts[i]) charts[i].destroy();
       charts[i] = new Chart(ctx, {
-        type:'radar', data:{ labels:['ATT','DEF','SPD','PAS','STA','ORG'], datasets:[{data:stats,backgroundColor:'rgba(16,185,129,0.2)',borderColor:'#10b981',borderWidth:2,pointRadius:0}]},
+        type:'radar', data:{ labels:['ATT','DEF','SPD','PAS','STA','ORG'], datasets:[{data:cData,backgroundColor:'rgba(16,185,129,0.2)',borderColor:'#10b981',borderWidth:2,pointRadius:0}]},
         options:{ scales:{r:{min:0,max:100,ticks:{display:false},grid:{color:'rgba(255,255,255,0.1)'},pointLabels:{color:'#94a3b8',font:{size:8,weight:'bold'}}}}, plugins:{legend:{display:false}}, responsive:true, maintainAspectRatio:false }
       });
     });
@@ -279,7 +298,7 @@
     activeMatch = JSON.parse(localStorage.getItem('saved_manager_match'));
     document.getElementById('shuffle-btn').classList.add('hidden');
     document.getElementById('match-date-input').value = activeMatch.date.replace(/\. /g, '-');
-    renderVSMode(activeMatch.teams.map(t=>({ members: t.members.map(n=>({n, s: (masterPlayers.find(p=>p.name===n)||{score:5}).score}))})));
+    renderVSMode(activeMatch.teams.map(t=>({ members: t.members.map(n=>({n, s: (masterPlayers.find(p=>p.name===n)||{score:getGuestScore()}).score}))})));
     
     if (activeMatch.rounds && activeMatch.rounds.some(r => r.winner !== null)) {
       if (confirm("이전에 기록하던 경기 데이터가 있습니다. 대시보드로 바로 이동할까요?")) {
@@ -340,11 +359,10 @@
     document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
   }
 
-  // [수정: 핵심 문제 해결] 서버 충돌(Sync Failed) 방지를 위한 강제 로컬 메모리 주입 업데이트 방식!
   async function finishMatch() {
     if(!confirm("Cloud Archive?")) return; 
-    document.body.style.opacity = "0.5";
     
+    // 이전에 에러를 방지하기 위해 사용했던 완벽한 동기화 기법 (수정 없음)
     const st = activeMatch.teams.map((t, tid)=>{
       let w=0,d=0,l=0,p=0; 
       activeMatch.rounds.forEach(r=>{ 
@@ -359,6 +377,7 @@
     
     const log = { id:activeMatch.id, date:activeMatch.date, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
     
+    document.body.style.opacity = "0.5";
     try { 
       // 1. 구글 서버로 데이터 전송
       await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify(log) }); 
@@ -366,15 +385,15 @@
       // 2. 임시저장소(이어하기) 데이터 삭제
       localStorage.removeItem('saved_manager_match'); 
       
-      // 3. [가장 중요한 부분] 화면을 새로고침하지 않고, 방금 만든 데이터를 앱 내부 메모리에 즉시 밀어넣습니다.
+      // 3. 서버 통신 없이 메모리에 바로 반영하여 Sync Failed 방지
       hData.push(log);
       
-      // 4. 화면 전환 및 데이터 그리기 (서버를 다시 부르지 않으므로 절대 충돌 안함!)
+      // 4. 화면 즉시 복구 및 새로 그리기
       document.body.style.opacity = "1";
       document.getElementById('match-page').classList.add('hidden');
       document.getElementById('setup-page').classList.remove('hidden');
       
-      renderHistory(); // 랭킹과 기록을 그 자리에서 즉시 새로 그림
+      renderHistory(); 
       renderSavedMatches();
 
       alert("Archived Successfully! 🏆"); 
@@ -421,7 +440,7 @@
     document.getElementById('add-modal').classList.remove('hidden');
   }
   function addLastMinutePlayer(n, s) { document.getElementById('team-list-0').innerHTML += `<div class="drag-item" data-score="${s}">${n}<span style="cursor:pointer;" onclick="this.parentElement.remove();autoAnalyze();">✕</span></div>`; autoAnalyze(); }
-  function addDraftGuestModal() { addLastMinutePlayer(`Guest ${document.querySelectorAll('.drag-item').length + 1}`, 5); }
+  function addDraftGuestModal() { addLastMinutePlayer(`Guest ${document.querySelectorAll('.drag-item').length + 1}`, getGuestScore()); }
   function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
   
   window.onload = () => { fetchMasterData(); renderSavedMatches(); };
