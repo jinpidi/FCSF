@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v12.1</title>
+  <title>Futsal Manager Pro v12.2</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -340,7 +340,7 @@
     document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
   }
 
-  // [수정] 충돌 방지를 위한 완벽한 원래 방식(location.reload)으로 복구
+  // [수정: 핵심 문제 해결] 서버 충돌(Sync Failed) 방지를 위한 강제 로컬 메모리 주입 업데이트 방식!
   async function finishMatch() {
     if(!confirm("Cloud Archive?")) return; 
     document.body.style.opacity = "0.5";
@@ -360,10 +360,24 @@
     const log = { id:activeMatch.id, date:activeMatch.date, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
     
     try { 
+      // 1. 구글 서버로 데이터 전송
       await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify(log) }); 
+      
+      // 2. 임시저장소(이어하기) 데이터 삭제
       localStorage.removeItem('saved_manager_match'); 
-      alert("Archived Successfully!"); 
-      location.reload(); 
+      
+      // 3. [가장 중요한 부분] 화면을 새로고침하지 않고, 방금 만든 데이터를 앱 내부 메모리에 즉시 밀어넣습니다.
+      hData.push(log);
+      
+      // 4. 화면 전환 및 데이터 그리기 (서버를 다시 부르지 않으므로 절대 충돌 안함!)
+      document.body.style.opacity = "1";
+      document.getElementById('match-page').classList.add('hidden');
+      document.getElementById('setup-page').classList.remove('hidden');
+      
+      renderHistory(); // 랭킹과 기록을 그 자리에서 즉시 새로 그림
+      renderSavedMatches();
+
+      alert("Archived Successfully! 🏆"); 
     }
     catch(e) { 
       alert("Archive Failed. Check Network."); 
