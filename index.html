@@ -465,8 +465,8 @@
 
   function renderLeaderboard() {
     const stats = {}; hData.forEach(h => { h.rank.forEach(rk => { const names = rk.names.split(',').map(n=>n.trim()); names.forEach(name => { if(name.toLowerCase().includes('guest')) return; if(!stats[name]) stats[name] = { play:0, win:0 }; stats[name].play++; if(rk.r === 1) stats[name].win++; }); }); });
-    const sorted = Object.entries(stats).sort((a,b) => (b[1].win/b[1].play) - (a[1].win/a[1].play) || b[1].play - a[1].play).slice(0,10);
-    let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th>WIN PROB.</th><th>STREAK</th><th>GAMES</th></tr></thead><tbody>`;
+    const sorted = Object.entries(stats).sort((a,b) => (b[1].win/b[1].play) - (a[1].win/a[1].play) || b[1].play - a[1].play).slice(0,20);
+    let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th>WIN PROB.</th><th>WIN</th><th>GAMES</th></tr></thead><tbody>`;
     sorted.forEach(([name, s], i) => { html += `<tr><td><b>${i+1}</b></td><td>${name}</td><td><span class="prob-badge">${((s.win/s.play)*100).toFixed(0)}%</span></td><td>${s.win}승</td><td>${s.play}회</td></tr>`; });
     document.getElementById('leaderboard-area').innerHTML = html + `</tbody></table>`;
   }
