@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v9.3</title>
+  <title>Futsal Manager Pro v10.3</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <style>
     :root { --primary-color: #0f172a; --accent-color: #10b981; --bg-color: #f1f5f9; --card-bg: #ffffff; --text-main: #1e293b; --text-sub: #64748b; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
@@ -16,37 +17,26 @@
     h1 { font-size: 1.4rem; font-weight: 900; color: var(--primary-color); margin: 0; letter-spacing: -1.2px; text-transform: uppercase; }
     .team-title-label { font-size: 14px; font-weight: 700; color: var(--accent-color); margin-top: 4px; display: block; }
     
-    /* [수정] 한 줄 심플 세팅 바 */
     .simple-config-bar { display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 10px 15px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 15px; }
     .match-type-selector { display: flex; gap: 5px; flex: 1; }
-    .type-btn { flex: 1; padding: 10px 0; border: 1px solid #cbd5e1; background: white; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 11px; transition: 0.2s; color: var(--text-sub); }
+    .type-btn { flex: 1; padding: 10px 0; border: 1px solid #cbd5e1; background: white; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 11px; color: var(--text-sub); }
     .type-btn.active { border-color: var(--primary-color); background: var(--primary-color); color: white; }
-    #att-count { font-weight: 800; color: var(--accent-color); white-space: nowrap; font-size: 12px; }
 
-    .section-title { font-size: 10px; font-weight: 800; margin: 15px 0 8px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 4px; }
+    .section-title { font-size: 10px; font-weight: 800; margin: 20px 0 8px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 4px; }
     
-    /* [수정] 전략 회의 VS 레이아웃 정렬 보강 */
     .vs-grid { display: flex; gap: 12px; align-items: stretch; margin-top: 10px; overflow-x: auto; padding-bottom: 10px; }
-    .team-column { flex: 1; min-width: 170px; display: flex; flex-direction: column; gap: 10px; }
-    
-    .team-box { background: #f8fafc; border-radius: 16px; padding: 12px; border: 1px solid #e2e8f0; flex: 1; display: flex; flex-direction: column; }
-    .drag-list { min-height: 150px; flex: 1; padding: 5px; background: rgba(255,255,255,0.5); border-radius: 10px; border: 1px dashed #cbd5e1; }
-    .drag-item { background: white; padding: 8px; border-radius: 8px; margin-bottom: 5px; border: 1px solid #e2e8f0; cursor: grab; font-weight: 700; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
-    .drag-item .item-del { color: #f87171; font-weight: 900; padding: 0 5px; cursor: pointer; }
+    .team-column { flex: 1; min-width: 175px; display: flex; flex-direction: column; gap: 10px; }
+    .team-box { background: #f8fafc; border-radius: 16px; padding: 12px; border: 1px solid #e2e8f0; flex: 1; }
+    .drag-list { min-height: 150px; background: rgba(255,255,255,0.5); border-radius: 10px; border: 1px dashed #cbd5e1; padding: 5px; }
+    .drag-item { background: white; padding: 8px; border-radius: 8px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-weight: 700; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
 
-    /* [수정] 차트 크기 확대 및 카드 디자인 */
     .tactical-card { background: #111827; color: #fff; padding: 15px; border-radius: 18px; text-align: center; }
     .ovr-val { font-size: 28px; font-weight: 900; color: var(--accent-color); line-height: 1; }
-    .ovr-lbl { font-size: 10px; opacity: 0.6; font-weight: 700; margin-bottom: 3px; }
-    .chart-mini-box { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 5px; height: 180px; position: relative; }
+    .chart-mini-box { background: rgba(255,255,255,0.03); border-radius: 12px; height: 180px; position: relative; margin-top: 5px; }
 
-    /* 대시보드 1줄 레이아웃 */
-    .match-card { background: #f8fafc; border-radius: 16px; padding: 10px 15px; margin-bottom: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .round-info { font-size: 10px; font-weight: 900; color: var(--accent-color); min-width: 45px; }
-    .vs-area { display: flex; align-items: center; flex: 1; gap: 8px; justify-content: center; }
-    .score-btns { display: flex; gap: 3px; flex: 1; max-width: 180px; }
-    .s-btn { flex: 1; padding: 8px 0; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-size: 10px; font-weight: 700; cursor: pointer; }
-    .s-btn.selected { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+    .match-card { background: #f8fafc; border-radius: 16px; padding: 10px 15px; margin-bottom: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+    .s-btn { flex: 1; padding: 8px 0; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-size: 10px; font-weight: 700; }
+    .s-btn.selected { background: var(--primary-color); color: white; }
 
     button { background: var(--primary-color); color: white; border: none; padding: 14px; border-radius: 14px; font-weight: 700; cursor: pointer; width: 100%; font-size: 13px; margin-top: 8px; }
     .btn-accent { background: var(--accent-color); height: 55px; font-size: 15px; }
@@ -56,10 +46,16 @@
     .player-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
     .player-card.active { border-color: var(--accent-color); background: #ecfdf5; }
     
+    .loading-msg { text-align: center; padding: 30px; color: var(--text-sub); font-weight: 600; }
     .hidden { display: none !important; }
-    .loading-msg { text-align: center; padding: 30px; color: var(--text-sub); font-weight: 600; font-size: 14px; }
-    .dots::after { content: ''; display: inline-block; width: 12px; animation: dots 1.5s infinite; }
-    @keyframes dots { 0% { content: ''; } 33% { content: '.'; } 66% { content: '..'; } 100% { content: '...'; } }
+    .history-month-group { margin-bottom: 25px; border-left: 4px solid var(--accent-color); padding-left: 10px; }
+    .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; background: white; border-radius: 16px; overflow: hidden; border: 1px solid #eee; }
+    .leaderboard-table th { background: #f8fafc; padding: 10px; text-align: left; color: var(--text-sub); font-size: 10px; }
+    .leaderboard-table td { padding: 10px; border-bottom: 1px solid #f8fafc; }
+    
+    .admin-del { color: #f87171; cursor: pointer; font-weight: 900; margin-left: 10px; padding: 0 5px; }
+    .date-input-container { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 16px; margin-top: 15px; display: flex; align-items: center; gap: 10px; }
+    input[type="date"] { border: none; background: transparent; font-family: inherit; font-weight: 700; color: var(--primary-color); flex: 1; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -67,9 +63,7 @@
 <div class="container">
   <div id="setup-page">
     <header><h1>Futsal Manager Pro</h1><span id="display-team-name" class="team-title-label"></span></header>
-    
-    <div id="saved-matches-section" class="hidden"><div class="section-title">Ready to Deploy</div><div id="saved-list"></div></div>
-    
+    <div id="saved-matches-section" class="hidden"><div class="section-title">Ready to Play</div><div id="saved-list"></div></div>
     <div class="section-title">Quick Settings</div>
     <div class="simple-config-bar">
       <div class="match-type-selector">
@@ -78,24 +72,29 @@
       </div>
       <div id="att-count">0 Players Selected</div>
     </div>
-
     <div class="section-title">Attendance Checklist</div>
-    <div id="loading" class="loading-msg">
-      <span class="dots">Loading Player List</span>
-      <div id="load-timer" style="font-size: 11px; font-weight: 400; margin-top: 5px; opacity: 0.7;">Elapsed: 0s</div>
-    </div>
-    
+    <div id="loading" class="loading-msg">Loading Player List... <div id="load-timer" style="font-size:11px; opacity:0.6;">Est. 3s left</div></div>
     <div class="attendance-list" id="attendance-list"></div>
+    <div id="guest-draft-area" style="margin-top:10px; display:flex; gap:5px; flex-wrap: wrap;"></div>
+    <button class="btn-outline" onclick="addDraftGuest()">+ Add Guest Player</button>
     <button class="btn-accent" onclick="makeTeams()">Draft Teams ⚡</button>
   </div>
 
   <div id="result-page" class="hidden">
     <header><h1 style="color:var(--accent-color);">Tactical Briefing</h1></header>
-    <div id="vs-display-grid" class="vs-grid"></div>
-    <button class="btn-outline" style="margin-top: 15px;" onclick="openAddPlayerModal()">+ Add Last-minute Player</button>
+    <div id="capture-area" style="background:#fff; padding:10px; border-radius:20px;">
+        <div id="vs-display-grid" class="vs-grid"></div>
+        <div class="date-input-container">
+          <label style="font-size:11px; font-weight:800; color:var(--text-sub); margin-right:10px;">MATCH DATE</label>
+          <input type="date" id="match-date-input">
+        </div>
+    </div>
+    
+    <button class="btn-outline" style="margin-top: 15px; background:#f0f9ff; border-color:#bae6fd; color:#0369a1;" onclick="takeSnapshot()">📸 Save Tactical Board Image</button>
+    <button class="btn-outline" onclick="openAddPlayerModal()">+ Add Last-minute Player</button>
     <button class="btn-accent" onclick="saveMatchToHistory('dashboard')">Enter Dashboard ⚽</button>
     <button class="btn-outline" onclick="saveMatchToHistory('exit')">Save Tactics 💾</button>
-    <button style="background:transparent; color:var(--text-sub); border:none; font-size:11px;" onclick="goBack()">Cancel</button>
+    <button class="btn-outline" onclick="goBack('setup')">← Back to Setup</button>
   </div>
 
   <div id="match-page" class="hidden">
@@ -103,34 +102,45 @@
     <div id="live-ranking" style="background:var(--primary-color); color:white; padding:12px; border-radius:18px; margin-bottom:15px; font-size:12px; text-align:center; font-weight:700;"></div>
     <div id="round-list"></div>
     <button class="btn-accent" onclick="finishMatch()">Complete & Archive 🏁</button>
-    <button class="btn-outline" onclick="confirmReset()">Close</button>
+    <button class="btn-outline" onclick="goBack('result')">← Back to Tactics</button>
   </div>
 
   <div id="add-modal" class="modal hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 100; padding: 20px;">
     <div style="background: #fff; width: 100%; max-width: 400px; border-radius: 24px; padding: 20px;">
-      <div class="section-title">Last-minute entry</div>
-      <div id="modal-player-list" class="attendance-list"></div>
+      <div class="section-title">Last-minute Entry</div>
+      <div id="modal-player-list" class="attendance-list" style="margin-bottom:15px;"></div>
+      <button class="btn-outline" onclick="addDraftGuestModal()">+ Add New Guest</button>
       <button class="btn-outline" onclick="closeModal()">Close</button>
     </div>
   </div>
 
-  <div id="history-section" style="margin-top: 30px;"><div class="section-title">Manager Records</div><div id="history-list"></div></div>
+  <div id="history-section" style="margin-top: 40px;">
+    <div class="section-title">Monthly Records</div>
+    <div id="history-list"></div>
+    <div class="section-title">Leaderboard (Best 10)</div>
+    <div id="leaderboard-area"></div>
+  </div>
 </div>
 
 <script>
   const TEAM_NAME = "FC 서울숲";
+  const ADMIN_PW = "1110023";
   const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzo_9mYhtzTFQ6oFh9Xd-RaVf6degYYeEI9mCNrgyyaku4jnjNKVo7WIBaf2otYIVwB/exec"; 
 
-  let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [];
-  let loadStartTime = Date.now();
-
-  document.getElementById('display-team-name').innerText = TEAM_NAME;
-
-  // 로딩 타이머 가동
+  let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [];
+  
+  // 로딩 타이머 (카운트다운)
+  let loadTimeLeft = 3;
   const timerInt = setInterval(() => {
-    if(document.getElementById('loading').classList.contains('hidden')) clearInterval(timerInt);
-    document.getElementById('load-timer').innerText = `Elapsed: ${Math.floor((Date.now() - loadStartTime)/1000)}s`;
+    if(!document.getElementById('loading').classList.contains('hidden')) {
+      if(loadTimeLeft > 0) loadTimeLeft--;
+      document.getElementById('load-timer').innerText = `Est. ${loadTimeLeft}s left`;
+    } else { clearInterval(timerInt); }
   }, 1000);
+
+  const todayStr = new Date().toISOString().substring(0, 10);
+  document.getElementById('match-date-input').value = todayStr;
+  document.getElementById('display-team-name').innerText = TEAM_NAME;
 
   async function fetchMasterData() {
     try {
@@ -142,257 +152,275 @@
       renderAttendanceList();
       renderHistory();
       renderSavedMatches();
-    } catch (e) { document.getElementById('loading').innerText = "Load failed."; }
+    } catch (e) { document.getElementById('loading').innerText = "Sync Failed."; }
   }
 
   function setTeamCount(val) {
     teamCount = val;
     document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
-    if(val === 2) document.getElementById('btn-2team').classList.add('active');
-    else document.getElementById('btn-3team').classList.add('active');
+    val === 2 ? document.getElementById('btn-2team').classList.add('active') : document.getElementById('btn-3team').classList.add('active');
   }
 
   function renderAttendanceList() {
     const box = document.getElementById('attendance-list'); box.innerHTML = '';
-    masterPlayers.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR')).forEach(p => {
-      const card = document.createElement('div'); card.className = 'player-card';
-      card.onclick = () => { card.classList.toggle('active'); updateCount(); };
-      card.innerHTML = `<span class="p-name" data-score="${p.score}">${p.name}</span>`;
-      box.appendChild(card);
+    masterPlayers.sort((a,b)=>a.name.localeCompare(b.name,'ko-KR')).forEach(p=>{
+      box.innerHTML += `<div class="player-card" onclick="this.classList.toggle('active');updateCount();"><span class="p-name" data-score="${p.score}">${p.name}</span></div>`;
     });
   }
 
   function updateCount() {
-    const count = document.querySelectorAll('#attendance-list .player-card.active').length;
-    document.getElementById('att-count').innerText = `${count} Players Selected`;
+    const c = document.querySelectorAll('#attendance-list .player-card.active').length + draftGuests.length;
+    document.getElementById('att-count').innerText = c + " Players Selected";
+  }
+
+  function addDraftGuest() {
+    draftGuests.push({ n: `Guest ${draftGuests.length+1}`, s: 5 });
+    renderDraftGuests();
+    updateCount();
+  }
+
+  function renderDraftGuests() {
+    const area = document.getElementById('guest-draft-area');
+    area.innerHTML = draftGuests.map((g,i)=>`<div style="background:#e2e8f0; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:700;">${g.n} <span style="cursor:pointer;" onclick="draftGuests.splice(${i},1);renderDraftGuests();updateCount();">✕</span></div>`).join('');
   }
 
   function makeTeams() {
-    const selected = Array.from(document.querySelectorAll('#attendance-list .player-card.active')).map(el => {
-      const span = el.querySelector('.p-name');
-      return { n: span.innerText, s: parseFloat(span.dataset.score) };
+    let sel = Array.from(document.querySelectorAll('#attendance-list .player-card.active')).map(el=>{
+      const s = el.querySelector('.p-name');
+      return { n: s.innerText, s: parseFloat(s.dataset.score) };
     });
-    if(selected.length < teamCount) return alert("인원이 부족합니다.");
-    selected.sort((a,b) => b.s - a.s);
-    let teams = Array.from({length: teamCount}, () => ({ members: [] }));
-    let idx = 0, dir = 1;
-    selected.forEach(p => { teams[idx].members.push(p); idx += dir; if(idx === teamCount || idx === -1) { dir *= -1; idx += dir; } });
+    sel = [...sel, ...draftGuests];
+    if(sel.length < teamCount) return alert("인원 부족");
+    sel.sort((a,b)=>b.s-a.s);
+    let teams = Array.from({length:teamCount}, ()=>({members:[]}));
+    let idx=0, dir=1;
+    sel.forEach(p=>{ teams[idx].members.push(p); idx+=dir; if(idx===teamCount||idx===-1){dir*=-1;idx+=dir;} });
     renderVSMode(teams);
   }
 
-  // [수정] 가나다순 정렬 및 VS 레이아웃 렌더링
   function renderVSMode(teams) {
     document.getElementById('setup-page').classList.add('hidden');
     document.getElementById('result-page').classList.remove('hidden');
-    const grid = document.getElementById('vs-display-grid');
-    grid.innerHTML = '';
-    charts.forEach(c => c.destroy());
-    charts = [];
+    const grid = document.getElementById('vs-display-grid'); grid.innerHTML = '';
+    charts.forEach(c=>c.destroy()); charts = [];
 
-    teams.forEach((t, i) => {
-      // 명단 가나다순 정렬
-      t.members.sort((a, b) => a.n.localeCompare(b.n, 'ko-KR'));
-
-      const col = document.createElement('div');
-      col.className = 'team-column';
-      col.innerHTML = `
-        <div class="team-box">
-          <div class="section-title" style="margin-top:0; color:var(--primary-color);">SQUAD T${i+1}</div>
-          <div class="drag-list" id="team-list-${i}"></div>
-        </div>
-        <div class="tactical-card">
-          <div class="ovr-lbl">TEAM RATING</div><div class="ovr-val" id="ovr-${i}">--</div>
-          <div class="chart-mini-box"><canvas id="radar-${i}"></canvas></div>
-        </div>
-      `;
-      grid.appendChild(col);
-      const listEl = document.getElementById(`team-list-${i}`);
-      t.members.forEach(p => {
-        const item = document.createElement('div');
-        item.className = 'drag-item';
-        item.dataset.score = p.s || 5;
-        item.innerHTML = `${p.n}<span class="item-del" onclick="this.parentElement.remove(); autoAnalyze();">✕</span>`;
-        listEl.appendChild(item);
-      });
-      new Sortable(listEl, { group: 'teams', animation: 150, onEnd: () => autoAnalyze() });
+    teams.forEach((t, i)=>{
+      t.members.sort((a,b)=>a.n.localeCompare(b.n,'ko-KR'));
+      grid.innerHTML += `
+        <div class="team-column">
+          <div class="team-box"><div class="section-title">SQUAD T${i+1}</div><div class="drag-list" id="team-list-${i}"></div></div>
+          <div class="tactical-card"><div class="ovr-lbl">POWER</div><div class="ovr-val" id="ovr-${i}">--</div><div class="chart-mini-box"><canvas id="radar-${i}"></canvas></div></div>
+        </div>`;
+      setTimeout(()=>{
+        const listEl = document.getElementById(`team-list-${i}`);
+        t.members.forEach(p=>{
+          listEl.innerHTML += `<div class="drag-item" data-score="${p.s}">${p.n}<span style="cursor:pointer;" onclick="this.parentElement.remove();autoAnalyze();">✕</span></div>`;
+        });
+        new Sortable(listEl, { group:'teams', animation:150, onEnd:autoAnalyze });
+        autoAnalyze();
+      },0);
     });
-    autoAnalyze();
   }
 
   function autoAnalyze() {
-    charts.forEach(c => c.destroy());
-    charts = [];
-    document.querySelectorAll('.team-column').forEach((col, i) => {
+    document.querySelectorAll('.team-column').forEach((col, i)=>{
       const items = col.querySelectorAll('.drag-item');
-      let total = 0;
-      items.forEach(it => total += parseFloat(it.dataset.score));
-      const avg = items.length > 0 ? total / items.length : 0;
-      const base = avg * 10;
-      const stats = [base+5, base+2, base+7, base+3, base+1, base+4].map(s => Math.min(99, Math.floor(s)));
-      const overall = items.length > 0 ? Math.floor(stats.reduce((a,b)=>a+b)/6) : 0;
+      let total = 0; items.forEach(it=>total+=parseFloat(it.dataset.score));
+      const avg = items.length>0 ? total/items.length : 0;
+      const base = avg*10; const stats = [base+5,base+2,base+7,base+3,base+1,base+4].map(s=>Math.min(99,Math.floor(s)));
+      const overall = items.length>0 ? Math.floor(stats.reduce((a,b)=>a+b)/6) : 0;
       document.getElementById(`ovr-${i}`).innerText = overall;
       const ctx = document.getElementById(`radar-${i}`).getContext('2d');
-      const chart = new Chart(ctx, {
-        type: 'radar',
-        data: {
-          labels: ['AT','DF','SP','PS','ST','OR'],
-          datasets: [{ data: stats, backgroundColor: 'rgba(16,185,129,0.2)', borderColor: '#10b981', borderWidth: 2, pointRadius: 0 }]
-        },
-        options: {
-          scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { color: 'rgba(255,255,255,0.1)' }, pointLabels: { color: '#94a3b8', font: { size: 9, weight: 'bold' } } } },
-          plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false
-        }
+      if(charts[i]) charts[i].destroy();
+      charts[i] = new Chart(ctx, {
+        type:'radar',
+        data:{ labels:['AT','DF','SP','PS','ST','OR'], datasets:[{data:stats,backgroundColor:'rgba(16,185,129,0.2)',borderColor:'#10b981',borderWidth:2,pointRadius:0}]},
+        options:{ scales:{r:{min:0,max:100,ticks:{display:false},grid:{color:'rgba(255,255,255,0.1)'},pointLabels:{color:'#94a3b8',font:{size:9,weight:'bold'}}}}, plugins:{legend:{display:false}}, responsive:true, maintainAspectRatio:false }
       });
-      charts.push(chart);
+    });
+  }
+
+  // [신규] 전술 보드 이미지 저장 기능
+  function takeSnapshot() {
+    const area = document.getElementById('capture-area');
+    html2canvas(area, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
+      const link = document.createElement('a');
+      link.download = `Tactical_Board_${new Date().toLocaleDateString()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
     });
   }
 
   function openAddPlayerModal() {
-    const activeNames = Array.from(document.querySelectorAll('.drag-item')).map(el => el.childNodes[0].textContent.trim());
-    const unchecked = masterPlayers.filter(p => !activeNames.includes(p.name));
-    const box = document.getElementById('modal-player-list');
-    box.innerHTML = '';
-    unchecked.forEach(p => {
-      const card = document.createElement('div'); card.className = 'player-card';
-      card.onclick = () => { addLastMinutePlayer(p); closeModal(); };
-      card.innerHTML = `<span>${p.name}</span>`;
-      box.appendChild(card);
+    const cur = Array.from(document.querySelectorAll('.drag-item')).map(el=>el.childNodes[0].textContent.trim());
+    const box = document.getElementById('modal-player-list'); box.innerHTML = '';
+    masterPlayers.filter(p=>!cur.includes(p.name)).forEach(p=>{
+      box.innerHTML += `<div class="player-card" onclick="addLastMinutePlayer('${p.name}',${p.score});closeModal();"><span>${p.name}</span></div>`;
     });
     document.getElementById('add-modal').classList.remove('hidden');
   }
 
-  function addLastMinutePlayer(p) {
-    const list0 = document.getElementById('team-list-0');
-    const item = document.createElement('div');
-    item.className = 'drag-item';
-    item.dataset.score = p.score || 5;
-    item.innerHTML = `${p.name}<span class="item-del" onclick="this.parentElement.remove(); autoAnalyze();">✕</span>`;
-    list0.appendChild(item);
+  function addLastMinutePlayer(n, s) {
+    const list = document.getElementById('team-list-0');
+    list.innerHTML += `<div class="drag-item" data-score="${s}">${n}<span style="cursor:pointer;" onclick="this.parentElement.remove();autoAnalyze();">✕</span></div>`;
     autoAnalyze();
   }
 
-  function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
+  function addDraftGuestModal() {
+    const n = `Guest ${document.querySelectorAll('.drag-item').length + 1}`;
+    addLastMinutePlayer(n, 5);
+  }
 
   function saveMatchToHistory(mode) {
     const finalTeams = [];
-    document.querySelectorAll('.drag-list').forEach((list, idx) => {
-      const members = Array.from(list.querySelectorAll('.drag-item')).map(el => el.childNodes[0].textContent.trim());
-      finalTeams.push({ id: idx, members: members });
+    document.querySelectorAll('.drag-list').forEach((list,idx)=>{
+      const members = Array.from(list.querySelectorAll('.drag-item')).map(el=>el.childNodes[0].textContent.trim());
+      const ovr = document.getElementById(`ovr-${idx}`).innerText;
+      finalTeams.push({ id:idx, members:members, ovr:ovr });
     });
-    const matchObj = { id: activeMatch ? activeMatch.id : Date.now(), date: new Date().toLocaleDateString(), teams: finalTeams, rounds: (activeMatch && activeMatch.rounds.length > 0) ? activeMatch.rounds : [] };
-    let saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
-    saved = saved.filter(m => m.id !== matchObj.id);
-    saved.push(matchObj);
-    localStorage.setItem('saved_matches', JSON.stringify(saved));
-    if(mode === 'dashboard') startDashboard(matchObj);
+    const selectedDate = document.getElementById('match-date-input').value.replace(/-/g, '. ');
+    activeMatch = { id:Date.now(), date:selectedDate, teams:finalTeams, rounds:[] };
+    localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
+    if(mode==='dashboard') startDashboard(activeMatch);
     else { alert("Tactics Saved!"); location.reload(); }
   }
 
   function renderSavedMatches() {
-    const saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
-    if(saved.length > 0) {
+    const m = JSON.parse(localStorage.getItem('saved_manager_match'));
+    if(m) {
       document.getElementById('saved-matches-section').classList.remove('hidden');
-      document.getElementById('saved-list').innerHTML = saved.map(m => `
-        <div class="saved-match-card" onclick="loadSavedMatch(${m.id})" style="background:#f0fdf4; border:1px solid #dcfce7; border-radius:18px; padding:12px; margin-bottom:10px; cursor:pointer;">
-          <div style="font-weight:900; color:#065f46; font-size:12px;">⚽ READY: ${m.date}</div>
-        </div>
-      `).join('');
+      document.getElementById('saved-list').innerHTML = `
+        <div class="saved-match-card" style="background:#f0fdf4; padding:12px; border-radius:18px; display:flex; justify-content:space-between; align-items:center;">
+          <div onclick="loadSavedMatch()" style="flex:1; font-weight:900; color:#065f46; font-size:12px; cursor:pointer;">⚽ Ready to Play: ${m.date}</div>
+          <span class="admin-del" onclick="deleteLocalMatch()">✕</span>
+        </div>`;
     }
   }
 
-  function loadSavedMatch(id) {
-    const saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
-    activeMatch = saved.find(m => m.id === id);
-    if(activeMatch) {
-      const teams = activeMatch.teams.map(t => ({ members: t.members.map(n => {
-        const p = masterPlayers.find(mp => mp.name === n);
-        return { n: n, s: p ? p.score : 5 };
-      }) }));
-      renderVSMode(teams);
-    }
+  function deleteLocalMatch() {
+    if(prompt("Admin Password:") === ADMIN_PW) {
+      localStorage.removeItem('saved_manager_match');
+      location.reload();
+    } else { alert("Wrong Password."); }
   }
 
-  function startDashboard(match) {
-    activeMatch = match;
+  function loadSavedMatch() {
+    activeMatch = JSON.parse(localStorage.getItem('saved_manager_match'));
+    const formattedDate = activeMatch.date.replace('. ', '-').replace('. ', '-');
+    document.getElementById('match-date-input').value = formattedDate;
+    const tms = activeMatch.teams.map(t=>({ members: t.members.map(n=>({n, s: (masterPlayers.find(p=>p.name===n)||{score:5}).score}))}));
+    renderVSMode(tms);
+  }
+
+  function startDashboard(m) {
+    activeMatch = m;
     document.getElementById('setup-page').classList.add('hidden');
     document.getElementById('result-page').classList.add('hidden');
     document.getElementById('match-page').classList.remove('hidden');
-    if(activeMatch.rounds.length === 0) {
+    if(activeMatch.rounds.length===0) {
       const tc = activeMatch.teams.length;
-      if(tc === 2) for(let i=1; i<=9; i++) activeMatch.rounds.push({ id: i, t1: 0, t2: 1, winner: null });
-      else {
-        const pattern = [[0,1], [1,2], [2,0]];
-        for(let i=1; i<=9; i++) activeMatch.rounds.push({ id: i, t1: pattern[(i-1)%3][0], t2: pattern[(i-1)%3][1], winner: null });
-      }
+      if(tc===2) for(let i=1;i<=9;i++) activeMatch.rounds.push({id:i, t1:0, t2:1, winner:null});
+      else { const p=[[0,1],[1,2],[2,0]]; for(let i=1;i<=9;i++) activeMatch.rounds.push({id:i, t1:p[(i-1)%3][0], t2:p[(i-1)%3][1], winner:null}); }
     }
     renderRoundList();
   }
 
   function renderRoundList() {
     const box = document.getElementById('round-list'); box.innerHTML = '';
-    activeMatch.rounds.forEach(r => {
-      const card = document.createElement('div'); card.className = 'match-card';
-      card.innerHTML = `
-        <div class="round-info">RD ${r.id}</div>
-        <div class="vs-area">
-          <div class="team-name" style="font-weight:900;">T${r.t1+1}</div>
-          <div class="score-btns">
-            <button class="s-btn ${r.winner==='t1'?'selected':''}" onclick="record(${r.id}, 't1')">WIN</button>
-            <button class="s-btn ${r.winner==='draw'?'selected':''}" onclick="record(${r.id}, 'draw')">DRAW</button>
-            <button class="s-btn ${r.winner==='t2'?'selected':''}" onclick="record(${r.id}, 't2')">WIN</button>
-          </div>
-          <div class="team-name" style="font-weight:900;">T${r.t2+1}</div>
-        </div>`;
-      box.appendChild(card);
+    activeMatch.rounds.forEach(r=>{
+      box.innerHTML += `<div class="match-card"><div class="round-info">RD ${r.id}</div><div class="vs-area"><div style="font-weight:900;">T${r.t1+1}</div><div class="score-btns"><button class="s-btn ${r.winner==='t1'?'selected':''}" onclick="record(${r.id},'t1')">WIN</button><button class="s-btn ${r.winner==='draw'?'selected':''}" onclick="record(${r.id},'draw')">DRAW</button><button class="s-btn ${r.winner==='t2'?'selected':''}" onclick="record(${r.id},'t2')">WIN</button></div><div style="font-weight:900;">T${r.t2+1}</div></div></div>`;
     });
     updateLiveRanking();
   }
 
-  function record(rid, res) { const r = activeMatch.rounds.find(x => x.id === rid); r.winner = (r.winner === res) ? null : res; renderRoundList(); }
+  function record(rid, res) { const r = activeMatch.rounds.find(x=>x.id===rid); r.winner = (r.winner===res)?null:res; renderRoundList(); }
   function updateLiveRanking() {
-    const stats = activeMatch.teams.map((_, i) => ({ id: i+1, w:0, d:0, l:0, p:0 }));
-    activeMatch.rounds.forEach(r => {
+    const s = activeMatch.teams.map((_,i)=>({id:i+1,w:0,d:0,l:0,p:0}));
+    activeMatch.rounds.forEach(r=>{
       if(!r.winner) return;
-      if(r.winner === 't1') { stats[r.t1].w++; stats[r.t1].p+=3; stats[r.t2].l++; }
-      else if(r.winner === 't2') { stats[r.t2].w++; stats[r.t2].p+=3; stats[r.t1].l++; }
-      else { stats[r.t1].d++; stats[r.t1].p+=1; stats[r.t2].d++; stats[r.t2].p+=1; }
+      if(r.winner==='t1'){ s[r.t1].w++; s[r.t1].p+=3; s[r.t2].l++; }
+      else if(r.winner==='t2'){ s[r.t2].w++; s[r.t2].p+=3; s[r.t1].l++; }
+      else { s[r.t1].d++; s[r.t1].p+=1; s[r.t2].d++; s[r.t2].p+=1; }
     });
-    stats.sort((a,b) => b.p - a.p);
-    document.getElementById('live-ranking').innerHTML = stats.map(s => `T${s.id}: ${s.w}W ${s.d}D ${s.l}L`).join(' | ');
+    s.sort((a,b)=>b.p-a.p);
+    document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
   }
 
   async function finishMatch() {
-    if(!confirm("Archive to Cloud?")) return;
+    if(!confirm("Cloud Archive?")) return;
     document.body.style.opacity = "0.5";
-    const stats = activeMatch.teams.map((t, tid) => {
-      let w=0, d=0, l=0, p=0;
-      activeMatch.rounds.forEach(r => {
-        if(r.winner === 't1' && r.t1 === tid) { w++; p+=3; }
-        else if(r.winner === 't2' && r.t2 === tid) { w++; p+=3; }
-        else if(r.winner === 'draw' && (r.t1 === tid || r.t2 === tid)) { d++; p+=1; }
-        else if(r.winner && (r.t1 === tid || r.t2 === tid)) { l++; }
+    const st = activeMatch.teams.map((t, tid)=>{
+      let w=0,d=0,l=0,p=0;
+      activeMatch.rounds.forEach(r=>{
+        if(r.winner==='t1'&&r.t1===tid){w++;p+=3;}
+        else if(r.winner==='t2'&&r.t2===tid){w++;p+=3;}
+        else if(r.winner==='draw'&&(r.t1===tid||r.t2===tid)){d++;p+=1;}
+        else if(r.winner&&(r.t1===tid||r.t2===tid)){l++;}
       });
-      return { names: t.members.join(', '), record: `${w}W ${d}D ${l}L`, pts: p };
+      return { names:t.members.join(','), ovr:t.ovr, record:`${w}W ${d}D ${l}L`, pts:p };
     });
-    stats.sort((a,b) => b.pts - a.pts);
-    const finalLog = { id: activeMatch.id, date: activeMatch.date, rank: stats.map((s, i) => ({ r: i+1, sfx: i===0?'st':i===1?'nd':'rd', names: s.names, record: s.record, pts: s.pts })), rounds: activeMatch.rounds };
-    try { await fetch(SHEET_API_URL, { method: 'POST', body: JSON.stringify(finalLog) }); let saved = JSON.parse(localStorage.getItem('saved_matches') || '[]'); localStorage.setItem('saved_matches', JSON.stringify(saved.filter(m => m.id !== activeMatch.id))); alert("Archived!"); location.reload(); } catch (e) { alert("Error"); document.body.style.opacity = "1"; }
+    st.sort((a,b)=>b.pts-a.pts);
+    const log = { id:activeMatch.id, date:activeMatch.date, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
+    try {
+      await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify(log) });
+      localStorage.removeItem('saved_manager_match');
+      alert("Archived!"); location.reload();
+    } catch(e) { alert("Error"); document.body.style.opacity="1"; }
   }
 
   function renderHistory() {
-    const box = document.getElementById('history-list');
-    if (hData.length === 0) return;
-    hData.sort((a,b) => b.id - a.id).forEach(h => {
-      const div = document.createElement('div'); div.className = 'history-card';
-      div.style.background = "#fff"; div.style.padding = "10px"; div.style.borderRadius = "12px"; div.style.marginBottom = "8px"; div.style.border = "1px solid #eee";
-      let html = `<div style="font-weight:900; font-size:11px; margin-bottom:5px;">${h.date}</div>`;
-      h.rank.forEach(rk => { html += `<div style="font-size:10px; margin-bottom:3px; display:flex; justify-content:space-between;"><span><b>${rk.r}${rk.sfx}</b> ${rk.names}</span><span style="color:var(--accent-color); font-weight:800;">${rk.pts}pt</span></div>`; });
-      div.innerHTML = html; box.appendChild(div);
-    });
+    const box = document.getElementById('history-list'); box.innerHTML = '';
+    const groups = hData.sort((a,b)=>b.id-a.id).reduce((acc,h)=>{
+      const m = h.date.substring(0,7); if(!acc[m]) acc[m]=[]; acc[m].push(h); return acc;
+    },{});
+    for(const m in groups) {
+      let mHtml = `<div class="history-month-group"><div style="font-weight:900; font-size:12px; margin-bottom:10px;">${m} SUMMARY</div>`;
+      groups[m].forEach(h=>{
+        mHtml += `<div class="history-card" style="background:#fff; padding:12px; border-radius:15px; border:1px solid #eee; margin-bottom:10px; position:relative;"><div style="font-size:11px; font-weight:800; margin-bottom:5px;">${h.date} <span class="admin-del" style="position:absolute; top:10px; right:10px;" onclick="deleteCloudMatch(${h.id})">✕</span></div>`;
+        h.rank.forEach(rk=>{ mHtml += `<div style="font-size:10px; display:flex; justify-content:space-between; margin-bottom:2px;"><span><b>${rk.r}${rk.sfx}</b> ${rk.names} <small>(Power:${rk.ovr})</small></span><span style="color:var(--accent-color); font-weight:800;">${rk.pts}pt</span></div>`; });
+        mHtml += `</div>`;
+      });
+      box.innerHTML += mHtml + `</div>`;
+    }
+    renderLeaderboard();
   }
 
-  function confirmReset() { if(confirm("Close Manager Pro?")) location.reload(); }
-  function goBack() { location.reload(); }
+  async function deleteCloudMatch(id) {
+    if(prompt("Admin Password:") === ADMIN_PW) {
+      if(!confirm("Cloud에서 영구 삭제하시겠습니까?")) return;
+      try {
+        await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify({action: "DELETE", id: id}) });
+        alert("Deleted!"); fetchMasterData();
+      } catch(e) { alert("Delete failed."); }
+    } else { alert("Wrong Password."); }
+  }
+
+  function renderLeaderboard() {
+    const stats = {};
+    hData.forEach(h => {
+      h.rank.forEach(rk => {
+        const names = rk.names.split(',').map(n=>n.trim());
+        names.forEach(name => {
+          if(name.toLowerCase().includes('guest')) return;
+          if(!stats[name]) stats[name] = { play:0, win:0, pts:0 };
+          stats[name].play++; if(rk.r === 1) stats[name].win++; stats[name].pts += rk.pts;
+        });
+      });
+    });
+    const sorted = Object.entries(stats).sort((a,b) => b[1].win - a[1].win || b[1].pts - a[1].pts).slice(0,10);
+    let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th>WIN</th><th>RATE</th><th>TOTAL</th></tr></thead><tbody>`;
+    sorted.forEach(([name, s], i) => {
+      const rate = ((s.win/s.play)*100).toFixed(0);
+      html += `<tr><td><b>${i+1}</b></td><td>${name}</td><td>${s.win}승</td><td>${rate}%</td><td>${s.play}회</td></tr>`;
+    });
+    document.getElementById('leaderboard-area').innerHTML = html + `</tbody></table>`;
+  }
+
+  function goBack(step) {
+    if(step==='setup') { document.getElementById('result-page').classList.add('hidden'); document.getElementById('setup-page').classList.remove('hidden'); }
+    else if(step==='result') { document.getElementById('match-page').classList.add('hidden'); document.getElementById('result-page').classList.remove('hidden'); }
+  }
+  function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
   window.onload = fetchMasterData;
 </script>
 </body>
