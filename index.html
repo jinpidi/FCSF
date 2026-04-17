@@ -3,22 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Match Maker Pro</title>
+  <title>Futsal Manager Pro v9.0</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root { --primary-color: #0f172a; --accent-color: #10b981; --bg-color: #f1f5f9; --card-bg: #ffffff; --text-main: #1e293b; --text-sub: #64748b; --star-color: #fbbf24; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
     body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 15px; display: flex; justify-content: center; font-size: 14px; }
     .container { width: 100%; max-width: 480px; background: var(--card-bg); padding: 25px 20px; border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
     header { text-align: center; margin-bottom: 25px; }
-    h1 { font-size: 1.4rem; font-weight: 800; color: var(--primary-color); margin: 0; letter-spacing: -1px; }
+    h1 { font-size: 1.5rem; font-weight: 900; color: var(--primary-color); margin: 0; letter-spacing: -1.5px; text-transform: uppercase; }
     .team-title-label { font-size: 16px; font-weight: 700; color: var(--accent-color); margin-top: 5px; display: block; }
     
-    .section-title { font-size: 12px; font-weight: 700; margin: 20px 0 12px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center;}
+    .section-title { font-size: 11px; font-weight: 800; margin: 20px 0 10px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; }
     .config-card { background: #f8fafc; padding: 18px; border-radius: 20px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
     .match-type-selector { display: flex; gap: 8px; }
-    .type-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; background: white; border-radius: 14px; cursor: pointer; font-weight: 800; color: var(--text-sub); transition: 0.2s; line-height: 1.3; }
+    .type-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; background: white; border-radius: 14px; cursor: pointer; font-weight: 800; color: var(--text-sub); transition: 0.2s; }
     .type-btn.active { border-color: var(--primary-color); background: var(--primary-color); color: white; }
     
     .attendance-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 2px; }
@@ -29,42 +30,36 @@
     .btn-accent { background: var(--accent-color); height: 60px; font-size: 16px; }
     .btn-outline { background: transparent; color: var(--text-sub); border: 1px solid #e2e8f0; }
 
-    /* 드래그 앤 드롭 스타일 */
     .drag-list { min-height: 50px; padding: 10px; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1; margin-top: 10px; }
     .drag-item { background: white; padding: 10px 15px; border-radius: 10px; margin-bottom: 8px; border: 1px solid #e2e8f0; cursor: grab; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
     .drag-item .item-del { color: #f87171; font-size: 14px; padding-left: 10px; cursor: pointer; }
 
-    .saved-match-card { background: #f0fdf4; border: 2px solid #dcfce7; border-radius: 20px; padding: 15px; margin-bottom: 12px; cursor: pointer; position: relative; }
-    .saved-del-btn { position: absolute; top: 10px; right: 15px; color: #94a3b8; font-size: 18px; }
-    .history-card { background: #fff; border-radius: 18px; padding: 15px; margin-bottom: 12px; border: 1px solid #e2e8f0; cursor: pointer; }
-    .loading-msg { text-align: center; padding: 30px; color: var(--text-sub); font-weight: 600; }
-    .dots::after { content: ''; display: inline-block; width: 12px; text-align: left; animation: dots 1.5s infinite; }
+    /* FIFA STYLE CARD & STATS */
+    .tactical-container { margin-top: 20px; background: #111827; color: #fff; padding: 20px; border-radius: 24px; display: none; }
+    .ovr-card { background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 15px; border-radius: 16px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .ovr-val { font-size: 32px; font-weight: 900; line-height: 1; }
+    .ovr-label { font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.8; }
+    .chart-box { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 10px; margin-bottom: 20px; }
+
+    .saved-match-card { background: #f0fdf4; border: 2px solid #dcfce7; border-radius: 20px; padding: 15px; margin-bottom: 12px; cursor: pointer; }
+    .loading-msg { text-align: center; padding: 30px; color: var(--text-sub); }
+    .dots::after { content: ''; display: inline-block; width: 12px; animation: dots 1.5s infinite; }
     @keyframes dots { 0% { content: ''; } 33% { content: '.'; } 66% { content: '..'; } 100% { content: '...'; } }
     .hidden { display: none !important; }
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 100; padding: 20px; }
+    .modal-content { background: #fff; width: 100%; max-width: 400px; border-radius: 24px; padding: 25px; }
     .s-btn { flex: 1; padding: 10px 0; border-radius: 10px; border: 1px solid #e2e8f0; background: white; font-size: 11px; font-weight: 700; cursor: pointer; }
     .s-btn.selected { background: var(--primary-color); color: white; border-color: var(--primary-color); }
     .match-card { background: #f8fafc; border-radius: 20px; padding: 15px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
-    .round-info { font-size: 11px; font-weight: 800; color: var(--accent-color); margin-bottom: 8px; }
-    .vs-area { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .team-name { font-weight: 800; font-size: 15px; flex: 1; text-align: center; }
-    .score-btns { display: flex; gap: 4px; flex: 2; }
   </style>
 </head>
 <body>
 
 <div class="container">
   <div id="setup-page">
-    <header>
-      <h1>Futsal Match Maker</h1>
-      <span id="display-team-name" class="team-title-label"></span>
-    </header>
-
-    <div id="saved-matches-section" class="hidden">
-      <div class="section-title">Ready to Play (Saved)</div>
-      <div id="saved-list"></div>
-    </div>
-
-    <div class="section-title">Match Config</div>
+    <header><h1>Futsal Manager Pro</h1><span id="display-team-name" class="team-title-label"></span></header>
+    <div id="saved-matches-section" class="hidden"><div class="section-title">Pending Tactical Matches</div><div id="saved-list"></div></div>
+    <div class="section-title">New Match Settings</div>
     <div class="config-card">
       <div class="match-type-selector">
         <button id="btn-2team" class="type-btn active" onclick="setTeamCount(2)">VERSUS<span>(2-TEAM)</span></button>
@@ -72,52 +67,52 @@
       </div>
       <div id="att-count" style="text-align:center; font-size:13px; font-weight:800; color:var(--accent-color); margin-top:15px;">0 Players Ready</div>
     </div>
-
     <div class="section-title">Attendance Checklist</div>
-    <div id="loading" class="loading-msg"><span class="dots">Loading Player List</span></div>
+    <div id="loading" class="loading-msg"><span class="dots">Syncing with Cloud</span></div>
     <div class="attendance-list" id="attendance-list"></div>
-    <button class="btn-accent" onclick="makeTeams()">Generate Teams ⚡</button>
+    <button class="btn-accent" onclick="makeTeams()">Draft Teams ⚡</button>
   </div>
 
   <div id="result-page" class="hidden">
-    <header><h1 style="color:var(--accent-color);">Match Final Check</h1></header>
-    <div style="text-align: center; font-size: 11px; color: var(--text-sub); margin-bottom: 15px;">드래그로 이동, ✕로 노쇼 인원 삭제</div>
+    <header><h1 style="color:var(--accent-color);">Tactical Briefing</h1></header>
     <div id="team-edit-area"></div>
     
-    <button class="btn-outline" style="margin-bottom: 10px;" onclick="addUrgentGuest()">+ Add Last-minute Guest</button>
+    <div id="tactical-analysis" class="tactical-container"></div>
     
-    <button class="btn-accent" onclick="saveMatchToHistory('dashboard')">Start Dashboard Now ⚽</button>
-    <button class="btn-outline" onclick="saveMatchToHistory('exit')">Save & Exit (For Later) 💾</button>
-    <button style="background:transparent; color:var(--text-sub); border:none; font-size:11px;" onclick="goBack()">Cancel & Go Back</button>
+    <button class="btn-outline" style="margin-top: 20px;" onclick="openAddPlayerModal()">+ Add Unchecked Player</button>
+    <button class="btn-outline" onclick="analyzeTactics()">📊 Analyze Tactics (Hex-Power)</button>
+    <button class="btn-accent" onclick="saveMatchToHistory('dashboard')">Enter Dashboard ⚽</button>
+    <button class="btn-outline" onclick="saveMatchToHistory('exit')">Save Tactics 💾</button>
+    <button style="background:transparent; color:var(--text-sub); border:none; font-size:11px;" onclick="goBack()">Cancel Draft</button>
   </div>
 
   <div id="match-page" class="hidden">
-    <header><h1>Match Dashboard</h1></header>
+    <header><h1>Live Dashboard</h1></header>
     <div id="live-ranking" style="background:var(--primary-color); color:white; padding:15px; border-radius:20px; margin-bottom:20px; font-size:12px; line-height:1.6;"></div>
     <div id="round-list"></div>
-    <button class="btn-accent" onclick="finishMatch()">Complete & Archive 🏁</button>
-    <button class="btn-outline" onclick="confirmReset()">Close & Save Progress</button>
+    <button class="btn-accent" onclick="finishMatch()">Complete Match 🏁</button>
+    <button class="btn-outline" onclick="confirmReset()">Close</button>
   </div>
 
-  <div id="history-section" style="margin-top: 40px;">
-    <div class="section-title">Past Match History</div>
-    <div id="history-list"></div>
+  <div id="add-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="section-title">Draft Player</div>
+      <div id="modal-player-list" class="attendance-list"></div>
+      <button class="btn-outline" onclick="closeModal()">Close</button>
+    </div>
   </div>
+
+  <div id="history-section" style="margin-top: 40px;"><div class="section-title">Manager Records</div><div id="history-list"></div></div>
 </div>
 
 <script>
   const TEAM_NAME = "FC 서울숲";
   const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzo_9mYhtzTFQ6oFh9Xd-RaVf6degYYeEI9mCNrgyyaku4jnjNKVo7WIBaf2otYIVwB/exec"; 
 
-  let masterPlayers = [], teamCount = 2, currentTeams = [], hData = [], activeMatch = null;
+  let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null;
+  let charts = [];
 
   document.getElementById('display-team-name').innerText = TEAM_NAME;
-
-  function setTeamCount(val) {
-    teamCount = val;
-    document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
-    val === 2 ? document.getElementById('btn-2team').classList.add('active') : document.getElementById('btn-3team').classList.add('active');
-  }
 
   async function fetchMasterData() {
     try {
@@ -132,6 +127,12 @@
     } catch (e) { document.getElementById('loading').innerText = "Load failed."; }
   }
 
+  function setTeamCount(val) {
+    teamCount = val;
+    document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+    val === 2 ? document.getElementById('btn-2team').classList.add('active') : document.getElementById('btn-3team').classList.add('active');
+  }
+
   function renderAttendanceList() {
     const box = document.getElementById('attendance-list'); box.innerHTML = '';
     masterPlayers.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR')).forEach(p => {
@@ -143,58 +144,133 @@
   }
 
   function updateCount() {
-    const count = document.querySelectorAll('.player-card.active').length;
+    const count = document.querySelectorAll('#attendance-list .player-card.active').length;
     document.getElementById('att-count').innerText = count + " Players Ready";
   }
 
   function makeTeams() {
-    const selected = Array.from(document.querySelectorAll('.player-card.active')).map(el => {
+    const selected = Array.from(document.querySelectorAll('#attendance-list .player-card.active')).map(el => {
       const span = el.querySelector('.p-name');
-      return { n: span.innerText, s: parseInt(span.dataset.score) };
+      return { n: span.innerText, s: parseFloat(span.dataset.score) };
     });
     if(selected.length < teamCount) return alert("인원이 부족합니다.");
     selected.sort((a,b) => b.s - a.s);
-    currentTeams = Array.from({length: teamCount}, () => ({ members: [] }));
+    let teams = Array.from({length: teamCount}, () => ({ members: [] }));
     let idx = 0, dir = 1;
     selected.forEach(p => {
-      currentTeams[idx].members.push(p.n);
+      teams[idx].members.push(p);
       idx += dir;
       if(idx === teamCount || idx === -1) { dir *= -1; idx += dir; }
     });
-    renderTeamEditor();
+    renderTeamEditor(teams);
   }
 
-  function renderTeamEditor() {
+  function renderTeamEditor(teams) {
     document.getElementById('setup-page').classList.add('hidden');
     document.getElementById('result-page').classList.remove('hidden');
     const area = document.getElementById('team-edit-area'); area.innerHTML = '';
-
-    currentTeams.forEach((t, i) => {
+    teams.forEach((t, i) => {
       const box = document.createElement('div');
       box.className = 'team-box';
-      box.style.marginBottom = "20px";
       box.innerHTML = `<div class="section-title">Team ${i+1}</div><div class="drag-list" id="team-list-${i}"></div>`;
       area.appendChild(box);
-
       const listEl = document.getElementById(`team-list-${i}`);
-      t.members.forEach(m => {
+      t.members.forEach(p => {
         const item = document.createElement('div');
         item.className = 'drag-item';
-        item.innerHTML = `${m} <span class="item-del" onclick="this.parentElement.remove()">✕</span>`;
+        item.dataset.score = p.s || 5;
+        item.innerHTML = `${p.n} <span class="item-del" onclick="this.parentElement.remove()">✕</span>`;
         listEl.appendChild(item);
       });
       new Sortable(listEl, { group: 'teams', animation: 150 });
     });
   }
 
-  function addUrgentGuest() {
-    const name = prompt("Guest Name:");
-    if(!name) return;
+  function openAddPlayerModal() {
+    const activeNames = Array.from(document.querySelectorAll('.drag-item')).map(el => el.childNodes[0].textContent.trim());
+    const unchecked = masterPlayers.filter(p => !activeNames.includes(p.name));
+    const box = document.getElementById('modal-player-list');
+    box.innerHTML = '';
+    unchecked.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      card.onclick = () => { addUrgentPlayer(p); closeModal(); };
+      card.innerHTML = `<span>${p.name}</span>`;
+      box.appendChild(card);
+    });
+    document.getElementById('add-modal').classList.remove('hidden');
+  }
+
+  function addUrgentPlayer(p) {
     const list0 = document.getElementById('team-list-0');
     const item = document.createElement('div');
     item.className = 'drag-item';
-    item.innerHTML = `${name} <span class="item-del" onclick="this.parentElement.remove()">✕</span>`;
+    item.dataset.score = p.score || 5;
+    item.innerHTML = `${p.name} <span class="item-del" onclick="this.parentElement.remove()">✕</span>`;
     list0.appendChild(item);
+  }
+
+  function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
+
+  // [v9.0 핵심] 위닝/피파 스타일 전력 분석 차트
+  function analyzeTactics() {
+    const container = document.getElementById('tactical-analysis');
+    container.style.display = 'block';
+    container.innerHTML = '';
+    charts.forEach(c => c.destroy());
+    charts = [];
+
+    document.querySelectorAll('.team-box').forEach((box, i) => {
+      const items = box.querySelectorAll('.drag-item');
+      let total = 0;
+      items.forEach(it => total += parseFloat(it.dataset.score));
+      const avg = total / items.length;
+      
+      // 시뮬레이션 데이터 (1-10 기준을 100점 만점으로 보정)
+      const base = avg * 10;
+      const stats = [
+        Math.min(99, Math.floor(base + (Math.random()*15-5))), // ATT
+        Math.min(99, Math.floor(base + (Math.random()*15-5))), // DEF
+        Math.min(99, Math.floor(base + (Math.random()*15-5))), // SPD
+        Math.min(99, Math.floor(base + (Math.random()*15-5))), // PAS
+        Math.min(99, Math.floor(base + (Math.random()*15-5))), // STA
+        Math.min(99, Math.floor(base + (Math.random()*15-5)))  // ORG
+      ];
+      const overall = Math.floor(stats.reduce((a,b)=>a+b)/6);
+
+      container.innerHTML += `
+        <div style="margin-bottom:40px;">
+          <div class="ovr-card">
+            <div><div class="ovr-label">TEAM ${i+1}</div><div style="font-weight:800; font-size:14px;">Squad Strength</div></div>
+            <div style="text-align:right;"><div class="ovr-label">OVERALL</div><div class="ovr-val">${overall}</div></div>
+          </div>
+          <div class="chart-box"><canvas id="radar-${i}"></canvas></div>
+        </div>
+      `;
+
+      // 차트 그리기 딜레이 (DOM 생성 후)
+      setTimeout(() => {
+        const ctx = document.getElementById(`radar-${i}`).getContext('2d');
+        const chart = new Chart(ctx, {
+          type: 'radar',
+          data: {
+            labels: ['ATT', 'DEF', 'SPD', 'PAS', 'STA', 'ORG'],
+            datasets: [{
+              data: stats,
+              backgroundColor: 'rgba(16, 185, 129, 0.2)',
+              borderColor: '#10b981',
+              borderWidth: 2,
+              pointRadius: 0
+            }]
+          },
+          options: {
+            scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { color: 'rgba(255,255,255,0.1)' }, angleLines: { color: 'rgba(255,255,255,0.1)' }, pointLabels: { color: '#94a3b8', font: { size: 10, weight: 'bold' } } } },
+            plugins: { legend: { display: false } }
+          }
+        });
+        charts.push(chart);
+      }, 0);
+    });
   }
 
   function saveMatchToHistory(mode) {
@@ -203,56 +279,38 @@
       const members = Array.from(list.querySelectorAll('.drag-item')).map(el => el.childNodes[0].textContent.trim());
       finalTeams.push({ id: idx, members: members });
     });
-
-    const matchObj = {
-      id: activeMatch ? activeMatch.id : Date.now(),
-      date: new Date().toLocaleDateString(),
-      teams: finalTeams,
-      rounds: (activeMatch && activeMatch.rounds.length > 0) ? activeMatch.rounds : []
-    };
-
-    // 로컬 스토리지 업데이트 (기존 동일 ID는 덮어쓰기)
+    const matchObj = { id: activeMatch ? activeMatch.id : Date.now(), date: new Date().toLocaleDateString(), teams: finalTeams, rounds: (activeMatch && activeMatch.rounds.length > 0) ? activeMatch.rounds : [] };
     let saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
     saved = saved.filter(m => m.id !== matchObj.id);
     saved.push(matchObj);
     localStorage.setItem('saved_matches', JSON.stringify(saved));
-
     if(mode === 'dashboard') startDashboard(matchObj);
-    else { alert("Saved successfully."); location.reload(); }
+    else { alert("Tactics Saved!"); location.reload(); }
   }
 
   function renderSavedMatches() {
     const saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
-    const box = document.getElementById('saved-list');
     if(saved.length > 0) {
       document.getElementById('saved-matches-section').classList.remove('hidden');
-      box.innerHTML = saved.map(m => `
+      document.getElementById('saved-list').innerHTML = saved.map(m => `
         <div class="saved-match-card" onclick="loadSavedMatch(${m.id})">
-          <div style="font-weight:800;">🏃 ${m.date} Match Ready</div>
-          <div style="font-size:12px; color:var(--text-sub); margin-top:5px;">${m.teams.map(t => 'T'+(t.id+1)+': '+t.members.length+'P').join(' | ')}</div>
-          <span class="saved-del-btn" onclick="deleteSavedMatch(event, ${m.id})">✕</span>
+          <div style="font-weight:900; color:#065f46;">⚽ RECOVERY: ${m.date}</div>
+          <div style="font-size:11px; color:#065f46; opacity:0.8;">Tactical data is ready for deployment</div>
         </div>
       `).join('');
     }
   }
 
-  // [수정] 바로 대시보드로 안 가고 편집화면으로!
   function loadSavedMatch(id) {
     const saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
     activeMatch = saved.find(m => m.id === id);
     if(activeMatch) {
-      currentTeams = activeMatch.teams;
-      teamCount = currentTeams.length;
-      renderTeamEditor();
+      const teams = activeMatch.teams.map(t => ({ members: t.members.map(n => {
+        const p = masterPlayers.find(mp => mp.name === n);
+        return { n: n, s: p ? p.score : 5 };
+      }) }));
+      renderTeamEditor(teams);
     }
-  }
-
-  function deleteSavedMatch(e, id) {
-    e.stopPropagation();
-    if(!confirm("Delete this saved match?")) return;
-    let saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
-    localStorage.setItem('saved_matches', JSON.stringify(saved.filter(m => m.id !== id)));
-    location.reload();
   }
 
   function startDashboard(match) {
@@ -260,7 +318,6 @@
     document.getElementById('setup-page').classList.add('hidden');
     document.getElementById('result-page').classList.add('hidden');
     document.getElementById('match-page').classList.remove('hidden');
-    
     if(activeMatch.rounds.length === 0) {
       const tc = activeMatch.teams.length;
       if(tc === 2) for(let i=1; i<=9; i++) activeMatch.rounds.push({ id: i, t1: 0, t2: 1, winner: null });
@@ -289,12 +346,7 @@
     updateLiveRanking();
   }
 
-  function record(rid, res) {
-    const r = activeMatch.rounds.find(x => x.id === rid);
-    r.winner = (r.winner === res) ? null : res;
-    renderRoundList();
-  }
-
+  function record(rid, res) { const r = activeMatch.rounds.find(x => x.id === rid); r.winner = (r.winner === res) ? null : res; renderRoundList(); }
   function updateLiveRanking() {
     const stats = activeMatch.teams.map((_, i) => ({ id: i+1, w:0, d:0, l:0, p:0 }));
     activeMatch.rounds.forEach(r => {
@@ -304,11 +356,11 @@
       else { stats[r.t1].d++; stats[r.t1].p+=1; stats[r.t2].d++; stats[r.t2].p+=1; }
     });
     stats.sort((a,b) => b.p - a.p);
-    document.getElementById('live-ranking').innerHTML = `<b>Live Ranking:</b><br>` + stats.map(s => `T${s.id}: ${s.w}W ${s.d}D ${s.l}L (${s.p}pts)`).join(' | ');
+    document.getElementById('live-ranking').innerHTML = stats.map(s => `T${s.id}: ${s.w}W ${s.d}D ${s.l}L`).join(' | ');
   }
 
   async function finishMatch() {
-    if(!confirm("Complete and save to Google Sheet?")) return;
+    if(!confirm("Complete and Archive to Cloud?")) return;
     document.body.style.opacity = "0.5";
     const stats = activeMatch.teams.map((t, tid) => {
       let w=0, d=0, l=0, p=0;
@@ -321,17 +373,8 @@
       return { names: t.members.join(', '), record: `${w}W ${d}D ${l}L`, pts: p };
     });
     stats.sort((a,b) => b.pts - a.pts);
-    const finalLog = {
-      id: activeMatch.id, date: activeMatch.date,
-      rank: stats.map((s, i) => ({ r: i+1, sfx: i===0?'st':i===1?'nd':'rd', names: s.names, record: s.record, pts: s.pts })),
-      rounds: activeMatch.rounds
-    };
-    try {
-      await fetch(SHEET_API_URL, { method: 'POST', body: JSON.stringify(finalLog) });
-      let saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
-      localStorage.setItem('saved_matches', JSON.stringify(saved.filter(m => m.id !== activeMatch.id)));
-      alert("Success!"); location.reload();
-    } catch (e) { alert("Fail"); document.body.style.opacity = "1"; }
+    const finalLog = { id: activeMatch.id, date: activeMatch.date, rank: stats.map((s, i) => ({ r: i+1, sfx: i===0?'st':i===1?'nd':'rd', names: s.names, record: s.record, pts: s.pts })), rounds: activeMatch.rounds };
+    try { await fetch(SHEET_API_URL, { method: 'POST', body: JSON.stringify(finalLog) }); let saved = JSON.parse(localStorage.getItem('saved_matches') || '[]'); localStorage.setItem('saved_matches', JSON.stringify(saved.filter(m => m.id !== activeMatch.id))); alert("Manager Data Archived!"); location.reload(); } catch (e) { alert("Network Error"); document.body.style.opacity = "1"; }
   }
 
   function renderHistory() {
@@ -339,13 +382,13 @@
     if (hData.length === 0) return;
     hData.sort((a,b) => b.id - a.id).forEach(h => {
       const div = document.createElement('div'); div.className = 'history-card';
-      let html = `<div style="font-weight:800; margin-bottom:8px;">📅 ${h.date}</div>`;
-      h.rank.forEach(rk => { html += `<div style="font-size:12px; margin-bottom:4px;"><b>${rk.r}${rk.sfx}</b> ${rk.names} (${rk.record})</div>`; });
+      let html = `<div style="font-weight:900; font-size:12px; margin-bottom:8px; color:var(--primary-color);">RECORD: ${h.date}</div>`;
+      h.rank.forEach(rk => { html += `<div style="font-size:11px; margin-bottom:4px; display:flex; justify-content:space-between;"><span><b>${rk.r}${rk.sfx}</b> ${rk.names}</span><span style="color:var(--accent-color); font-weight:800;">${rk.pts}pts</span></div>`; });
       div.innerHTML = html; box.appendChild(div);
     });
   }
 
-  function confirmReset() { if(confirm("Close Dashboard? Progress is saved locally.")) location.reload(); }
+  function confirmReset() { if(confirm("Close Manager Pro?")) location.reload(); }
   function goBack() { location.reload(); }
   window.onload = fetchMasterData;
 </script>
