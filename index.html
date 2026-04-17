@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v12.3</title>
+  <title>Futsal Manager Pro v12.4</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -147,7 +147,6 @@
   document.getElementById('match-date-input').value = todayStr;
   document.getElementById('display-team-name').innerText = TEAM_NAME;
 
-  // [수정] 전체 플레이어의 평균 점수를 구하는 함수 (게스트용)
   function getGuestScore() {
     return masterPlayers.length ? parseFloat((masterPlayers.reduce((s,p)=>s+p.score,0)/masterPlayers.length).toFixed(1)) : 5;
   }
@@ -212,10 +211,22 @@
     renderVSMode(teams);
   }
 
+  // [수정] 현재 화면의 DOM 요소를 직접 읽어와서 셔플 (삭제/추가 완벽 동기화)
   function reshuffle() {
-    let sel = [...currentDraftSelection]; sel.sort(() => Math.random() - 0.5);
+    let currentPlayers = [];
+    document.querySelectorAll('.drag-item').forEach(el => {
+      const s = parseFloat(el.dataset.score);
+      const n = el.childNodes[0].textContent.trim();
+      currentPlayers.push({ n, s });
+    });
+    
+    if(currentPlayers.length < teamCount) return;
+    
+    currentPlayers.sort(() => Math.random() - 0.5);
+    
     let teams = Array.from({length:teamCount}, ()=>({members:[]}));
-    sel.forEach((p, idx) => teams[idx % teamCount].members.push(p));
+    currentPlayers.forEach((p, idx) => teams[idx % teamCount].members.push(p));
+    
     renderVSMode(teams);
   }
 
@@ -240,7 +251,6 @@
     });
   }
 
-  // [수정] 5명 미만일 경우 개인 스코어 노출 및 유추 방지 로직
   function autoAnalyze() {
     document.querySelectorAll('.team-column').forEach((col, i)=>{
       const items = col.querySelectorAll('.drag-item');
@@ -359,10 +369,11 @@
     document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
   }
 
+  // [수정] CORS 충돌 원천 차단 (no-cors 모드) 및 DOM 즉시 갱신
   async function finishMatch() {
     if(!confirm("Cloud Archive?")) return; 
+    document.body.style.opacity = "0.5";
     
-    // 이전에 에러를 방지하기 위해 사용했던 완벽한 동기화 기법 (수정 없음)
     const st = activeMatch.teams.map((t, tid)=>{
       let w=0,d=0,l=0,p=0; 
       activeMatch.rounds.forEach(r=>{ 
@@ -377,18 +388,13 @@
     
     const log = { id:activeMatch.id, date:activeMatch.date, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
     
-    document.body.style.opacity = "0.5";
     try { 
-      // 1. 구글 서버로 데이터 전송
-      await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify(log) }); 
+      // CORS 에러로 인한 스크립트 중단 방지를 위해 mode: 'no-cors' 추가
+      await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify(log), mode: 'no-cors' }); 
       
-      // 2. 임시저장소(이어하기) 데이터 삭제
       localStorage.removeItem('saved_manager_match'); 
-      
-      // 3. 서버 통신 없이 메모리에 바로 반영하여 Sync Failed 방지
       hData.push(log);
       
-      // 4. 화면 즉시 복구 및 새로 그리기
       document.body.style.opacity = "1";
       document.getElementById('match-page').classList.add('hidden');
       document.getElementById('setup-page').classList.remove('hidden');
@@ -396,7 +402,8 @@
       renderHistory(); 
       renderSavedMatches();
 
-      alert("Archived Successfully! 🏆"); 
+      // 화면 업데이트가 완료된 후 알림창 띄우기
+      setTimeout(() => alert("Archived Successfully! 🏆"), 100); 
     }
     catch(e) { 
       alert("Archive Failed. Check Network."); 
@@ -439,7 +446,19 @@
     masterPlayers.filter(p=>!cur.includes(p.name)).forEach(p=>{ box.innerHTML += `<div class="player-card" onclick="addLastMinutePlayer('${p.name}',${p.score});closeModal();"><span>${p.name}</span></div>`; });
     document.getElementById('add-modal').classList.remove('hidden');
   }
-  function addLastMinutePlayer(n, s) { document.getElementById('team-list-0').innerHTML += `<div class="drag-item" data-score="${s}">${n}<span style="cursor:pointer;" onclick="this.parentElement.remove();autoAnalyze();">✕</span></div>`; autoAnalyze(); }
+
+  // [수정] Last Minute 인원 추가 시, 가장 멤버수가 적은 팀(1~3팀 순서)에 균등하게 자동 배치
+  function addLastMinutePlayer(n, s) { 
+    let minTeam = 0;
+    let minCount = Infinity;
+    for(let i=0; i<teamCount; i++) {
+      let count = document.getElementById(`team-list-${i}`).querySelectorAll('.drag-item').length;
+      if(count < minCount) { minCount = count; minTeam = i; }
+    }
+    document.getElementById(`team-list-${minTeam}`).innerHTML += `<div class="drag-item" data-score="${s}">${n}<span style="cursor:pointer;" onclick="this.parentElement.remove();autoAnalyze();">✕</span></div>`; 
+    autoAnalyze(); 
+  }
+  
   function addDraftGuestModal() { addLastMinutePlayer(`Guest ${document.querySelectorAll('.drag-item').length + 1}`, getGuestScore()); }
   function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
   
