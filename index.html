@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v10.9</title>
+  <title>Futsal Manager Pro v11.0</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,17 +15,17 @@
     header { text-align: center; margin-bottom: 12px; }
     h1 { font-size: 1.3rem; font-weight: 900; color: var(--primary-color); margin: 0; letter-spacing: -1.2px; text-transform: uppercase; }
     .team-title-label { font-size: 13px; font-weight: 700; color: var(--accent-color); margin-top: 2px; display: block; }
-    
     .section-title { font-size: 9px; font-weight: 800; margin: 12px 0 6px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 3px; }
     
-    /* [수정] 대기 중인 게임 최상단 강제 노출 */
-    .saved-match-card { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 18px; padding: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    /* [수정] 대기 중인 게임 상단 강제 고정 */
+    #saved-matches-section { margin-bottom: 15px; }
+    .saved-match-card { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 18px; padding: 12px; display: flex; justify-content: space-between; align-items: center; width: 100%; }
     .share-btn { background: #e0f2fe; color: #0369a1; border: none; padding: 5px 10px; border-radius: 8px; font-size: 10px; cursor: pointer; font-weight: 800; }
     .admin-del { color: #f87171; cursor: pointer; font-weight: 900; margin-left: 8px; padding: 0 4px; }
 
     .simple-config-bar { display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 8px 12px; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 12px; }
     .match-type-selector { display: flex; gap: 5px; flex: 1; }
-    .type-btn { flex: 1; padding: 8px 0; border: 1px solid #cbd5e1; background: white; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 10.5px; color: var(--text-sub); }
+    .type-btn { flex: 1; padding: 8px 0; border: 1px solid #cbd5e1; background: white; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 10.5px; color: var(--text-sub); }
     .type-btn.active { border-color: var(--primary-color); background: var(--primary-color); color: white; }
 
     .vs-grid { display: flex; gap: 8px; align-items: stretch; margin-top: 5px; overflow-x: auto; padding-bottom: 5px; }
@@ -38,11 +38,10 @@
     .ovr-val { font-size: 24px; font-weight: 900; color: var(--accent-color); line-height: 1; }
     .chart-mini-box { background: rgba(255,255,255,0.03); border-radius: 10px; height: 160px; position: relative; margin-top: 3px; }
 
-    /* [수정] 대시보드 1줄 고정 레이아웃 */
-    .match-card { background: #f8fafc; border-radius: 14px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: row !important; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
-    .round-info { font-size: 10px; font-weight: 900; color: var(--accent-color); min-width: 40px; text-align: left; }
-    .vs-area { display: flex; flex-direction: row !important; align-items: center; flex: 1; gap: 8px; justify-content: center; }
-    .score-btns { display: flex; flex-direction: row !important; gap: 3px; flex: 1; max-width: 180px; }
+    .match-card { background: #f8fafc; border-radius: 14px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+    .round-info { font-size: 10px; font-weight: 900; color: var(--accent-color); min-width: 40px; }
+    .vs-area { display: flex; align-items: center; flex: 1; gap: 8px; justify-content: center; }
+    .score-btns { display: flex; gap: 3px; flex: 1; max-width: 180px; }
     .s-btn { flex: 1; padding: 7px 0; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; }
     .s-btn.selected { background: var(--primary-color); color: white; border-color: var(--primary-color); }
 
@@ -53,11 +52,7 @@
     .attendance-list { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; max-height: 250px; overflow-y: auto; }
     .player-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 5px; border-radius: 10px; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; font-size: 11px; }
     .player-card.active { border-color: var(--accent-color); background: #ecfdf5; font-weight: 800; }
-    
-    .loading-msg { text-align: center; padding: 25px; color: var(--text-sub); font-weight: 600; }
     .hidden { display: none !important; }
-
-    /* 파워 랭킹 테이블 */
     .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; background: white; border-radius: 16px; overflow: hidden; border: 1px solid #eee; }
     .leaderboard-table th { background: #f8fafc; padding: 10px; text-align: left; color: var(--text-sub); font-size: 9px; }
     .leaderboard-table td { padding: 10px; border-bottom: 1px solid #f8fafc; }
@@ -85,11 +80,15 @@
     </div>
 
     <div class="section-title">Attendance Checklist</div>
-    <div id="loading" class="loading-msg">Loading Player List... <div id="load-timer" style="font-size:10px; opacity:0.6;">3s left</div></div>
+    <div id="loading" style="text-align: center; padding: 25px; color: var(--text-sub); font-weight: 600;">Loading... <div id="load-timer" style="font-size:10px; opacity:0.6;">3s left</div></div>
     <div class="attendance-list" id="attendance-list"></div>
     <div id="guest-draft-area" style="margin-top:8px; display:flex; gap:4px; flex-wrap: wrap;"></div>
     <button class="btn-outline" onclick="addDraftGuest()">+ Add Guest Player</button>
-    <button class="btn-accent" onclick="makeTeams()">Draft Teams ⚡</button>
+    
+    <div style="display: flex; gap: 8px;">
+        <button class="btn-outline" style="flex: 1; border-color: var(--accent-color); color: var(--accent-color);" onclick="makeTeams(true)">Shuffle Teams 🔄</button>
+        <button class="btn-accent" style="flex: 2;" onclick="makeTeams(false)">Draft Teams ⚡</button>
+    </div>
   </div>
 
   <div id="result-page" class="hidden">
@@ -125,7 +124,7 @@
   <div id="history-section" style="margin-top: 30px;">
     <div class="section-title">Monthly Records</div>
     <div id="history-list"></div>
-    <div class="section-title">Player Power Rankings ( 기여도 기반 )</div>
+    <div class="section-title">Player Power Rankings</div>
     <div id="leaderboard-area"></div>
   </div>
 </div>
@@ -142,7 +141,7 @@
     if(!document.getElementById('loading').classList.contains('hidden')) {
       if(loadTimeLeft > 0) loadTimeLeft--;
       document.getElementById('load-timer').innerText = `${loadTimeLeft}s left`;
-    } else { clearInterval(timerInt); }
+    }
   }, 1000);
 
   const todayStr = new Date().toISOString().substring(0, 10);
@@ -191,17 +190,25 @@
     area.innerHTML = draftGuests.map((g,i)=>`<div style="background:#e2e8f0; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:700;">${g.n} <span style="cursor:pointer;" onclick="draftGuests.splice(${i},1);renderDraftGuests();updateCount();">✕</span></div>`).join('');
   }
 
-  function makeTeams() {
+  // [수정] 셔플 로직 추가
+  function makeTeams(shuffle = false) {
     let sel = Array.from(document.querySelectorAll('#attendance-list .player-card.active')).map(el=>{
       const s = el.querySelector('.p-name');
       return { n: s.innerText, s: parseFloat(s.dataset.score) };
     });
     sel = [...sel, ...draftGuests];
     if(sel.length < teamCount) return alert("인원 부족");
-    sel.sort((a,b)=>b.s-a.s);
+    
     let teams = Array.from({length:teamCount}, ()=>({members:[]}));
-    let idx=0, dir=1;
-    sel.forEach(p=>{ teams[idx].members.push(p); idx+=dir; if(idx===teamCount||idx===-1){dir*=-1;idx+=dir;} });
+
+    if(shuffle) {
+      sel.sort(() => Math.random() - 0.5);
+      sel.forEach((p, idx) => teams[idx % teamCount].members.push(p));
+    } else {
+      sel.sort((a,b)=>b.s-a.s);
+      let idx=0, dir=1;
+      sel.forEach(p=>{ teams[idx].members.push(p); idx+=dir; if(idx===teamCount||idx===-1){dir*=-1;idx+=dir;} });
+    }
     renderVSMode(teams);
   }
 
@@ -257,15 +264,16 @@
     const selectedDate = document.getElementById('match-date-input').value.replace(/-/g, '. ');
     activeMatch = { id:Date.now(), date:selectedDate, teams:finalTeams, rounds:[] };
     localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
-    
     if(mode==='dashboard') startDashboard(activeMatch);
-    else { alert("Game Plan Saved!"); location.reload(); }
+    else { alert("Saved!"); renderSavedMatches(); location.reload(); }
   }
 
+  // [수정] 메인 상단 Ready to Play 보정
   function renderSavedMatches() {
     const m = JSON.parse(localStorage.getItem('saved_manager_match'));
+    const section = document.getElementById('saved-matches-section');
     if(m) {
-      document.getElementById('saved-matches-section').classList.remove('hidden');
+      section.classList.remove('hidden');
       document.getElementById('saved-list').innerHTML = `
         <div class="saved-match-card">
           <div onclick="loadSavedMatch()" style="flex:1; font-weight:900; color:#065f46; font-size:11px; cursor:pointer;">⚽ Ready: ${m.date}</div>
@@ -274,7 +282,7 @@
              <span class="admin-del" onclick="deleteLocalMatch()">✕</span>
           </div>
         </div>`;
-    }
+    } else { section.classList.add('hidden'); }
   }
 
   function shareMatchLink() {
@@ -285,11 +293,11 @@
     dummy.select();
     document.execCommand("copy");
     document.body.removeChild(dummy);
-    alert("URL copied! Share it with your team.");
+    alert("URL copied!");
   }
 
   function deleteLocalMatch() {
-    if(prompt("Admin Password:") === ADMIN_PW) { localStorage.removeItem('saved_manager_match'); location.reload(); }
+    if(prompt("Password:") === ADMIN_PW) { localStorage.removeItem('saved_manager_match'); location.reload(); }
     else { alert("Wrong Password."); }
   }
 
@@ -373,9 +381,9 @@
 
   async function deleteCloudMatch(id) {
     if(prompt("Admin Password:") === ADMIN_PW) {
-      if(!confirm("Cloud에서 영구 삭제하시겠습니까?")) return;
-      try { await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify({action: "DELETE", id: id}) }); alert("Deleted!"); fetchMasterData(); } catch(e) { alert("Delete failed."); }
-    } else { alert("Wrong Password."); }
+      if(!confirm("영구 삭제?")) return;
+      try { await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify({action: "DELETE", id: id}) }); alert("Deleted!"); fetchMasterData(); } catch(e) { alert("Fail."); }
+    }
   }
 
   function renderLeaderboard() {
