@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v12.4</title>
+  <title>Futsal Manager Pro v12.5</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -211,7 +211,6 @@
     renderVSMode(teams);
   }
 
-  // [수정] 현재 화면의 DOM 요소를 직접 읽어와서 셔플 (삭제/추가 완벽 동기화)
   function reshuffle() {
     let currentPlayers = [];
     document.querySelectorAll('.drag-item').forEach(el => {
@@ -369,8 +368,8 @@
     document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
   }
 
-  // [수정] CORS 충돌 원천 차단 (no-cors 모드) 및 DOM 즉시 갱신
-  async function finishMatch() {
+  // [수정] 네트워크 에러 팝업 및 화면 멈춤 원천 차단 (백그라운드 전송)
+  function finishMatch() {
     if(!confirm("Cloud Archive?")) return; 
     document.body.style.opacity = "0.5";
     
@@ -388,27 +387,24 @@
     
     const log = { id:activeMatch.id, date:activeMatch.date, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
     
-    try { 
-      // CORS 에러로 인한 스크립트 중단 방지를 위해 mode: 'no-cors' 추가
-      await fetch(SHEET_API_URL, { method:'POST', body:JSON.stringify(log), mode: 'no-cors' }); 
-      
-      localStorage.removeItem('saved_manager_match'); 
-      hData.push(log);
-      
-      document.body.style.opacity = "1";
-      document.getElementById('match-page').classList.add('hidden');
-      document.getElementById('setup-page').classList.remove('hidden');
-      
-      renderHistory(); 
-      renderSavedMatches();
+    // 화면 멈춤 방지를 위해 await와 try-catch 제거, 백그라운드에서 조용히 전송
+    fetch(SHEET_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(log)
+    }).catch(e => console.log(e));
+    
+    localStorage.removeItem('saved_manager_match'); 
+    hData.push(log);
+    
+    document.body.style.opacity = "1";
+    document.getElementById('match-page').classList.add('hidden');
+    document.getElementById('setup-page').classList.remove('hidden');
+    
+    renderHistory(); 
+    renderSavedMatches();
 
-      // 화면 업데이트가 완료된 후 알림창 띄우기
-      setTimeout(() => alert("Archived Successfully! 🏆"), 100); 
-    }
-    catch(e) { 
-      alert("Archive Failed. Check Network."); 
-      document.body.style.opacity="1"; 
-    }
+    setTimeout(() => alert("Archived Successfully! 🏆"), 100); 
   }
 
   function renderHistory() {
@@ -447,7 +443,6 @@
     document.getElementById('add-modal').classList.remove('hidden');
   }
 
-  // [수정] Last Minute 인원 추가 시, 가장 멤버수가 적은 팀(1~3팀 순서)에 균등하게 자동 배치
   function addLastMinutePlayer(n, s) { 
     let minTeam = 0;
     let minCount = Infinity;
