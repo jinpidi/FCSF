@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Team Manager Pro</title>
+  <title>Futsal Match Maker Pro</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <style>
     :root { --primary-color: #0f172a; --accent-color: #10b981; --bg-color: #f1f5f9; --card-bg: #ffffff; --text-main: #1e293b; --text-sub: #64748b; --star-color: #fbbf24; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
@@ -12,7 +13,6 @@
     .container { width: 100%; max-width: 480px; background: var(--card-bg); padding: 25px 20px; border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
     header { text-align: center; margin-bottom: 25px; }
     h1 { font-size: 1.4rem; font-weight: 800; color: var(--primary-color); margin: 0; letter-spacing: -1px; }
-    /* 팀명 스타일 */
     .team-title-label { font-size: 16px; font-weight: 700; color: var(--accent-color); margin-top: 5px; display: block; }
     
     .section-title { font-size: 12px; font-weight: 700; margin: 20px 0 12px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center;}
@@ -20,34 +20,34 @@
     .match-type-selector { display: flex; gap: 8px; }
     .type-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; background: white; border-radius: 14px; cursor: pointer; font-weight: 800; color: var(--text-sub); transition: 0.2s; line-height: 1.3; }
     .type-btn.active { border-color: var(--primary-color); background: var(--primary-color); color: white; }
-    .type-btn span { display: block; font-size: 10px; font-weight: 500; opacity: 0.8; margin-top: 2px; }
+    
     .attendance-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 2px; }
     .player-card { background: #f8fafc; border: 2px solid #f1f5f9; padding: 12px; border-radius: 14px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
     .player-card.active { border-color: var(--accent-color); background: #ecfdf5; }
-    .player-card input { pointer-events: none; transform: scale(1.1); accent-color: var(--accent-color); }
+    
     button { background: var(--primary-color); color: white; border: none; padding: 16px; border-radius: 16px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; margin-top: 10px; }
     .btn-accent { background: var(--accent-color); height: 60px; font-size: 16px; }
-    .btn-guest { background: #64748b; padding: 10px; font-size: 12px; margin-bottom: 15px; }
-    .match-card { background: #f8fafc; border-radius: 20px; padding: 15px; margin-bottom: 12px; border: 1px solid #e2e8f0; position: relative; }
-    .round-info { font-size: 11px; font-weight: 800; color: var(--accent-color); margin-bottom: 8px; display: flex; justify-content: space-between; }
-    .vs-area { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .team-name { font-weight: 800; font-size: 15px; flex: 1; text-align: center; }
-    .score-btns { display: flex; gap: 4px; flex: 2; }
-    .s-btn { flex: 1; padding: 10px 0; border-radius: 10px; border: 1px solid #e2e8f0; background: white; font-size: 11px; font-weight: 700; cursor: pointer; }
-    .s-btn.selected { background: var(--primary-color); color: white; border-color: var(--primary-color); }
-    .rd-del-btn { color: #f87171; font-weight: 800; cursor: pointer; padding: 0 5px; }
-    .team-box { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 18px; padding: 15px; margin-bottom: 12px; }
-    .stars-wrap { display: flex; gap: 3px; }
-    .star-icon { width: 14px; height: 14px; position: relative; display: inline-block; background-color: #e2e8f0; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
-    .star-icon.full { background-color: var(--star-color); }
-    .star-icon.half::before { content: ''; position: absolute; left: 0; top: 0; width: 50%; height: 100%; background-color: var(--star-color); }
+    .btn-outline { background: transparent; color: var(--text-sub); border: 1px solid #e2e8f0; }
+
+    /* 드래그 앤 드롭 스타일 */
+    .drag-list { min-height: 50px; padding: 10px; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1; margin-top: 10px; }
+    .drag-item { background: white; padding: 10px 15px; border-radius: 10px; margin-bottom: 8px; border: 1px solid #e2e8f0; cursor: grab; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .drag-item .item-del { color: #f87171; font-size: 14px; padding-left: 10px; cursor: pointer; }
+
+    .saved-match-card { background: #f0fdf4; border: 2px solid #dcfce7; border-radius: 20px; padding: 15px; margin-bottom: 12px; cursor: pointer; position: relative; }
+    .saved-del-btn { position: absolute; top: 10px; right: 15px; color: #94a3b8; font-size: 18px; }
     .history-card { background: #fff; border-radius: 18px; padding: 15px; margin-bottom: 12px; border: 1px solid #e2e8f0; cursor: pointer; }
-    .rank-badge { width: 35px; font-size: 10px; font-weight: 900; color: var(--text-sub); }
-    .del-btn { color: #f87171; font-weight: 800; cursor: pointer; padding: 0 5px; font-size: 11px; }
-    .hidden { display: none !important; }
     .loading-msg { text-align: center; padding: 30px; color: var(--text-sub); font-weight: 600; }
     .dots::after { content: ''; display: inline-block; width: 12px; text-align: left; animation: dots 1.5s infinite; }
     @keyframes dots { 0% { content: ''; } 33% { content: '.'; } 66% { content: '..'; } 100% { content: '...'; } }
+    .hidden { display: none !important; }
+    .s-btn { flex: 1; padding: 10px 0; border-radius: 10px; border: 1px solid #e2e8f0; background: white; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .s-btn.selected { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+    .match-card { background: #f8fafc; border-radius: 20px; padding: 15px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
+    .round-info { font-size: 11px; font-weight: 800; color: var(--accent-color); margin-bottom: 8px; }
+    .vs-area { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .team-name { font-weight: 800; font-size: 15px; flex: 1; text-align: center; }
+    .score-btns { display: flex; gap: 4px; flex: 2; }
   </style>
 </head>
 <body>
@@ -55,9 +55,16 @@
 <div class="container">
   <div id="setup-page">
     <header>
-      <h1>Futsal Team Manager</h1>
+      <h1>Futsal Match Maker</h1>
       <span id="display-team-name" class="team-title-label"></span>
     </header>
+
+    <div id="saved-matches-section" class="hidden">
+      <div class="section-title">Ready to Play (Saved)</div>
+      <div id="saved-list"></div>
+    </div>
+
+    <div class="section-title">Match Config</div>
     <div class="config-card">
       <div class="match-type-selector">
         <button id="btn-2team" class="type-btn active" onclick="setTeamCount(2)">VERSUS<span>(2-TEAM)</span></button>
@@ -65,49 +72,45 @@
       </div>
       <div id="att-count" style="text-align:center; font-size:13px; font-weight:800; color:var(--accent-color); margin-top:15px;">0 Players Ready</div>
     </div>
+
     <div class="section-title">Attendance Checklist</div>
     <div id="loading" class="loading-msg"><span class="dots">Loading Player List</span></div>
     <div class="attendance-list" id="attendance-list"></div>
-    <div id="guest-area" style="margin: 10px 0;"></div>
-    <button class="btn-guest" onclick="addGuest()">+ Add Guest</button>
     <button class="btn-accent" onclick="makeTeams()">Generate Teams ⚡</button>
   </div>
 
   <div id="result-page" class="hidden">
-    <header><h1 style="color:var(--accent-color);">Matching Result</h1></header>
-    <div id="team-results"></div>
-    <button class="btn-accent" onclick="startDashboard()">Start Match Dashboard ⚽</button>
-    <button style="background:transparent; color:var(--text-sub); border:1px solid #e2e8f0;" onclick="makeTeams()">Re-Shuffle 🔁</button>
-    <button style="background:transparent; color:var(--text-sub); border:none; font-size:11px;" onclick="goBack()">Edit Attendance</button>
+    <header><h1 style="color:var(--accent-color);">Match Final Check</h1></header>
+    <div style="text-align: center; font-size: 11px; color: var(--text-sub); margin-bottom: 15px;">드래그로 이동, ✕로 노쇼 인원 삭제</div>
+    <div id="team-edit-area"></div>
+    
+    <button class="btn-outline" style="margin-bottom: 10px;" onclick="addUrgentGuest()">+ Add Last-minute Guest</button>
+    
+    <button class="btn-accent" onclick="saveMatchToHistory('dashboard')">Start Dashboard Now ⚽</button>
+    <button class="btn-outline" onclick="saveMatchToHistory('exit')">Save & Exit (For Later) 💾</button>
+    <button style="background:transparent; color:var(--text-sub); border:none; font-size:11px;" onclick="goBack()">Cancel & Go Back</button>
   </div>
 
   <div id="match-page" class="hidden">
-    <header><h1 style="color:var(--accent-color);">Live Dashboard</h1></header>
+    <header><h1>Match Dashboard</h1></header>
     <div id="live-ranking" style="background:var(--primary-color); color:white; padding:15px; border-radius:20px; margin-bottom:20px; font-size:12px; line-height:1.6;"></div>
-    <div class="section-title">Match Rounds (13m each)</div>
     <div id="round-list"></div>
-    <button class="btn-accent" onclick="finishMatch()">Finish & Save to Drive 🏁</button>
-    <button style="background:transparent; color:var(--text-sub); border:1px solid #e2e8f0;" onclick="confirmReset()">Cancel Match</button>
+    <button class="btn-accent" onclick="finishMatch()">Complete & Archive 🏁</button>
+    <button class="btn-outline" onclick="confirmReset()">Close & Save Progress</button>
   </div>
 
   <div id="history-section" style="margin-top: 40px;">
-    <div class="section-title">Match History</div>
+    <div class="section-title">Past Match History</div>
     <div id="history-list"></div>
-    <div id="mvp-stats-container" style="margin-top: 40px;"></div>
   </div>
 </div>
 
 <script>
-  // 1번 수정: 팀명 설정 (이 부분만 나중에 바꾸시면 됩니다)
   const TEAM_NAME = "FC 서울숲";
-  
-  // 본인의 구글 웹 앱 URL을 여기에 넣어주세요
-  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbxlHYnFXUq8rjRyIh0zm7OXC7maQAoyPKB6gnqop3wju7HBoY_dbP_kge06IMopEHvw/exec"; 
+  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzo_9mYhtzTFQ6oFh9Xd-RaVf6degYYeEI9mCNrgyyaku4jnjNKVo7WIBaf2otYIVwB/exec"; 
 
-  let masterPlayers = [], guests = [], teamCount = 2, currentTeams = [], hData = [];
-  let rounds = [];
+  let masterPlayers = [], teamCount = 2, currentTeams = [], hData = [], activeMatch = null;
 
-  // 초기 실행 시 팀명 설정
   document.getElementById('display-team-name').innerText = TEAM_NAME;
 
   function setTeamCount(val) {
@@ -125,204 +128,225 @@
       document.getElementById('loading').classList.add('hidden');
       renderAttendanceList();
       renderHistory();
+      renderSavedMatches();
     } catch (e) { document.getElementById('loading').innerText = "Load failed."; }
   }
 
   function renderAttendanceList() {
     const box = document.getElementById('attendance-list'); box.innerHTML = '';
-    masterPlayers.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'));
-    masterPlayers.forEach(p => {
+    masterPlayers.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR')).forEach(p => {
       const card = document.createElement('div'); card.className = 'player-card';
-      card.onclick = () => { const cb = card.querySelector('.p-check'); cb.checked = !cb.checked; card.classList.toggle('active', cb.checked); updateCount(); };
-      card.innerHTML = `<input type="checkbox" class="p-check" data-name="${p.name}" data-score="${p.score}"><span>${p.name}</span>`;
+      card.onclick = () => { card.classList.toggle('active'); updateCount(); };
+      card.innerHTML = `<span class="p-name" data-score="${p.score}">${p.name}</span>`;
       box.appendChild(card);
     });
   }
 
-  function addGuest() { guests.push(`Guest ${guests.length+1}`); renderGuests(); updateCount(); }
-  function renderGuests() { document.getElementById('guest-area').innerHTML = guests.map((g, i) => `<div style="display:inline-block; background:#e2e8f0; padding:6px 12px; border-radius:10px; margin:4px; font-size:12px;">${g} <span style="cursor:pointer; color:#ef4444;" onclick="removeGuest(${i})">✕</span></div>`).join(''); }
-  function removeGuest(i) { guests.splice(i, 1); renderGuests(); updateCount(); }
-  function updateCount() { const count = document.querySelectorAll('.p-check:checked').length + guests.length; document.getElementById('att-count').innerText = count + " Players Ready"; }
-
-  function renderStars(score) {
-    const starVal = score / 20;
-    let html = '<div class="stars-wrap">';
-    for (let i = 1; i <= 5; i++) {
-      if (i <= Math.floor(starVal)) html += '<span class="star-icon full"></span>';
-      else if (i - 0.5 <= starVal) html += '<span class="star-icon half"></span>';
-      else html += '<span class="star-icon"></span>';
-    }
-    return html + '</div>';
+  function updateCount() {
+    const count = document.querySelectorAll('.player-card.active').length;
+    document.getElementById('att-count').innerText = count + " Players Ready";
   }
 
   function makeTeams() {
-    let players = [];
-    const selected = document.querySelectorAll('.p-check:checked');
-    selected.forEach(cb => { players.push({ n: cb.dataset.name, s: parseInt(cb.dataset.score), penalty: 0 }); });
-    const avg = players.length > 0 ? players.reduce((a,b)=>a+b.s,0)/players.length : 50;
-    guests.forEach(g => players.push({ n: g, s: avg, penalty: 0 }));
-    if(players.length < teamCount) return alert("인원이 부족합니다.");
-    const recentH = hData.slice(0, 3);
-    players.forEach(p1 => {
-      players.forEach(p2 => {
-        if (p1.n === p2.n) return;
-        recentH.forEach(m => { m.rank.forEach(t => { if (t.names.includes(p1.n) && t.names.includes(p2.n)) p1.penalty += 15; }); });
-      });
+    const selected = Array.from(document.querySelectorAll('.player-card.active')).map(el => {
+      const span = el.querySelector('.p-name');
+      return { n: span.innerText, s: parseInt(span.dataset.score) };
     });
-    players = players.map(p => ({ ...p, weight: p.s + (Math.random() * 32 - 16) - p.penalty }));
-    players.sort((a,b) => b.weight - a.weight);
-    currentTeams = Array.from({length: teamCount}, () => ({ members: [], total: 0 }));
+    if(selected.length < teamCount) return alert("인원이 부족합니다.");
+    selected.sort((a,b) => b.s - a.s);
+    currentTeams = Array.from({length: teamCount}, () => ({ members: [] }));
     let idx = 0, dir = 1;
-    players.forEach(p => { currentTeams[idx].members.push(p.n); currentTeams[idx].total += p.s; idx += dir; if(idx === teamCount || idx === -1) { dir *= -1; idx += dir; } });
-    renderTeamResults();
+    selected.forEach(p => {
+      currentTeams[idx].members.push(p.n);
+      idx += dir;
+      if(idx === teamCount || idx === -1) { dir *= -1; idx += dir; }
+    });
+    renderTeamEditor();
   }
 
-  function renderTeamResults() {
+  function renderTeamEditor() {
     document.getElementById('setup-page').classList.add('hidden');
     document.getElementById('result-page').classList.remove('hidden');
-    const box = document.getElementById('team-results'); box.innerHTML = '';
+    const area = document.getElementById('team-edit-area'); area.innerHTML = '';
+
     currentTeams.forEach((t, i) => {
-      const avg = t.total / t.members.length;
-      const card = document.createElement('div'); card.className = 'team-box';
-      card.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="font-weight:800;">🚩 Team ${i+1}</span>${renderStars(avg)}</div><div style="font-weight:600; line-height:1.5;">${t.members.sort().join(', ')}</div>`;
-      box.appendChild(card);
+      const box = document.createElement('div');
+      box.className = 'team-box';
+      box.style.marginBottom = "20px";
+      box.innerHTML = `<div class="section-title">Team ${i+1}</div><div class="drag-list" id="team-list-${i}"></div>`;
+      area.appendChild(box);
+
+      const listEl = document.getElementById(`team-list-${i}`);
+      t.members.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'drag-item';
+        item.innerHTML = `${m} <span class="item-del" onclick="this.parentElement.remove()">✕</span>`;
+        listEl.appendChild(item);
+      });
+      new Sortable(listEl, { group: 'teams', animation: 150 });
     });
   }
 
-  function startDashboard() {
+  function addUrgentGuest() {
+    const name = prompt("Guest Name:");
+    if(!name) return;
+    const list0 = document.getElementById('team-list-0');
+    const item = document.createElement('div');
+    item.className = 'drag-item';
+    item.innerHTML = `${name} <span class="item-del" onclick="this.parentElement.remove()">✕</span>`;
+    list0.appendChild(item);
+  }
+
+  function saveMatchToHistory(mode) {
+    const finalTeams = [];
+    document.querySelectorAll('.drag-list').forEach((list, idx) => {
+      const members = Array.from(list.querySelectorAll('.drag-item')).map(el => el.childNodes[0].textContent.trim());
+      finalTeams.push({ id: idx, members: members });
+    });
+
+    const matchObj = {
+      id: activeMatch ? activeMatch.id : Date.now(),
+      date: new Date().toLocaleDateString(),
+      teams: finalTeams,
+      rounds: (activeMatch && activeMatch.rounds.length > 0) ? activeMatch.rounds : []
+    };
+
+    // 로컬 스토리지 업데이트 (기존 동일 ID는 덮어쓰기)
+    let saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
+    saved = saved.filter(m => m.id !== matchObj.id);
+    saved.push(matchObj);
+    localStorage.setItem('saved_matches', JSON.stringify(saved));
+
+    if(mode === 'dashboard') startDashboard(matchObj);
+    else { alert("Saved successfully."); location.reload(); }
+  }
+
+  function renderSavedMatches() {
+    const saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
+    const box = document.getElementById('saved-list');
+    if(saved.length > 0) {
+      document.getElementById('saved-matches-section').classList.remove('hidden');
+      box.innerHTML = saved.map(m => `
+        <div class="saved-match-card" onclick="loadSavedMatch(${m.id})">
+          <div style="font-weight:800;">🏃 ${m.date} Match Ready</div>
+          <div style="font-size:12px; color:var(--text-sub); margin-top:5px;">${m.teams.map(t => 'T'+(t.id+1)+': '+t.members.length+'P').join(' | ')}</div>
+          <span class="saved-del-btn" onclick="deleteSavedMatch(event, ${m.id})">✕</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  // [수정] 바로 대시보드로 안 가고 편집화면으로!
+  function loadSavedMatch(id) {
+    const saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
+    activeMatch = saved.find(m => m.id === id);
+    if(activeMatch) {
+      currentTeams = activeMatch.teams;
+      teamCount = currentTeams.length;
+      renderTeamEditor();
+    }
+  }
+
+  function deleteSavedMatch(e, id) {
+    e.stopPropagation();
+    if(!confirm("Delete this saved match?")) return;
+    let saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
+    localStorage.setItem('saved_matches', JSON.stringify(saved.filter(m => m.id !== id)));
+    location.reload();
+  }
+
+  function startDashboard(match) {
+    activeMatch = match;
+    document.getElementById('setup-page').classList.add('hidden');
     document.getElementById('result-page').classList.add('hidden');
     document.getElementById('match-page').classList.remove('hidden');
-    rounds = [];
-    if(teamCount === 2) { for(let i=1; i<=9; i++) rounds.push({ id: i, t1: 0, t2: 1, winner: null }); }
-    else { const pattern = [[0,1], [1,2], [2,0]]; for(let i=1; i<=9; i++) rounds.push({ id: i, t1: pattern[(i-1)%3][0], t2: pattern[(i-1)%3][1], winner: null }); }
+    
+    if(activeMatch.rounds.length === 0) {
+      const tc = activeMatch.teams.length;
+      if(tc === 2) for(let i=1; i<=9; i++) activeMatch.rounds.push({ id: i, t1: 0, t2: 1, winner: null });
+      else {
+        const pattern = [[0,1], [1,2], [2,0]];
+        for(let i=1; i<=9; i++) activeMatch.rounds.push({ id: i, t1: pattern[(i-1)%3][0], t2: pattern[(i-1)%3][1], winner: null });
+      }
+    }
     renderRoundList();
   }
 
   function renderRoundList() {
     const box = document.getElementById('round-list'); box.innerHTML = '';
-    rounds.forEach(r => {
+    activeMatch.rounds.forEach(r => {
       const card = document.createElement('div'); card.className = 'match-card';
-      card.innerHTML = `<div class="round-info">ROUND ${r.id} <span class="rd-del-btn" onclick="deleteRound(${r.id})">REMOVE ✕</span></div><div class="vs-area"><div class="team-name">T${r.t1+1}</div><div class="score-btns"><button class="s-btn ${r.winner==='t1'?'selected':''}" onclick="record(${r.id}, 't1')">WIN</button><button class="s-btn ${r.winner==='draw'?'selected':''}" onclick="record(${r.id}, 'draw')">DRAW</button><button class="s-btn ${r.winner==='t2'?'selected':''}" onclick="record(${r.id}, 't2')">WIN</button></div><div class="team-name">T${r.t2+1}</div></div>`;
+      card.innerHTML = `<div class="round-info">ROUND ${r.id}</div><div class="vs-area">
+          <div class="team-name">T${r.t1+1}</div>
+          <div class="score-btns">
+            <button class="s-btn ${r.winner==='t1'?'selected':''}" onclick="record(${r.id}, 't1')">WIN</button>
+            <button class="s-btn ${r.winner==='draw'?'selected':''}" onclick="record(${r.id}, 'draw')">DRAW</button>
+            <button class="s-btn ${r.winner==='t2'?'selected':''}" onclick="record(${r.id}, 't2')">WIN</button>
+          </div>
+          <div class="team-name">T${r.t2+1}</div></div>`;
       box.appendChild(card);
     });
     updateLiveRanking();
   }
 
-  function record(roundId, result) { const r = rounds.find(x => x.id === roundId); r.winner = (r.winner === result) ? null : result; renderRoundList(); }
-  function deleteRound(id) { if(confirm(`ROUND ${id} 삭제?`)) { rounds = rounds.filter(r => r.id !== id); renderRoundList(); } }
+  function record(rid, res) {
+    const r = activeMatch.rounds.find(x => x.id === rid);
+    r.winner = (r.winner === res) ? null : res;
+    renderRoundList();
+  }
 
   function updateLiveRanking() {
-    let stats = currentTeams.map((_, i) => ({ id: i+1, w: 0, d: 0, l: 0, p: 0 }));
-    rounds.forEach(r => {
+    const stats = activeMatch.teams.map((_, i) => ({ id: i+1, w:0, d:0, l:0, p:0 }));
+    activeMatch.rounds.forEach(r => {
       if(!r.winner) return;
       if(r.winner === 't1') { stats[r.t1].w++; stats[r.t1].p+=3; stats[r.t2].l++; }
       else if(r.winner === 't2') { stats[r.t2].w++; stats[r.t2].p+=3; stats[r.t1].l++; }
-      else if(r.winner === 'draw') { stats[r.t1].d++; stats[r.t1].p+=1; stats[r.t2].d++; stats[r.t2].p+=1; }
+      else { stats[r.t1].d++; stats[r.t1].p+=1; stats[r.t2].d++; stats[r.t2].p+=1; }
     });
     stats.sort((a,b) => b.p - a.p);
-    document.getElementById('live-ranking').innerHTML = `<b>Live Score:</b><br>` + stats.map(x => `T${x.id}: ${x.w}W ${x.d}D ${x.l}L (${x.p}pts)`).join('<br>');
+    document.getElementById('live-ranking').innerHTML = `<b>Live Ranking:</b><br>` + stats.map(s => `T${s.id}: ${s.w}W ${s.d}D ${s.l}L (${s.p}pts)`).join(' | ');
   }
 
   async function finishMatch() {
-    if(!confirm("Finish and save to Drive?")) return;
+    if(!confirm("Complete and save to Google Sheet?")) return;
     document.body.style.opacity = "0.5";
-    let stats = currentTeams.map((t, i) => ({ id: i, w:0, d:0, l:0, p:0, members: t.members.join(', ') }));
-    rounds.forEach(r => {
-      if(!r.winner) return;
-      if(r.winner === 't1') { stats[r.t1].w++; stats[r.t1].p+=3; stats[r.t2].l++; }
-      else if(r.winner === 't2') { stats[r.t2].w++; stats[r.t2].p+=3; stats[r.t1].l++; }
-      else if(r.winner === 'draw') { stats[r.t1].d++; stats[r.t1].p+=1; stats[r.t2].d++; stats[r.t2].p+=1; }
+    const stats = activeMatch.teams.map((t, tid) => {
+      let w=0, d=0, l=0, p=0;
+      activeMatch.rounds.forEach(r => {
+        if(r.winner === 't1' && r.t1 === tid) { w++; p+=3; }
+        else if(r.winner === 't2' && r.t2 === tid) { w++; p+=3; }
+        else if(r.winner === 'draw' && (r.t1 === tid || r.t2 === tid)) { d++; p+=1; }
+        else if(r.winner && (r.t1 === tid || r.t2 === tid)) { l++; }
+      });
+      return { names: t.members.join(', '), record: `${w}W ${d}D ${l}L`, pts: p };
     });
-    stats.sort((a,b) => b.p - a.p);
-    const log = { id: Date.now(), date: new Date().toLocaleDateString(), rank: stats.map((x, i) => ({ r: i+1, sfx: i===0?'st':i===1?'nd':'rd', names: x.members, pts: x.p, record: `${x.w}W ${x.d}D ${x.l}L` })), rounds: JSON.parse(JSON.stringify(rounds)) };
-    try { await fetch(SHEET_API_URL, { method: 'POST', body: JSON.stringify(log) }); alert("Successfully Saved!"); location.reload(); }
-    catch (e) { alert("Save Failed."); document.body.style.opacity = "1"; }
+    stats.sort((a,b) => b.pts - a.pts);
+    const finalLog = {
+      id: activeMatch.id, date: activeMatch.date,
+      rank: stats.map((s, i) => ({ r: i+1, sfx: i===0?'st':i===1?'nd':'rd', names: s.names, record: s.record, pts: s.pts })),
+      rounds: activeMatch.rounds
+    };
+    try {
+      await fetch(SHEET_API_URL, { method: 'POST', body: JSON.stringify(finalLog) });
+      let saved = JSON.parse(localStorage.getItem('saved_matches') || '[]');
+      localStorage.setItem('saved_matches', JSON.stringify(saved.filter(m => m.id !== activeMatch.id)));
+      alert("Success!"); location.reload();
+    } catch (e) { alert("Fail"); document.body.style.opacity = "1"; }
   }
 
   function renderHistory() {
     const box = document.getElementById('history-list');
-    if (hData.length === 0) { box.innerHTML = "<div class='loading-msg'>No records.</div>"; return; }
-    const sortedData = [...hData].sort((a, b) => b.id - a.id);
-    const groups = sortedData.reduce((acc, h) => {
-      const month = h.date.substring(0, 8).replace(/\s/g, ''); 
-      if (!acc[month]) acc[month] = [];
-      acc[month].push(h);
-      return acc;
-    }, {});
-    let html = "";
-    for (const month in groups) {
-      html += `<div style="margin: 20px 0 10px; font-weight: 800; color: var(--primary-color); border-left: 4px solid var(--accent-color); padding-left: 10px;">${month} MATCHES</div>`;
-      groups[month].forEach(h => {
-        html += `<div class="history-card" onclick="showDetail(${JSON.stringify(h).replace(/"/g, '&quot;')})">
-          <div style="font-weight:800; margin-bottom:10px; display:flex; justify-content:space-between;">📅 ${h.date} <span class="del-btn" onclick="secureDelete(event, ${h.id})">✕</span></div>`;
-        h.rank.forEach(rk => { html += `<div style="display:flex; align-items:center; margin-bottom:4px;"><span class="rank-badge">${rk.r}${rk.sfx}</span> <b style="flex:1;">${rk.names}</b> <span style="font-size:10px; color:var(--accent-color);">${rk.record}</span></div>`; });
-        html += `</div>`;
-      });
-    }
-    box.innerHTML = html;
-    renderMVPStats(); 
-  }
-
-  function renderMVPStats() {
-    const statsContainer = document.getElementById('mvp-stats-container');
-    if (!statsContainer || hData.length === 0) return;
-    const playerStats = {};
-    hData.forEach(h => {
-      h.rank.forEach(rk => {
-        const players = rk.names.split(',').map(n => n.trim());
-        players.forEach(p => {
-          if (!playerStats[p]) playerStats[p] = { total: 0, win: 0 };
-          playerStats[p].total += 1; if (rk.r === 1) playerStats[p].win += 1; 
-        });
-      });
+    if (hData.length === 0) return;
+    hData.sort((a,b) => b.id - a.id).forEach(h => {
+      const div = document.createElement('div'); div.className = 'history-card';
+      let html = `<div style="font-weight:800; margin-bottom:8px;">📅 ${h.date}</div>`;
+      h.rank.forEach(rk => { html += `<div style="font-size:12px; margin-bottom:4px;"><b>${rk.r}${rk.sfx}</b> ${rk.names} (${rk.record})</div>`; });
+      div.innerHTML = html; box.appendChild(div);
     });
-    const ranking = Object.entries(playerStats).sort((a, b) => b[1].win - a[1].win || b[1].total - a[1].total);
-    let html = `<div class="section-title">Quarterly MVP</div><div style="background: white; border: 1px solid #e2e8f0; border-radius: 20px; padding: 15px; margin-bottom: 50px;"><table style="width: 100%; font-size: 12px; border-collapse: collapse;"><thead><tr style="color: var(--text-sub); border-bottom: 1px solid #f1f5f9;"><th style="padding: 8px 0; text-align: left;">Rank</th><th style="text-align: left;">Player</th><th style="text-align: center;">Wins</th><th style="text-align: right;">Total</th></tr></thead><tbody>`;
-    ranking.slice(0, 10).forEach((item, idx) => {
-      const [name, stat] = item; const isFirst = idx === 0 ? 'color: var(--accent-color); font-weight: 800;' : '';
-      html += `<tr style="border-bottom: 1px solid #f8fafc; ${isFirst}"><td style="padding: 10px 0;">${idx + 1}</td><td>${name} ${idx === 0 ? '👑' : ''}</td><td style="text-align: center; font-weight: 700;">${stat.win}</td><td style="text-align: right; color: #94a3b8;">${stat.total}회</td></tr>`;
-    });
-    html += `</tbody></table></div>`;
-    statsContainer.innerHTML = html;
   }
 
-  function showDetail(h) {
-    let msg = `[ ${h.date} Match Log ]\n\n`;
-    h.rounds.forEach(r => {
-      let res = r.winner === 't1' ? `T${r.t1+1} WIN` : r.winner === 't2' ? `T${r.t2+1} WIN` : r.winner === 'draw' ? 'DRAW' : 'SKIP';
-      msg += `RD ${r.id}: T${r.t1+1} vs T${r.t2+1} -> ${res}\n`;
-    });
-    alert(msg);
-  }
-
-  // 2번 수정: 실제 서버 데이터 삭제 요청 로직 추가
-  async function secureDelete(e, id) { 
-    e.stopPropagation(); 
-    const pw = prompt("Admin Password:"); 
-    if (pw && (parseInt(pw) + 77 == 1110100)) { 
-      if(confirm("이 기록을 구글 시트에서 영구히 삭제하시겠습니까?")) {
-        try {
-          const response = await fetch(SHEET_API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: "DELETE", id: id })
-          });
-          const result = await response.text();
-          if (result === "Deleted" || result === "Success") {
-            alert("삭제 완료!");
-            hData = hData.filter(h => h.id !== id);
-            renderHistory();
-          } else {
-            alert("서버 오류: " + result);
-          }
-        } catch (err) {
-          alert("네트워크 오류로 삭제하지 못했습니다.");
-        }
-      }
-    } else if (pw !== null) { alert("Wrong Password."); }
-  }
-
-  function confirmReset() { if(confirm("Cancel current match?")) location.reload(); }
-  function goBack() { document.getElementById('result-page').classList.add('hidden'); document.getElementById('setup-page').classList.remove('hidden'); }
+  function confirmReset() { if(confirm("Close Dashboard? Progress is saved locally.")) location.reload(); }
+  function goBack() { location.reload(); }
   window.onload = fetchMasterData;
 </script>
 </body>
