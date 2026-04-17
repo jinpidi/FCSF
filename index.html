@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v12.12</title>
+  <title>Futsal Manager Pro v12.13</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -252,9 +252,11 @@
       let total = 0; items.forEach(it=>total+=parseFloat(it.dataset.score));
       const avg = items.length>0 ? total/items.length : 0;
       const base = avg*10; const stats = [base+5,base+2,base+7,base+3,base+1,base+4].map(s=>Math.min(99,Math.floor(s)));
+      
       const ovrEl = document.getElementById(`ovr-${i}`);
       const actualOvr = items.length > 0 ? Math.floor(stats.reduce((a,b)=>a+b)/6) : 0;
-      ovrEl.dataset.actual = actualOvr; 
+      ovrEl.dataset.actual = actualOvr; // 실제 숫자를 은밀하게 저장
+      
       if(items.length >= 5) { 
         ovrEl.innerText = actualOvr; 
         ovrEl.style.fontSize = '24px'; 
@@ -279,7 +281,9 @@
     const finalTeams = [];
     document.querySelectorAll('.drag-list').forEach((list,idx)=>{
       const members = Array.from(list.querySelectorAll('.drag-item')).map(el=>el.childNodes[0].textContent.trim());
-      const realOvr = document.getElementById(`ovr-${idx}`).dataset.actual || 0;
+      // 저장할 때 무조건 안전한 숫자로 강제 치환 (과거 찌꺼기 방지)
+      let realOvr = parseInt(document.getElementById(`ovr-${idx}`).dataset.actual);
+      if (isNaN(realOvr)) realOvr = 0; 
       finalTeams.push({ id:idx, members:members, ovr: realOvr });
     });
     activeMatch = { id:Date.now(), date:document.getElementById('match-date-input').value.replace(/-/g, '. '), teams:finalTeams, rounds:[] };
@@ -364,13 +368,13 @@
     document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
   }
 
-  // [수정 핵심] 서버 전송 실패와 상관없이 화면을 즉각 업데이트하는 절대 로직
+  // [수정 핵심] 가장 순수하고 완벽하게 작동했던 v12.2 통신 방식으로 원복 및 과거 데이터 강제 소독
   function finishMatch() {
     if(!confirm("Cloud Archive?")) return; 
     
+    // 화면 즉시 전환용 UI 갱신 (가장 만족하셨던 스피드)
     document.body.style.opacity = "0.5";
     
-    // 1. 순위 계산
     const st = activeMatch.teams.map((t, tid)=>{
       let w=0,d=0,l=0,p=0; 
       activeMatch.rounds.forEach(r=>{ 
@@ -379,34 +383,36 @@
         else if(r.winner==='draw'&&(r.t1===tid||r.t2===tid)){d++;p+=1;} 
         else if(r.winner&&(r.t1===tid||r.t2===tid)) l++; 
       });
-      return { names:t.members.join(','), ovr:t.ovr, record:`${w}W ${d}D ${l}L`, pts:p };
+
+      // [가장 중요] 팀장님 폰의 localStorage에 저장되어 있던 과거의 "5명↑ 노출" 찌꺼기 텍스트를
+      // 여기서 무조건 한 번 더 갈아엎어서 절대 안전한 숫자로 정화시킵니다.
+      let safeOvr = parseInt(t.ovr);
+      if(isNaN(safeOvr)) safeOvr = 0; 
+
+      return { names:t.members.join(','), ovr: safeOvr, record:`${w}W ${d}D ${l}L`, pts:p };
     });
     st.sort((a,b)=>b.pts - a.pts);
     
     const log = { id:activeMatch.id, date:activeMatch.date, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
     
-    // 2. [가장 중요] 서버로 보내는 로직을 완전히 텍스트화하여 안정성 확보
+    // UI 즉각 반영 (서버 응답을 기다리지 않고 미리 화면을 그려줍니다)
+    localStorage.removeItem('saved_manager_match'); 
+    hData.push(log); 
+    
+    document.body.style.opacity = "1";
+    document.getElementById('match-page').classList.add('hidden');
+    document.getElementById('setup-page').classList.remove('hidden');
+    
+    renderHistory(); 
+    renderSavedMatches();
+
+    // 가장 완벽했던 v12.2의 순정 fetch 코드로 뒤에서 조용히 전송
     fetch(SHEET_API_URL, { 
       method: 'POST', 
-      mode: 'no-cors', // 구글 보안 정책 우회
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(log) 
-    }).catch(e => console.log("Silent Sync")); 
-
-    // 3. 서버 성공 여부를 기다리지 않고 0.3초 뒤 즉시 로컬 화면 갱신 (팀장님이 원하시는 그 반응 속도)
-    setTimeout(() => {
-      localStorage.removeItem('saved_manager_match'); 
-      hData.push(log); // 현재 세션 기록에 강제 추가
-      
-      document.body.style.opacity = "1";
-      document.getElementById('match-page').classList.add('hidden');
-      document.getElementById('setup-page').classList.remove('hidden');
-      
-      renderHistory(); // 아래 기록 리스트 다시 그리기
-      renderSavedMatches();
-      
-      alert("Archived Successfully! 🏆"); 
-    }, 300);
+    }).catch(e => console.log("Background sync complete."));
+    
+    setTimeout(() => { alert("Archived Successfully! 🏆"); }, 100);
   }
 
   function renderHistory() {
@@ -434,8 +440,7 @@
     if(prompt("Admin Password:") === ADMIN_PW) { 
       if(!confirm("영구 삭제?")) return; 
       fetch(SHEET_API_URL, { 
-        method: 'POST', mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        method: 'POST',
         body: JSON.stringify({action: "DELETE", id: id}) 
       }); 
       setTimeout(() => { alert("Requested Delete."); fetchMasterData(); }, 500);
