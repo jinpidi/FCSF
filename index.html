@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v12.END</title>
+  <title>Futsal Manager Pro v12.FINAL</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -142,6 +142,8 @@
   const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzo_9mYhtzTFQ6oFh9Xd-RaVf6degYYeEI9mCNrgyyaku4jnjNKVo7WIBaf2otYIVwB/exec"; 
 
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
+  let recordDedupeKey = '';
+  let recordDedupeTs = 0;
 
   const todayStr = new Date().toISOString().substring(0, 10);
   document.getElementById('match-date-input').value = todayStr;
@@ -156,7 +158,7 @@
       const response = await fetch(SHEET_API_URL);
       const result = await response.json();
       masterPlayers = result.players;
-      hData = result.history || [];
+      hData = Array.isArray(result.history) ? [...result.history] : [];
       document.getElementById('loading').classList.add('hidden');
       renderAttendanceList();
       renderHistory();
@@ -254,11 +256,8 @@
       const base = avg*10; const stats = [base+5,base+2,base+7,base+3,base+1,base+4].map(s=>Math.min(99,Math.floor(s)));
       const ovrEl = document.getElementById(`ovr-${i}`);
       
-      const actualOvr = items.length > 0 ? Math.floor(stats.reduce((a,b)=>a+b)/6) : 0;
-      ovrEl.dataset.actual = actualOvr; // 안전한 숫자 저장
-      
       if(items.length >= 5) { 
-        ovrEl.innerText = actualOvr; 
+        ovrEl.innerText = Math.floor(stats.reduce((a,b)=>a+b)/6); 
         ovrEl.style.fontSize = '24px'; 
       } else if(items.length > 0) { 
         ovrEl.innerText = "5명↑ 노출"; 
@@ -281,9 +280,7 @@
     const finalTeams = [];
     document.querySelectorAll('.drag-list').forEach((list,idx)=>{
       const members = Array.from(list.querySelectorAll('.drag-item')).map(el=>el.childNodes[0].textContent.trim());
-      let safeOvr = parseInt(document.getElementById(`ovr-${idx}`).dataset.actual);
-      if(isNaN(safeOvr)) safeOvr = 0;
-      finalTeams.push({ id:idx, members:members, ovr: safeOvr });
+      finalTeams.push({ id:idx, members:members, ovr: document.getElementById(`ovr-${idx}`).innerText });
     });
     activeMatch = { id:Date.now(), date:document.getElementById('match-date-input').value.replace(/-/g, '. '), teams:finalTeams, rounds:[] };
     localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
@@ -349,6 +346,11 @@
   }
 
   function record(rid, res) { 
+    const now = Date.now();
+    const dedupeKey = `${rid}:${res}`;
+    if (dedupeKey === recordDedupeKey && now - recordDedupeTs < 450) return;
+    recordDedupeKey = dedupeKey;
+    recordDedupeTs = now;
     const r = activeMatch.rounds.find(x=>x.id===rid); 
     r.winner = (r.winner===res)?null:res; 
     localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
@@ -367,60 +369,46 @@
     document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
   }
 
-  // [철통 방어 적용 완료] 데이터 생성 중 오류를 감지하고, 안전하게 서버와 통신하는 V12.2 순정 방식
+  // [가장 완벽했던 초창기 코드로 100% 원복] Fire & Forget 로직
   function finishMatch() {
     if(!confirm("Cloud Archive?")) return; 
+    
     document.body.style.opacity = "0.5";
     
-    try {
-      const st = activeMatch.teams.map((t, tid)=>{
-        let w=0,d=0,l=0,p=0; 
-        activeMatch.rounds.forEach(r=>{ 
-          if(r.winner==='t1'&&r.t1===tid){w++;p+=3;} 
-          else if(r.winner==='t2'&&r.t2===tid){w++;p+=3;} 
-          else if(r.winner==='draw'&&(r.t1===tid||r.t2===tid)){d++;p+=1;} 
-          else if(r.winner&&(r.t1===tid||r.t2===tid)) l++; 
-        });
-        
-        let safeOvr = 0;
-        if(t.ovr !== undefined && t.ovr !== null) {
-          safeOvr = parseInt(t.ovr);
-          if(isNaN(safeOvr)) safeOvr = 0;
-        }
-
-        return { names:t.members.join(','), ovr: safeOvr, record:`${w}W ${d}D ${l}L`, pts:p };
+    const st = activeMatch.teams.map((t, tid)=>{
+      let w=0,d=0,l=0,p=0; 
+      activeMatch.rounds.forEach(r=>{ 
+        if(r.winner==='t1'&&r.t1===tid){w++;p+=3;} 
+        else if(r.winner==='t2'&&r.t2===tid){w++;p+=3;} 
+        else if(r.winner==='draw'&&(r.t1===tid||r.t2===tid)){d++;p+=1;} 
+        else if(r.winner&&(r.t1===tid||r.t2===tid)) l++; 
       });
-      
-      st.sort((a,b)=>b.pts - a.pts);
-      
-      const log = { id:activeMatch.id, date:activeMatch.date, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
+      return { names:t.members.join(','), ovr:t.ovr, record:`${w}W ${d}D ${l}L`, pts:p };
+    });
+    st.sort((a,b)=>b.pts - a.pts);
+    
+    const log = { id:activeMatch.id, date:activeMatch.date, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
 
-      // UI 먼저 강제 업데이트 (가장 부드럽고 빨랐던 그 시절 방식)
-      localStorage.removeItem('saved_manager_match'); 
-      hData.push(log); 
-      
-      document.body.style.opacity = "1";
-      document.getElementById('match-page').classList.add('hidden');
-      document.getElementById('setup-page').classList.remove('hidden');
-      
-      renderHistory(); 
-      renderSavedMatches();
+    // 1. 구글 서버로 데이터 전송 (응답을 기다리거나 강제 검증하지 않음)
+    fetch(SHEET_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(log)
+    }).catch(e => console.log("Sync bypassed")); 
 
-      // 서버에는 조용히 백그라운드로 쏴버림 (CORS 에러 무시 설정 포함)
-      fetch(SHEET_API_URL, { 
-        method: 'POST', 
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(log) 
-      }).catch(e => console.log("Bg sync log:", e));
-      
-      setTimeout(() => { alert("Archived Successfully! 🏆"); }, 100);
-
-    } catch (error) {
-      // 만약 내부 데이터 생성 과정에서 무언가 꼬였을 경우 원인 출력
-      alert("데이터를 처리하는 중 오류가 발생했습니다: " + error.message);
-      document.body.style.opacity = "1";
-    }
+    // 2. 딜레이 없이 팀장님 폰 화면의 로컬 데이터를 즉시 최신화 (가장 빠르고 확실한 반영)
+    localStorage.removeItem('saved_manager_match'); 
+    if (!Array.isArray(hData)) hData = [];
+    hData.push(log); 
+    
+    document.body.style.opacity = "1";
+    document.getElementById('match-page').classList.add('hidden');
+    document.getElementById('setup-page').classList.remove('hidden');
+    
+    renderHistory(); 
+    renderSavedMatches();
+    
+    setTimeout(() => { alert("Archived Successfully! 🏆"); }, 50);
   }
 
   function renderHistory() {
@@ -447,9 +435,9 @@
   function deleteCloudMatch(id) {
     if(prompt("Admin Password:") === ADMIN_PW) { 
       if(!confirm("영구 삭제?")) return; 
+      // 삭제 역시 초창기 방식(Fire & Forget)으로 원복
       fetch(SHEET_API_URL, { 
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({action: "DELETE", id: id}) 
       }).catch(e => console.log("Bypass"));
