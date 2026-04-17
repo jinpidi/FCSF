@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Futsal Manager Pro v10.3</title>
+  <title>Futsal Manager Pro v10.5</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -34,9 +34,13 @@
     .ovr-val { font-size: 28px; font-weight: 900; color: var(--accent-color); line-height: 1; }
     .chart-mini-box { background: rgba(255,255,255,0.03); border-radius: 12px; height: 180px; position: relative; margin-top: 5px; }
 
-    .match-card { background: #f8fafc; border-radius: 16px; padding: 10px 15px; margin-bottom: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
-    .s-btn { flex: 1; padding: 8px 0; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-size: 10px; font-weight: 700; }
-    .s-btn.selected { background: var(--primary-color); color: white; }
+    /* [복구] 경기 대시보드 가로 한 줄 레이아웃 */
+    .match-card { background: #f8fafc; border-radius: 16px; padding: 10px 15px; margin-bottom: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .round-info { font-size: 10px; font-weight: 900; color: var(--accent-color); min-width: 45px; }
+    .vs-area { display: flex; align-items: center; flex: 1; gap: 8px; justify-content: center; }
+    .score-btns { display: flex; gap: 3px; flex: 1; max-width: 180px; }
+    .s-btn { flex: 1; padding: 8px 0; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-size: 10px; font-weight: 700; cursor: pointer; }
+    .s-btn.selected { background: var(--primary-color); color: white; border-color: var(--primary-color); }
 
     button { background: var(--primary-color); color: white; border: none; padding: 14px; border-radius: 14px; font-weight: 700; cursor: pointer; width: 100%; font-size: 13px; margin-top: 8px; }
     .btn-accent { background: var(--accent-color); height: 55px; font-size: 15px; }
@@ -81,7 +85,7 @@
   </div>
 
   <div id="result-page" class="hidden">
-    <header><h1 style="color:var(--accent-color);">Tactical Briefing</h1></header>
+    <header><h1 style="color:var(--accent-color);">Match Briefing</h1></header>
     <div id="capture-area" style="background:#fff; padding:10px; border-radius:20px;">
         <div id="vs-display-grid" class="vs-grid"></div>
         <div class="date-input-container">
@@ -90,10 +94,10 @@
         </div>
     </div>
     
-    <button class="btn-outline" style="margin-top: 15px; background:#f0f9ff; border-color:#bae6fd; color:#0369a1;" onclick="takeSnapshot()">📸 Save Tactical Board Image</button>
+    <button class="btn-outline" style="margin-top: 15px; background:#f0f9ff; border-color:#bae6fd; color:#0369a1;" onclick="takeSnapshot()">📸 Save High-Quality JPG Image</button>
     <button class="btn-outline" onclick="openAddPlayerModal()">+ Add Last-minute Player</button>
-    <button class="btn-accent" onclick="saveMatchToHistory('dashboard')">Enter Dashboard ⚽</button>
-    <button class="btn-outline" onclick="saveMatchToHistory('exit')">Save Tactics 💾</button>
+    <button class="btn-accent" onclick="saveMatchToHistory('dashboard')">Start Game Now ⚽</button>
+    <button class="btn-outline" onclick="saveMatchToHistory('exit')">Save Game Plan 💾</button>
     <button class="btn-outline" onclick="goBack('setup')">← Back to Setup</button>
   </div>
 
@@ -102,7 +106,7 @@
     <div id="live-ranking" style="background:var(--primary-color); color:white; padding:12px; border-radius:18px; margin-bottom:15px; font-size:12px; text-align:center; font-weight:700;"></div>
     <div id="round-list"></div>
     <button class="btn-accent" onclick="finishMatch()">Complete & Archive 🏁</button>
-    <button class="btn-outline" onclick="goBack('result')">← Back to Tactics</button>
+    <button class="btn-outline" onclick="goBack('result')">← Back to Game Plan</button>
   </div>
 
   <div id="add-modal" class="modal hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 100; padding: 20px;">
@@ -129,7 +133,6 @@
 
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [];
   
-  // 로딩 타이머 (카운트다운)
   let loadTimeLeft = 3;
   const timerInt = setInterval(() => {
     if(!document.getElementById('loading').classList.contains('hidden')) {
@@ -208,8 +211,8 @@
       t.members.sort((a,b)=>a.n.localeCompare(b.n,'ko-KR'));
       grid.innerHTML += `
         <div class="team-column">
-          <div class="team-box"><div class="section-title">SQUAD T${i+1}</div><div class="drag-list" id="team-list-${i}"></div></div>
-          <div class="tactical-card"><div class="ovr-lbl">POWER</div><div class="ovr-val" id="ovr-${i}">--</div><div class="chart-mini-box"><canvas id="radar-${i}"></canvas></div></div>
+          <div class="team-box"><div class="section-title">Squad T${i+1}</div><div class="drag-list" id="team-list-${i}"></div></div>
+          <div class="tactical-card"><div class="ovr-lbl">Power Rating</div><div class="ovr-val" id="ovr-${i}">--</div><div class="chart-mini-box"><canvas id="radar-${i}"></canvas></div></div>
         </div>`;
       setTimeout(()=>{
         const listEl = document.getElementById(`team-list-${i}`);
@@ -240,14 +243,28 @@
     });
   }
 
-  // [신규] 전술 보드 이미지 저장 기능
   function takeSnapshot() {
     const area = document.getElementById('capture-area');
-    html2canvas(area, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
+    const originalShadow = area.style.boxShadow;
+    area.style.boxShadow = 'none';
+    area.style.backgroundColor = '#ffffff';
+
+    html2canvas(area, {
+      backgroundColor: '#ffffff',
+      scale: 3, 
+      useCORS: true,
+      logging: false
+    }).then(canvas => {
+      area.style.boxShadow = originalShadow;
+      const imageData = canvas.toDataURL('image/jpeg', 0.95);
       const link = document.createElement('a');
-      link.download = `Tactical_Board_${new Date().toLocaleDateString()}.png`;
-      link.href = canvas.toDataURL('image/png');
+      const now = new Date();
+      const dateStr = now.toISOString().substring(2, 10).replace(/-/g, '');
+      const timeStr = now.getHours().toString().padStart(2,'0') + now.getMinutes().toString().padStart(2,'0');
+      link.download = `FMP_${dateStr}_${timeStr}.jpg`;
+      link.href = imageData;
       link.click();
+      alert("High-Quality JPG saved to Gallery!");
     });
   }
 
@@ -282,7 +299,7 @@
     activeMatch = { id:Date.now(), date:selectedDate, teams:finalTeams, rounds:[] };
     localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
     if(mode==='dashboard') startDashboard(activeMatch);
-    else { alert("Tactics Saved!"); location.reload(); }
+    else { alert("Game Plan Saved!"); location.reload(); }
   }
 
   function renderSavedMatches() {
@@ -328,7 +345,19 @@
   function renderRoundList() {
     const box = document.getElementById('round-list'); box.innerHTML = '';
     activeMatch.rounds.forEach(r=>{
-      box.innerHTML += `<div class="match-card"><div class="round-info">RD ${r.id}</div><div class="vs-area"><div style="font-weight:900;">T${r.t1+1}</div><div class="score-btns"><button class="s-btn ${r.winner==='t1'?'selected':''}" onclick="record(${r.id},'t1')">WIN</button><button class="s-btn ${r.winner==='draw'?'selected':''}" onclick="record(${r.id},'draw')">DRAW</button><button class="s-btn ${r.winner==='t2'?'selected':''}" onclick="record(${r.id},'t2')">WIN</button></div><div style="font-weight:900;">T${r.t2+1}</div></div></div>`;
+      box.innerHTML += `
+        <div class="match-card">
+          <div class="round-info">RD ${r.id}</div>
+          <div class="vs-area">
+            <div style="font-weight:900;">T${r.t1+1}</div>
+            <div class="score-btns">
+              <button class="s-btn ${r.winner==='t1'?'selected':''}" onclick="record(${r.id},'t1')">WIN</button>
+              <button class="s-btn ${r.winner==='draw'?'selected':''}" onclick="record(${r.id},'draw')">DRAW</button>
+              <button class="s-btn ${r.winner==='t2'?'selected':''}" onclick="record(${r.id},'t2')">WIN</button>
+            </div>
+            <div style="font-weight:900;">T${r.t2+1}</div>
+          </div>
+        </div>`;
     });
     updateLiveRanking();
   }
