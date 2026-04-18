@@ -4,9 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Futsal Manager Pro v12.FINAL</title>
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Futsal Manager Pro · FC 서울숲">
+  <meta property="og:description" content="게임플랜 공유·출석·라이브 스코어 — 링크를 눌러 바로 열기">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&amp;w=1200&amp;h=630&amp;fit=crop&amp;q=80">
+  <meta property="og:url" id="meta-og-url" content="">
+  <meta name="twitter:card" content="summary_large_image">
+  <script>try{var b=location.origin+location.pathname;var e=document.getElementById('meta-og-url');if(e)e.setAttribute('content',b);}catch(x){}</script>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
   <style>
     :root { --primary-color: #0f172a; --accent-color: #10b981; --bg-color: #f1f5f9; --card-bg: #ffffff; --text-main: #1e293b; --text-sub: #64748b; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; touch-action: manipulation; }
@@ -21,6 +29,27 @@
     .saved-match-card { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 18px; padding: 12px; display: flex; justify-content: space-between; align-items: center; width: 100%; }
     .date-badge { background: var(--accent-color); color: white; padding: 4px 12px; border-radius: 50px; font-weight: 900; font-size: 12.5px; margin-left: 5px; box-shadow: 0 2px 4px rgba(16,185,129,0.2); }
     .admin-del { color: #f87171; cursor: pointer; font-weight: 900; margin-left: 8px; padding: 0 4px; }
+    .saved-match-row { flex: 1; display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; min-width: 0; }
+    .saved-match-start {
+      flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: nowrap; gap: 12px; cursor: pointer; line-height: 1.25;
+    }
+    .saved-tap-main {
+      flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: nowrap; gap: 6px;
+      overflow: hidden;
+    }
+    .saved-tap-main .saved-md-text {
+      flex-shrink: 0; font-size: 13px; font-weight: 900; color: #065f46; letter-spacing: -0.03em; white-space: nowrap;
+    }
+    .saved-tap-main .date-badge {
+      flex-shrink: 0; margin-left: 2px; font-size: 13px; padding: 5px 14px; font-weight: 900;
+    }
+    .saved-match-actions { flex-shrink: 0; display: flex; align-items: center; margin-left: 2px; }
+    .saved-copy-link-btn {
+      width: auto; margin: 0; margin-top: 0; padding: 4px 10px; border-radius: 999px; font-size: 10px; font-weight: 800; line-height: 1.15;
+      border: 1px solid #86efac; color: #047857; background: #fff; cursor: pointer; white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(16,185,129,0.12);
+    }
+    .saved-copy-link-btn:active { opacity: 0.88; transform: scale(0.97); }
 
     .loading-dots:after { content: ' .'; animation: dots 0.65s steps(5, end) infinite; }
     @keyframes dots { 0%, 20% { color: rgba(0,0,0,0); text-shadow: .5em 0 0 rgba(0,0,0,0), 1em 0 0 rgba(0,0,0,0); } 40% { color: var(--text-sub); text-shadow: .5em 0 0 rgba(0,0,0,0), 1em 0 0 rgba(0,0,0,0); } 60% { text-shadow: .5em 0 0 var(--text-sub), 1em 0 0 rgba(0,0,0,0); } 80%, 100% { text-shadow: .5em 0 0 var(--text-sub), 1em 0 0 var(--text-sub); } }
@@ -55,6 +84,8 @@
     .btn-outline { background: transparent; color: var(--text-sub); border: 1px solid #e2e8f0; }
 
     .attendance-list { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; max-height: 250px; overflow-y: auto; }
+    #attendance-list { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+    #attendance-list .player-card { touch-action: pan-y; }
     .player-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 5px; border-radius: 10px; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; font-size: 11px; -webkit-user-select: none; }
     .player-card.active { border-color: var(--accent-color); background: #ecfdf5; font-weight: 800; }
     .hidden { display: none !important; }
@@ -146,9 +177,121 @@
 <script>
   const TEAM_NAME = "FC 서울숲";
   const ADMIN_PW = "1110023";
-  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzo_9mYhtzTFQ6oFh9Xd-RaVf6degYYeEI9mCNrgyyaku4jnjNKVo7WIBaf2otYIVwB/exec"; 
+  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz1zKQSXupuf-Hi4QR5B9l1gn89Zh-xOsqv5zbNCqn_dxZNffQotzxMPlD63KF5PqKz/exec"; 
   const LOCAL_HISTORY_KEY = 'futsal_manager_local_history_v1';
 
+  function sharePayloadFromMatch(m) {
+    try {
+      const json = JSON.stringify(m);
+      if (typeof LZString !== 'undefined' && LZString.compressToEncodedURIComponent) {
+        const lz = LZString.compressToEncodedURIComponent(json);
+        if (lz) return { tag: 'p', data: lz };
+      }
+    } catch (e) {}
+    try {
+      return { tag: 'gp', data: btoa(unescape(encodeURIComponent(JSON.stringify(m)))) };
+    } catch (e) { return null; }
+  }
+  function matchFromSharePayload(raw, tagHint) {
+    let decoded = raw;
+    try { decoded = decodeURIComponent(String(raw).replace(/ /g, '+')); } catch (e) {}
+    const tryLz = function() {
+      if (typeof LZString === 'undefined' || !LZString.decompressFromEncodedURIComponent) return null;
+      try {
+        const json = LZString.decompressFromEncodedURIComponent(decoded);
+        if (!json) return null;
+        const m = JSON.parse(json);
+        if (m && typeof m === 'object' && Array.isArray(m.teams)) return m;
+      } catch (e) {}
+      return null;
+    };
+    const tryB64 = function() {
+      try {
+        const json = decodeURIComponent(escape(atob(decoded)));
+        const m = JSON.parse(json);
+        if (m && typeof m === 'object' && Array.isArray(m.teams)) return m;
+      } catch (e) {}
+      return null;
+    };
+    if (tagHint === 'p') return tryLz() || tryB64();
+    return tryB64() || tryLz();
+  }
+  function syncUrlWithGamePlan(m) {
+    const sp = sharePayloadFromMatch(m);
+    if (!sp || !sp.data) return;
+    try {
+      const u = new URL(location.href);
+      ['gp', 'p', 'plan'].forEach(function(k) { u.searchParams.delete(k); });
+      u.hash = sp.tag + '=' + encodeURIComponent(sp.data);
+      history.replaceState(null, '', u.toString());
+    } catch (e) {}
+  }
+  function importGamePlanFromUrlIfPresent() {
+    let tagHint = 'gp';
+    let payload = '';
+    try {
+      const h = location.hash.slice(1);
+      if (h.startsWith('p=')) { tagHint = 'p'; payload = h.slice(2); }
+      else if (h.startsWith('gp=')) { tagHint = 'gp'; payload = h.slice(3); }
+      if (!payload) {
+        const u = new URL(location.href);
+        if (u.searchParams.get('p')) { tagHint = 'p'; payload = u.searchParams.get('p'); }
+        else if (u.searchParams.get('gp')) { tagHint = 'gp'; payload = u.searchParams.get('gp'); }
+        else if (u.searchParams.get('plan')) { tagHint = 'gp'; payload = u.searchParams.get('plan'); }
+      }
+    } catch (e) {}
+    if (!payload) return;
+    const m = matchFromSharePayload(payload, tagHint);
+    if (!m) return;
+    try { localStorage.setItem('saved_manager_match', JSON.stringify(m)); } catch (e) {}
+    try {
+      const u = new URL(location.href);
+      u.searchParams.delete('gp');
+      u.searchParams.delete('p');
+      u.searchParams.delete('plan');
+      u.hash = '';
+      history.replaceState(null, '', u.pathname + u.search);
+    } catch (e2) {}
+  }
+  function buildGamePlanShareUrl(m) {
+    const sp = sharePayloadFromMatch(m);
+    if (!sp || !sp.data) return '';
+    try {
+      const u = new URL(location.href);
+      ['gp', 'p', 'plan'].forEach(function(k) { u.searchParams.delete(k); });
+      u.hash = sp.tag + '=' + encodeURIComponent(sp.data);
+      return u.toString();
+    } catch (e) { return ''; }
+  }
+  function copyTextToClipboard(text) {
+    if (!text) { alert('복사할 링크가 없습니다.'); return; }
+    const okMsg = '미리보기 카드가 붙는 주소(단축 데이터 포함)가 복사되었습니다. 카톡에 붙여넣기 하세요.';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() { alert(okMsg); }).catch(function() { copyTextToClipboardFallback(text, okMsg); });
+    } else copyTextToClipboardFallback(text, okMsg);
+  }
+  function copyTextToClipboardFallback(text, okMsg) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+      alert(okMsg || '복사했습니다.');
+    } catch (e) {
+      alert('복사에 실패했습니다. 다른 브라우저에서 다시 시도해 주세요.');
+    }
+    document.body.removeChild(ta);
+  }
+  function copyGamePlanShareFromSaved() {
+    const mStr = localStorage.getItem('saved_manager_match');
+    if (!mStr) return;
+    let m;
+    try { m = JSON.parse(mStr); } catch (e) { return; }
+    copyTextToClipboard(buildGamePlanShareUrl(m));
+  }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let recordDedupeKey = '';
   let recordDedupeTs = 0;
@@ -159,7 +302,25 @@
   document.getElementById('display-team-name').innerText = TEAM_NAME;
 
   function getGuestScore() {
-    return masterPlayers.length ? parseFloat((masterPlayers.reduce((s,p)=>s+p.score,0)/masterPlayers.length).toFixed(1)) : 5;
+    return 6;
+  }
+
+  function membersToPlayerList(members) {
+    if (!Array.isArray(members)) return [];
+    return members.map(function(item) {
+      if (item != null && typeof item === 'object' && (item.n != null || item.name != null)) {
+        const n = String(item.n != null ? item.n : item.name).trim();
+        const sRaw = item.s != null ? item.s : (item.score != null ? item.score : item.Score);
+        const s = Number(sRaw);
+        return { n: n, s: isNaN(s) ? getGuestScore() : s };
+      }
+      const name = String(item).trim();
+      return { n: name, s: (masterPlayers.find(function(p) { return p.name === name; }) || { score: getGuestScore() }).score };
+    });
+  }
+
+  function membersToNameCsv(members) {
+    return membersToPlayerList(members).map(function(p) { return p.n; }).join(',');
   }
 
   function monthKeyFromMatch(h) {
@@ -291,9 +452,7 @@
       const card = document.createElement('div');
       card.className = 'player-card';
       card.innerHTML = `<span class="p-name" data-score="${p.score}">${p.name}</span>`;
-      const handleToggle = (e) => { e.preventDefault(); card.classList.toggle('active'); updateCount(); };
-      card.addEventListener('touchstart', handleToggle, {passive: false});
-      card.addEventListener('click', (e) => { if (e.pointerType !== 'touch') { card.classList.toggle('active'); updateCount(); } });
+      card.addEventListener('click', () => { card.classList.toggle('active'); updateCount(); });
       box.appendChild(card);
     });
   }
@@ -361,25 +520,36 @@
     });
   }
 
+  function isGuestDragItem(el) {
+    const n = (el && el.childNodes && el.childNodes[0] && el.childNodes[0].textContent) ? el.childNodes[0].textContent.trim() : '';
+    return /^guest\s/i.test(n) || /^guest$/i.test(n);
+  }
   function autoAnalyze() {
     document.querySelectorAll('.team-column').forEach((col, i)=>{
       const items = col.querySelectorAll('.drag-item');
+      const allGuest = items.length > 0 && Array.from(items).every(isGuestDragItem);
       let total = 0; items.forEach(it=>total+=parseFloat(it.dataset.score));
       const avg = items.length>0 ? total/items.length : 0;
-      const base = avg*10; const stats = [base+5,base+2,base+7,base+3,base+1,base+4].map(s=>Math.min(99,Math.floor(s)));
+      const base = avg*10;
+      const stats = allGuest
+        ? [6, 6, 6, 6, 6, 6]
+        : [base+5,base+2,base+7,base+3,base+1,base+4].map(s=>Math.min(99,Math.floor(s)));
       const ovrEl = document.getElementById(`ovr-${i}`);
-      
-      if(items.length >= 5) { 
-        ovrEl.innerText = Math.floor(stats.reduce((a,b)=>a+b)/6); 
-        ovrEl.style.fontSize = '24px'; 
-      } else if(items.length > 0) { 
-        ovrEl.innerText = "--"; 
-        ovrEl.style.fontSize = '24px'; 
-      } else { 
-        ovrEl.innerText = "--"; 
-        ovrEl.style.fontSize = '24px'; 
+      const showGuestFixed = allGuest && items.length > 0;
+      if (showGuestFixed) {
+        ovrEl.innerText = '6';
+        ovrEl.style.fontSize = '24px';
+      } else if (items.length >= 5) {
+        ovrEl.innerText = String(Math.floor(stats.reduce((a,b)=>a+b)/6));
+        ovrEl.style.fontSize = '24px';
+      } else if (items.length > 0) {
+        ovrEl.innerText = "--";
+        ovrEl.style.fontSize = '24px';
+      } else {
+        ovrEl.innerText = "--";
+        ovrEl.style.fontSize = '24px';
       }
-      const cData = items.length >= 5 ? stats : [0,0,0,0,0,0];
+      const cData = (items.length >= 5 || showGuestFixed) ? stats : [0,0,0,0,0,0];
       const ctx = document.getElementById(`radar-${i}`).getContext('2d');
       if(charts[i]) charts[i].destroy();
       charts[i] = new Chart(ctx, {
@@ -392,22 +562,48 @@
   function saveMatchToHistory(mode) {
     const finalTeams = [];
     document.querySelectorAll('.drag-list').forEach((list,idx)=>{
-      const members = Array.from(list.querySelectorAll('.drag-item')).map(el=>el.childNodes[0].textContent.trim());
+      const members = Array.from(list.querySelectorAll('.drag-item')).map(function(el) {
+        return { n: el.childNodes[0].textContent.trim(), s: parseFloat(el.dataset.score) || 0 };
+      });
       finalTeams.push({ id:idx, members:members, ovr: document.getElementById(`ovr-${idx}`).innerText });
     });
     const iso = document.getElementById('match-date-input').value;
     activeMatch = { id:Date.now(), date: iso.replace(/-/g, '. '), dateIso: iso, teams:finalTeams, rounds:[] };
     localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
-    if(mode==='dashboard') startDashboard(activeMatch); else { alert("Saved!"); location.reload(); }
+    syncUrlWithGamePlan(activeMatch);
+    if(mode==='dashboard') startDashboard(activeMatch); else { alert("Saved! 메인 화면의 Match Day 옆 「링크 복사」로 카톡에 보내 주세요."); location.reload(); }
   }
 
   function renderSavedMatches() {
     const mStr = localStorage.getItem('saved_manager_match');
     const section = document.getElementById('saved-matches-section');
-    if(mStr) {
-      const m = JSON.parse(mStr); section.classList.remove('hidden');
-      document.getElementById('saved-list').innerHTML = `<div class="saved-match-card"><div onclick="loadSavedMatch()" style="flex:1; font-weight:800; color:#065f46; font-size:11px; cursor:pointer;">⚽ Match Day: <span class="date-badge">${m.date}</span></div><span class="admin-del" onclick="deleteLocalMatch()">✕</span></div>`;
-    } else { section.classList.add('hidden'); }
+    const list = document.getElementById('saved-list');
+    if (mStr) {
+      let m;
+      try { m = JSON.parse(mStr); } catch (e) { section.classList.add('hidden'); list.innerHTML = ''; return; }
+      const badgeDate = String(m.date != null ? m.date : '').replace(/</g, '');
+      section.classList.remove('hidden');
+      list.innerHTML = `
+        <div class="saved-match-wrap" style="width:100%;">
+          <div class="saved-match-card">
+            <div class="saved-match-row">
+              <div class="saved-match-start" onclick="loadSavedMatch()">
+                <div class="saved-tap-main">
+                  <span class="saved-md-text">⚽ Match Day:</span>
+                  <span class="date-badge">${badgeDate}</span>
+                </div>
+                <div class="saved-match-actions">
+                  <button type="button" class="saved-copy-link-btn" onclick="event.stopPropagation(); copyGamePlanShareFromSaved();">링크 복사</button>
+                </div>
+              </div>
+            </div>
+            <span class="admin-del" onclick="deleteLocalMatch()">✕</span>
+          </div>
+        </div>`;
+    } else {
+      section.classList.add('hidden');
+      list.innerHTML = '';
+    }
   }
 
   function deleteLocalMatch() {
@@ -418,7 +614,7 @@
     activeMatch = JSON.parse(localStorage.getItem('saved_manager_match'));
     document.getElementById('shuffle-btn').classList.add('hidden');
     document.getElementById('match-date-input').value = activeMatch.dateIso || activeMatch.date.replace(/\. /g, '-');
-    renderVSMode(activeMatch.teams.map(t=>({ members: t.members.map(n=>({n, s: (masterPlayers.find(p=>p.name===n)||{score:getGuestScore()}).score}))})));
+    renderVSMode(activeMatch.teams.map(function(t) { return { members: membersToPlayerList(t.members) }; }));
     if (activeMatch.rounds && activeMatch.rounds.some(r => r.winner !== null)) {
       if (confirm("이전에 기록하던 경기 데이터가 있습니다. 대시보드로 바로 이동할까요?")) {
         startDashboard(activeMatch);
@@ -497,7 +693,7 @@
         else if(r.winner==='draw'&&(r.t1===tid||r.t2===tid)){d++;p+=1;} 
         else if(r.winner&&(r.t1===tid||r.t2===tid)) l++; 
       });
-      return { names:t.members.join(','), ovr:t.ovr, record:`${w}W ${d}D ${l}L`, pts:p };
+      return { names: membersToNameCsv(t.members), ovr:t.ovr, record:`${w}W ${d}D ${l}L`, pts:p };
     });
     st.sort((a,b)=>b.pts - a.pts);
     
@@ -662,6 +858,7 @@
   function addDraftGuestModal() { addLastMinutePlayer(`Guest ${document.querySelectorAll('.drag-item').length + 1}`, getGuestScore()); }
   function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
   (function initApp() {
+    importGamePlanFromUrlIfPresent();
     const lh = loadLocalHistory();
     if (lh.length) {
       hData = lh;
