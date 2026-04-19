@@ -6,7 +6,7 @@
   <title>Futsal Manager Pro v12.FINAL</title>
   <meta property="og:type" content="website">
   <meta property="og:title" content="Futsal Manager Pro · FC 서울숲">
-  <meta property="og:description" content="게임 플랜·매치 기록·라이브 스코어 — 링크를 눌러 바로 열기">
+  <meta property="og:description" content="게임플랜 공유·매치 기록·라이브 스코어 — 링크를 눌러 바로 열기">
   <meta property="og:image" content="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&amp;w=1200&amp;h=630&amp;fit=crop&amp;q=80">
   <meta property="og:url" id="meta-og-url" content="">
   <meta name="twitter:card" content="summary_large_image">
@@ -69,11 +69,12 @@
     .tactical-card { background: #111827; color: #fff; padding: 10px; border-radius: 14px; text-align: center; }
     .ovr-val { font-size: 24px; font-weight: 900; color: var(--accent-color); line-height: 1; }
     .chart-mini-box { background: rgba(255,255,255,0.03); border-radius: 10px; height: 160px; position: relative; margin-top: 3px; }
-    .tactical-pitch-wrap { margin-top: 10px; text-align: left; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; }
+    .tactical-pitch-wrap { margin-top: 10px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; display: flex; flex-direction: column; align-items: center; width: 100%; }
+    .tp-tagline { font-size: 8.5px; font-weight: 800; color: #e9d5ff; letter-spacing: -0.02em; line-height: 1.45; margin-bottom: 6px; max-width: 100%; padding: 0 4px; }
     .tp-formation-title { font-size: 9px; font-weight: 900; color: #a5b4fc; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; text-align: center; line-height: 1.35; }
-    .tp-field { position: relative; width: 100%; aspect-ratio: 5/7; border-radius: 12px; background: linear-gradient(180deg, #14532d 0%, #166534 45%, #15803d 100%); border: 2px solid rgba(255,255,255,0.2); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25); overflow: hidden; }
+    .tp-field { position: relative; width: 100%; max-width: 228px; margin-left: auto; margin-right: auto; aspect-ratio: 5/7; border-radius: 12px; background: linear-gradient(180deg, #14532d 0%, #166534 45%, #15803d 100%); border: 2px solid rgba(255,255,255,0.2); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25); overflow: hidden; }
     .tp-field:before { content: ''; position: absolute; left: 50%; top: 50%; width: 32%; padding-bottom: 32%; border: 1px solid rgba(255,255,255,0.22); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-    .tp-node { position: absolute; min-width: 0; max-width: 92%; display: flex; flex-direction: column; align-items: center; gap: 2px; z-index: 1; }
+    .tp-node { position: absolute; min-width: 0; max-width: 88%; display: flex; flex-direction: column; align-items: center; gap: 2px; z-index: 1; transform: translate(-50%, -50%); }
     .tp-pos { font-size: 7px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 0 1px 2px rgba(0,0,0,0.5); letter-spacing: 0.02em; }
     .tp-name { font-size: 9px; font-weight: 800; color: #fff; background: rgba(15,23,42,0.82); padding: 3px 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.18); line-height: 1.2; max-width: 100%; text-align: center; word-break: keep-all; }
     .tp-bench { margin-top: 8px; font-size: 8px; font-weight: 700; color: #94a3b8; line-height: 1.35; text-align: center; word-break: keep-all; }
@@ -541,6 +542,28 @@
   function escapeHtmlTp(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+  function amplifyStatsAcrossTeams(rows) {
+    if (!rows || !rows.length) return [];
+    var dims = 6;
+    if (rows.length === 1) {
+      return [rows[0].map(function(v) {
+        return Math.min(100, Math.max(0, Math.round(50 + (v - 50) * 2)));
+      })];
+    }
+    var means = [];
+    var k, i, s;
+    for (k = 0; k < dims; k++) {
+      s = 0;
+      for (i = 0; i < rows.length; i++) s += rows[i][k];
+      means[k] = s / rows.length;
+    }
+    return rows.map(function(row) {
+      return row.map(function(v, k) {
+        var stretched = means[k] + (v - means[k]) * 2;
+        return Math.min(100, Math.max(0, Math.round(stretched)));
+      });
+    });
+  }
   function computeRadarStatsFromRoster(scores, teamIndex, allGuest) {
     const ti = teamIndex | 0;
     const theme = TEAM_RADAR_THEMES[ti % TEAM_RADAR_THEMES.length];
@@ -577,6 +600,63 @@
     const stats = [att, def, spd, pas, sta, org];
     return { stats: stats, theme: theme };
   }
+  var TP_FORMATIONS = [
+    { name: '1-2-1 다이아몬드', slots: [
+      { pos: '피벗', x: 50, y: 14 }, { pos: '좌 윙', x: 22, y: 38 }, { pos: '우 윙', x: 78, y: 38 },
+      { pos: '픽소', x: 50, y: 58 }, { pos: '골키퍼', x: 50, y: 86 }
+    ]},
+    { name: '2-1-1 로우 블록', slots: [
+      { pos: '피벗', x: 50, y: 12 }, { pos: '좌 앵커', x: 24, y: 42 }, { pos: '우 앵커', x: 76, y: 42 },
+      { pos: '픽소', x: 50, y: 64 }, { pos: '골키퍼', x: 50, y: 88 }
+    ]},
+    { name: '와이드 2-1-1', slots: [
+      { pos: '피벗', x: 50, y: 13 }, { pos: '좌 윙', x: 16, y: 36 }, { pos: '우 윙', x: 84, y: 36 },
+      { pos: '픽소', x: 50, y: 58 }, { pos: '골키퍼', x: 50, y: 87 }
+    ]},
+    { name: '3-1 퍼싱 라인', slots: [
+      { pos: '좌 공격', x: 28, y: 16 }, { pos: '중앙 공격', x: 50, y: 14 }, { pos: '우 공격', x: 72, y: 16 },
+      { pos: '스위퍼', x: 50, y: 56 }, { pos: '골키퍼', x: 50, y: 86 }
+    ]},
+    { name: '2-2 박스', slots: [
+      { pos: '좌 전방', x: 30, y: 22 }, { pos: '우 전방', x: 70, y: 22 },
+      { pos: '좌 후방', x: 30, y: 52 }, { pos: '우 후방', x: 70, y: 52 }, { pos: '골키퍼', x: 50, y: 86 }
+    ]},
+    { name: '1-1-2 더블 서포트', slots: [
+      { pos: '피벗', x: 50, y: 14 }, { pos: '서포트', x: 50, y: 36 },
+      { pos: '좌 윙백', x: 24, y: 54 }, { pos: '우 윙백', x: 76, y: 54 }, { pos: '골키퍼', x: 50, y: 86 }
+    ]},
+    { name: '1-3-1 트라이포스', slots: [
+      { pos: '피벗', x: 50, y: 12 }, { pos: '좌 미드', x: 26, y: 40 }, { pos: '중앙 미드', x: 50, y: 44 },
+      { pos: '우 미드', x: 74, y: 40 }, { pos: '골키퍼', x: 50, y: 86 }
+    ]},
+    { name: '역습 2-1-1', slots: [
+      { pos: '카운터 탑', x: 50, y: 15 }, { pos: '좌 연결', x: 26, y: 38 }, { pos: '우 연결', x: 74, y: 38 },
+      { pos: '앵커', x: 50, y: 60 }, { pos: '골키퍼', x: 50, y: 87 }
+    ]}
+  ];
+  function pickTeamTagline(teamIndex, avg, spread, n) {
+    var T = 'T' + (teamIndex + 1);
+    var pool = [
+      T + ' · 전방 돌파·마무리 쪽으로 무게중심이 실린 공격 지향 스쿼드',
+      T + ' · 후방 두께·실점 억제에 초점을 둔 실속 컴팩트형',
+      T + ' · 측면 폭·교차 움직임으로 넓혀 치는 와이드 전개형',
+      T + ' · 중원 장악·패스 템포로 끌고 가는 오거나이즈형',
+      T + ' · 상단 압박·전방 트랩으로 공을 거는 하이 라인형',
+      T + ' · 전환 순간 속도·역습 루트가 매력적인 카운터형',
+      T + ' · 전 선수 고르게 기여하는 밸런스·분산형 라인업',
+      T + ' · 체력·지속 압박에 유리한 로테이션·런닝형',
+      T + ' · 피벗·2선 연결에 강한 세트플레이 지향 조합',
+      T + ' · 수비 라인 간격 좁히고 슛 각도 막는 블록형',
+      T + ' · 공격 시 가로 폭 넓히고 수비 시 중앙 밀집하는 가변형',
+      T + ' · 볼 소유보다 위험 관리·실수 최소화 우선의 안정형'
+    ];
+    var seed = (teamIndex * 47 + Math.round(avg * 19) + Math.round(spread * 23) + n * 11) % pool.length;
+    if (spread >= 2.8) seed = (seed + 2) % pool.length;
+    else if (spread <= 1.05 && n >= 4) seed = (seed + 5) % pool.length;
+    if (avg >= 7.3) seed = (seed + 1) % pool.length;
+    else if (avg <= 5.7) seed = (seed + 7) % pool.length;
+    return pool[seed];
+  }
   function updateTacticalBoard(teamIndex, items) {
     const el = document.getElementById('tactical-pitch-' + teamIndex);
     if (!el) return;
@@ -589,24 +669,21 @@
     }
     const avg = players.reduce(function(a, p) { return a + p.s; }, 0) / players.length;
     const spread = players[0].s - players[players.length - 1].s;
-    var formationName = '밸런스 1-2-1';
-    if (avg >= 7.4) formationName = '파워 압박 1-2-1';
-    else if (avg < 5.8) formationName = '실속 역습 2-1-1';
-    if (spread >= 3) formationName += ' · 스타 편중';
-    else if (spread < 1.2 && players.length >= 4) formationName += ' · 균등 밸런스';
-    var posPreset5 = [
-      { pos: '피벗', x: 50, y: 14 },
-      { pos: '좌 윙', x: 22, y: 38 },
-      { pos: '우 윙', x: 78, y: 38 },
-      { pos: '픽소', x: 50, y: 58 },
-      { pos: '골키퍼', x: 50, y: 86 }
-    ];
+    var fi = (Math.round(avg * 13) + Math.round(spread * 17) + teamIndex * 23 + (players.length % 6) * 5) % TP_FORMATIONS.length;
+    if (avg >= 7.2) fi = (fi + 2) % TP_FORMATIONS.length;
+    else if (avg < 5.9) fi = (fi + 5) % TP_FORMATIONS.length;
+    if (spread >= 2.9) fi = (fi + 3) % TP_FORMATIONS.length;
+    else if (spread < 1.15 && players.length >= 4) fi = (fi + 6) % TP_FORMATIONS.length;
+    var F = TP_FORMATIONS[fi];
+    var formationName = F.name;
+    var tagline = pickTeamTagline(teamIndex, avg, spread, players.length);
     var count = Math.min(players.length, 5);
     var html = '';
+    html += '<div class="tp-tagline">' + escapeHtmlTp(tagline) + '</div>';
     html += '<div class="tp-formation-title">추천 대형 · ' + formationName + '</div>';
     html += '<div class="tp-field">';
     for (var j = 0; j < count; j++) {
-      var sl = posPreset5[j];
+      var sl = F.slots[j];
       html += '<div class="tp-node" style="left:' + sl.x + '%;top:' + sl.y + '%">';
       html += '<span class="tp-pos">' + sl.pos + '</span>';
       html += '<span class="tp-name">' + escapeHtmlTp(players[j].n) + '</span>';
@@ -619,18 +696,29 @@
     el.innerHTML = html;
   }
   function autoAnalyze() {
-    document.querySelectorAll('.team-column').forEach(function(col, i) {
+    const cols = document.querySelectorAll('.team-column');
+    const pack = [];
+    cols.forEach(function(col, i) {
       const items = col.querySelectorAll('.drag-item');
       const allGuest = items.length > 0 && Array.from(items).every(isGuestDragItem);
       const scores = Array.from(items).map(function(it) { return parseFloat(it.dataset.score) || 0; });
       const showGuestFixed = allGuest && items.length > 0;
       const rosterOk = items.length >= 5 || showGuestFixed;
       const computed = computeRadarStatsFromRoster(scores, i, showGuestFixed);
-      const stats = rosterOk ? computed.stats : [0, 0, 0, 0, 0, 0];
-      const theme = computed.theme;
+      const rawStats = rosterOk ? computed.stats : [0, 0, 0, 0, 0, 0];
+      pack.push({ i: i, items: items, showGuestFixed: showGuestFixed, rosterOk: rosterOk, computed: computed, rawStats: rawStats });
+    });
+    const rawRows = pack.filter(function(p) { return p.rosterOk; }).map(function(p) { return p.rawStats.slice(); });
+    const ampRows = amplifyStatsAcrossTeams(rawRows);
+    var ai = 0;
+    pack.forEach(function(p) {
+      var i = p.i;
+      var items = p.items;
+      var stats = p.rosterOk ? ampRows[ai++] : [0, 0, 0, 0, 0, 0];
+      var theme = p.computed.theme;
       const ovrEl = document.getElementById('ovr-' + i);
       ovrEl.style.color = theme.ovr;
-      if (showGuestFixed) {
+      if (p.showGuestFixed) {
         ovrEl.innerText = '6';
         ovrEl.style.fontSize = '24px';
       } else if (items.length >= 5) {
@@ -643,7 +731,7 @@
         ovrEl.innerText = '--';
         ovrEl.style.fontSize = '24px';
       }
-      const cData = rosterOk ? stats : [0, 0, 0, 0, 0, 0];
+      const cData = p.rosterOk ? stats : [0, 0, 0, 0, 0, 0];
       const ctx = document.getElementById('radar-' + i).getContext('2d');
       if (charts[i]) charts[i].destroy();
       charts[i] = new Chart(ctx, {
