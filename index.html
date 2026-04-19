@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Futsal Manager Pro v12.FINAL</title>
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Futsal Manager Pro · FC 서울숲">
-  <meta property="og:description" content="게임플랜 공유·출석·라이브 스코어 — 링크를 눌러 바로 열기">
+  <meta property="og:title" content="Futsal Manager Pro · FC 공차">
+  <meta property="og:description" content="게임 플랜·매치 기록·라이브 스코어 — 링크를 눌러 바로 열기">
   <meta property="og:image" content="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&amp;w=1200&amp;h=630&amp;fit=crop&amp;q=80">
   <meta property="og:url" id="meta-og-url" content="">
   <meta name="twitter:card" content="summary_large_image">
@@ -69,6 +69,15 @@
     .tactical-card { background: #111827; color: #fff; padding: 10px; border-radius: 14px; text-align: center; }
     .ovr-val { font-size: 24px; font-weight: 900; color: var(--accent-color); line-height: 1; }
     .chart-mini-box { background: rgba(255,255,255,0.03); border-radius: 10px; height: 160px; position: relative; margin-top: 3px; }
+    .tactical-pitch-wrap { margin-top: 10px; text-align: left; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; }
+    .tp-formation-title { font-size: 9px; font-weight: 900; color: #a5b4fc; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; text-align: center; line-height: 1.35; }
+    .tp-field { position: relative; width: 100%; aspect-ratio: 5/7; border-radius: 12px; background: linear-gradient(180deg, #14532d 0%, #166534 45%, #15803d 100%); border: 2px solid rgba(255,255,255,0.2); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25); overflow: hidden; }
+    .tp-field:before { content: ''; position: absolute; left: 50%; top: 50%; width: 32%; padding-bottom: 32%; border: 1px solid rgba(255,255,255,0.22); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    .tp-node { position: absolute; min-width: 0; max-width: 92%; display: flex; flex-direction: column; align-items: center; gap: 2px; z-index: 1; }
+    .tp-pos { font-size: 7px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 0 1px 2px rgba(0,0,0,0.5); letter-spacing: 0.02em; }
+    .tp-name { font-size: 9px; font-weight: 800; color: #fff; background: rgba(15,23,42,0.82); padding: 3px 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.18); line-height: 1.2; max-width: 100%; text-align: center; word-break: keep-all; }
+    .tp-bench { margin-top: 8px; font-size: 8px; font-weight: 700; color: #94a3b8; line-height: 1.35; text-align: center; word-break: keep-all; }
+    .tp-empty { font-size: 9px; font-weight: 700; color: #64748b; text-align: center; padding: 10px 4px 4px; }
 
     .match-card { background: #f8fafc; border-radius: 14px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: row !important; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
     .round-info { font-size: 10px; font-weight: 900; color: var(--accent-color); min-width: 35px; white-space: nowrap; }
@@ -175,9 +184,9 @@
 </div>
 
 <script>
-  const TEAM_NAME = "FC 서울숲";
+  const TEAM_NAME = "FC 공차";
   const ADMIN_PW = "1110023";
-  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz1zKQSXupuf-Hi4QR5B9l1gn89Zh-xOsqv5zbNCqn_dxZNffQotzxMPlD63KF5PqKz/exec"; 
+  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzICXY9remA9LEesqv9BR04CPQr2MQNxtgE8NXGR4fiO2cisDJI1ph8Q-A4fjsnmoIpQw/exec"; 
   const LOCAL_HISTORY_KEY = 'futsal_manager_local_history_v1';
 
   function sharePayloadFromMatch(m) {
@@ -509,7 +518,7 @@
       grid.innerHTML += `
         <div class="team-column">
           <div class="team-box"><div class="section-title" style="margin:0 0 5px;">T${i+1} Squad</div><div class="drag-list" id="team-list-${i}"></div></div>
-          <div class="tactical-card"><div class="ovr-lbl">Rating</div><div class="ovr-val" id="ovr-${i}">--</div><div class="chart-mini-box"><canvas id="radar-${i}"></canvas></div></div>
+          <div class="tactical-card"><div class="ovr-lbl">Rating</div><div class="ovr-val" id="ovr-${i}">--</div><div class="chart-mini-box"><canvas id="radar-${i}"></canvas></div><div class="tactical-pitch-wrap" id="tactical-pitch-${i}"></div></div>
         </div>`;
       setTimeout(()=>{
         const listEl = document.getElementById(`team-list-${i}`);
@@ -524,38 +533,152 @@
     const n = (el && el.childNodes && el.childNodes[0] && el.childNodes[0].textContent) ? el.childNodes[0].textContent.trim() : '';
     return /^guest\s/i.test(n) || /^guest$/i.test(n);
   }
+  const TEAM_RADAR_THEMES = [
+    { border: '#22d3ee', fill: 'rgba(34,211,238,0.32)', point: '#67e8f9', ovr: '#22d3ee' },
+    { border: '#f472b6', fill: 'rgba(244,114,182,0.34)', point: '#fbcfe8', ovr: '#f472b6' },
+    { border: '#fbbf24', fill: 'rgba(251,191,36,0.36)', point: '#fde68a', ovr: '#fbbf24' }
+  ];
+  function escapeHtmlTp(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function computeRadarStatsFromRoster(scores, teamIndex, allGuest) {
+    const ti = teamIndex | 0;
+    const theme = TEAM_RADAR_THEMES[ti % TEAM_RADAR_THEMES.length];
+    if (!scores.length) return { stats: [0,0,0,0,0,0], theme: theme };
+    if (allGuest) {
+      const gStats = [0,1,2,3,4,5].map(function(k) {
+        return Math.min(96, Math.max(38, 44 + ((k * 5 + ti * 3) % 19) + (k + ti) % 4));
+      });
+      return { stats: gStats, theme: theme };
+    }
+    const n = scores.length;
+    const sorted = scores.slice().sort(function(a,b){ return b-a; });
+    const sum = scores.reduce(function(a,x){ return a+x; }, 0);
+    const avg = sum / n;
+    const mn = sorted[n - 1];
+    const mx = sorted[0];
+    const med = n % 2 ? sorted[(n - 1) >> 1] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+    let variance = 0;
+    if (n > 1) {
+      scores.forEach(function(x) { const d = x - avg; variance += d * d; });
+      variance /= (n - 1);
+    }
+    const spread = mx - mn;
+    const phase = ti * 0.85;
+    const R = function(base, wobble) {
+      return Math.min(98, Math.max(12, Math.round(base + wobble)));
+    };
+    const att = R(mx * 9.2 + 6 + Math.sin(phase) * 14, spread * 5.5 + (mx - avg) * 8);
+    const def = R(mn * 8.5 + 22 + Math.cos(phase) * 10, (10 - spread) * 4.2 + (avg - mn) * 7);
+    const spd = R(med * 8.8 + 10 + Math.sin(phase + 1.1) * 12, Math.sqrt(variance) * 16);
+    const pas = R((mx + mn) / 2 * 8.6 + 18 + Math.cos(phase - 0.6) * 11, spread * 3.8);
+    const sta = R(avg * 8.9 + 12 + Math.sin(phase * 0.7) * 9, (10 - Math.sqrt(variance)) * 3);
+    const org = R(46 + avg * 4.5 + (spread < 1.3 && n >= 4 ? 14 : -6) + Math.cos(phase + 0.4) * 12, (spread < 1.5 ? 10 : -4));
+    const stats = [att, def, spd, pas, sta, org];
+    return { stats: stats, theme: theme };
+  }
+  function updateTacticalBoard(teamIndex, items) {
+    const el = document.getElementById('tactical-pitch-' + teamIndex);
+    if (!el) return;
+    const players = Array.from(items).map(function(it) {
+      return { n: it.childNodes[0].textContent.trim(), s: parseFloat(it.dataset.score) || 0 };
+    }).sort(function(a, b) { return b.s - a.s || a.n.localeCompare(b.n, 'ko-KR'); });
+    if (!players.length) {
+      el.innerHTML = '<div class="tp-empty">스쿼드를 구성하면 전술판이 표시됩니다.</div>';
+      return;
+    }
+    const avg = players.reduce(function(a, p) { return a + p.s; }, 0) / players.length;
+    const spread = players[0].s - players[players.length - 1].s;
+    var formationName = '밸런스 1-2-1';
+    if (avg >= 7.4) formationName = '파워 압박 1-2-1';
+    else if (avg < 5.8) formationName = '실속 역습 2-1-1';
+    if (spread >= 3) formationName += ' · 스타 편중';
+    else if (spread < 1.2 && players.length >= 4) formationName += ' · 균등 밸런스';
+    var posPreset5 = [
+      { pos: '피벗', x: 50, y: 14 },
+      { pos: '좌 윙', x: 22, y: 38 },
+      { pos: '우 윙', x: 78, y: 38 },
+      { pos: '픽소', x: 50, y: 58 },
+      { pos: '골키퍼', x: 50, y: 86 }
+    ];
+    var count = Math.min(players.length, 5);
+    var html = '';
+    html += '<div class="tp-formation-title">추천 대형 · ' + formationName + '</div>';
+    html += '<div class="tp-field">';
+    for (var j = 0; j < count; j++) {
+      var sl = posPreset5[j];
+      html += '<div class="tp-node" style="left:' + sl.x + '%;top:' + sl.y + '%">';
+      html += '<span class="tp-pos">' + sl.pos + '</span>';
+      html += '<span class="tp-name">' + escapeHtmlTp(players[j].n) + '</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+    if (players.length > 5) {
+      html += '<div class="tp-bench">벤치: ' + players.slice(5).map(function(p) { return escapeHtmlTp(p.n); }).join(', ') + '</div>';
+    }
+    el.innerHTML = html;
+  }
   function autoAnalyze() {
-    document.querySelectorAll('.team-column').forEach((col, i)=>{
+    document.querySelectorAll('.team-column').forEach(function(col, i) {
       const items = col.querySelectorAll('.drag-item');
       const allGuest = items.length > 0 && Array.from(items).every(isGuestDragItem);
-      let total = 0; items.forEach(it=>total+=parseFloat(it.dataset.score));
-      const avg = items.length>0 ? total/items.length : 0;
-      const base = avg*10;
-      const stats = allGuest
-        ? [6, 6, 6, 6, 6, 6]
-        : [base+5,base+2,base+7,base+3,base+1,base+4].map(s=>Math.min(99,Math.floor(s)));
-      const ovrEl = document.getElementById(`ovr-${i}`);
+      const scores = Array.from(items).map(function(it) { return parseFloat(it.dataset.score) || 0; });
       const showGuestFixed = allGuest && items.length > 0;
+      const rosterOk = items.length >= 5 || showGuestFixed;
+      const computed = computeRadarStatsFromRoster(scores, i, showGuestFixed);
+      const stats = rosterOk ? computed.stats : [0, 0, 0, 0, 0, 0];
+      const theme = computed.theme;
+      const ovrEl = document.getElementById('ovr-' + i);
+      ovrEl.style.color = theme.ovr;
       if (showGuestFixed) {
         ovrEl.innerText = '6';
         ovrEl.style.fontSize = '24px';
       } else if (items.length >= 5) {
-        ovrEl.innerText = String(Math.floor(stats.reduce((a,b)=>a+b)/6));
+        ovrEl.innerText = String(Math.floor(stats.reduce(function(a, b) { return a + b; }, 0) / 6));
         ovrEl.style.fontSize = '24px';
       } else if (items.length > 0) {
-        ovrEl.innerText = "--";
+        ovrEl.innerText = '--';
         ovrEl.style.fontSize = '24px';
       } else {
-        ovrEl.innerText = "--";
+        ovrEl.innerText = '--';
         ovrEl.style.fontSize = '24px';
       }
-      const cData = (items.length >= 5 || showGuestFixed) ? stats : [0,0,0,0,0,0];
-      const ctx = document.getElementById(`radar-${i}`).getContext('2d');
-      if(charts[i]) charts[i].destroy();
+      const cData = rosterOk ? stats : [0, 0, 0, 0, 0, 0];
+      const ctx = document.getElementById('radar-' + i).getContext('2d');
+      if (charts[i]) charts[i].destroy();
       charts[i] = new Chart(ctx, {
-        type:'radar', data:{ labels:['ATT','DEF','SPD','PAS','STA','ORG'], datasets:[{data:cData,backgroundColor:'rgba(16,185,129,0.2)',borderColor:'#10b981',borderWidth:2,pointRadius:0}]},
-        options:{ scales:{r:{min:0,max:100,ticks:{display:false},grid:{color:'rgba(255,255,255,0.1)'},pointLabels:{color:'#94a3b8',font:{size:8,weight:'bold'}}}}, plugins:{legend:{display:false}}, responsive:true, maintainAspectRatio:false }
+        type: 'radar',
+        data: {
+          labels: ['ATT', 'DEF', 'SPD', 'PAS', 'STA', 'ORG'],
+          datasets: [{
+            data: cData,
+            backgroundColor: theme.fill,
+            borderColor: theme.border,
+            borderWidth: 3,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            pointBackgroundColor: theme.point,
+            pointBorderColor: theme.border,
+            pointBorderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            r: {
+              min: 0,
+              max: 100,
+              ticks: { display: false, stepSize: 25 },
+              grid: { color: 'rgba(255,255,255,0.14)', circular: true },
+              angleLines: { color: 'rgba(255,255,255,0.12)' },
+              pointLabels: { color: '#cbd5e1', font: { size: 9, weight: '800' } }
+            }
+          },
+          plugins: { legend: { display: false } },
+          responsive: true,
+          maintainAspectRatio: false
+        }
       });
+      updateTacticalBoard(i, items);
     });
   }
 
