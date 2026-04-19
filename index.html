@@ -6,14 +6,13 @@
   <title>Futsal Manager Pro v12.FINAL</title>
   <meta property="og:type" content="website">
   <meta property="og:title" content="Futsal Manager Pro · FC 서울숲">
-  <meta property="og:description" content="게임 플랜·매치 기록·라이브 스코어 — 링크를 눌러 바로 열기">
+  <meta property="og:description" content="게임플랜 공유·출석·라이브 스코어 — 링크를 눌러 바로 열기">
   <meta property="og:image" content="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&amp;w=1200&amp;h=630&amp;fit=crop&amp;q=80">
   <meta property="og:url" id="meta-og-url" content="">
   <meta name="twitter:card" content="summary_large_image">
   <script>try{var b=location.origin+location.pathname;var e=document.getElementById('meta-og-url');if(e)e.setAttribute('content',b);}catch(x){}</script>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
   <style>
     :root { --primary-color: #0f172a; --accent-color: #10b981; --bg-color: #f1f5f9; --card-bg: #ffffff; --text-main: #1e293b; --text-sub: #64748b; }
@@ -68,7 +67,14 @@
 
     .tactical-card { background: #111827; color: #fff; padding: 10px; border-radius: 14px; text-align: center; }
     .ovr-val { font-size: 24px; font-weight: 900; color: var(--accent-color); line-height: 1; }
-    .chart-mini-box { background: rgba(255,255,255,0.03); border-radius: 10px; height: 160px; position: relative; margin-top: 3px; }
+    .chart-mini-box { background: rgba(255,255,255,0.03); border-radius: 10px; position: relative; margin-top: 3px; }
+    .stat-bars-box { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 8px 6px 10px; margin-top: 3px; min-height: 172px; }
+    .stat-bars-inner { text-align: left; }
+    .stat-bar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; font-size: 9px; }
+    .stat-bar-row:last-child { margin-bottom: 0; }
+    .stat-bar-lbl { width: 30px; flex-shrink: 0; font-weight: 800; color: #94a3b8; letter-spacing: -0.02em; }
+    .stat-bar-track { flex: 1; height: 11px; background: rgba(255,255,255,0.07); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
+    .stat-bar-fill { height: 100%; border-radius: 5px; min-width: 3px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15); }
     .tactical-pitch-wrap { margin-top: 10px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; display: flex; flex-direction: column; align-items: center; width: 100%; }
     .tp-tagline { font-size: 8.5px; font-weight: 800; color: #e9d5ff; letter-spacing: -0.02em; line-height: 1.45; margin-bottom: 6px; max-width: 100%; padding: 0 4px; }
     .tp-formation-title { font-size: 9px; font-weight: 900; color: #a5b4fc; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; text-align: center; line-height: 1.35; }
@@ -77,7 +83,7 @@
     .tp-node { position: absolute; min-width: 0; max-width: 88%; display: flex; flex-direction: column; align-items: center; gap: 2px; z-index: 1; transform: translate(-50%, -50%); }
     .tp-pos { font-size: 7px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 0 1px 2px rgba(0,0,0,0.5); letter-spacing: 0.02em; }
     .tp-name { font-size: 9px; font-weight: 800; color: #fff; background: rgba(15,23,42,0.82); padding: 3px 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.18); line-height: 1.2; max-width: 100%; text-align: center; word-break: keep-all; }
-    .tp-bench { margin-top: 8px; font-size: 8px; font-weight: 700; color: #94a3b8; line-height: 1.35; text-align: center; word-break: keep-all; }
+    .tp-sub { font-size: 7px; font-weight: 800; color: #fde68a; margin-top: 3px; text-align: center; max-width: 100%; word-break: keep-all; line-height: 1.25; opacity: 0.95; }
     .tp-empty { font-size: 9px; font-weight: 700; color: #64748b; text-align: center; padding: 10px 4px 4px; }
 
     .match-card { background: #f8fafc; border-radius: 14px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: row !important; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
@@ -185,7 +191,7 @@
 </div>
 
 <script>
-  const TEAM_NAME = "FC 서울숲";
+  const TEAM_NAME = "FC 서울";
   const ADMIN_PW = "1110023";
   const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz1zKQSXupuf-Hi4QR5B9l1gn89Zh-xOsqv5zbNCqn_dxZNffQotzxMPlD63KF5PqKz/exec"; 
   const LOCAL_HISTORY_KEY = 'futsal_manager_local_history_v1';
@@ -595,13 +601,13 @@
     document.getElementById('setup-page').classList.add('hidden');
     document.getElementById('result-page').classList.remove('hidden');
     const grid = document.getElementById('vs-display-grid'); grid.innerHTML = '';
-    charts.forEach(c=>c.destroy()); charts = [];
+    charts.forEach(function(c) { try { c.destroy(); } catch (e) {} }); charts = [];
     teams.forEach((t, i)=>{
       t.members.sort((a,b)=>a.n.localeCompare(b.n,'ko-KR'));
       grid.innerHTML += `
         <div class="team-column">
           <div class="team-box"><div class="section-title" style="margin:0 0 5px;">T${i+1} Squad</div><div class="drag-list" id="team-list-${i}"></div></div>
-          <div class="tactical-card"><div class="ovr-lbl">Rating</div><div class="ovr-val" id="ovr-${i}">--</div><div class="chart-mini-box"><canvas id="radar-${i}"></canvas></div><div class="tactical-pitch-wrap" id="tactical-pitch-${i}"></div></div>
+          <div class="tactical-card"><div class="ovr-lbl">Rating</div><div class="ovr-val" id="ovr-${i}">--</div><div class="chart-mini-box stat-bars-box" id="stat-bars-${i}"></div><div class="tactical-pitch-wrap" id="tactical-pitch-${i}"></div></div>
         </div>`;
       setTimeout(()=>{
         const listEl = document.getElementById(`team-list-${i}`);
@@ -649,11 +655,12 @@
   function computeTeamRadarFromItems(items, teamIndex, allGuest) {
     const ti = teamIndex | 0;
     const theme = TEAM_RADAR_THEMES[ti % TEAM_RADAR_THEMES.length];
-    if (!items || !items.length) return { stats: [0, 0, 0, 0, 0, 0], theme: theme };
+    if (!items || !items.length) return { stats: [0, 0, 0, 0, 0, 0], raw10: [0, 0, 0, 0, 0, 0], theme: theme };
     if (allGuest) {
       var g = getGuestScore();
       var v = Math.min(100, Math.max(0, Math.round(g * 10)));
-      return { stats: [v, v, v, v, v, v], theme: theme };
+      var g6 = [g, g, g, g, g, g];
+      return { stats: [v, v, v, v, v, v], raw10: g6.slice(), theme: theme };
     }
     var sum = [0, 0, 0, 0, 0, 0];
     var n = 0;
@@ -672,12 +679,84 @@
       }
       n++;
     });
-    if (!n) return { stats: [0, 0, 0, 0, 0, 0], theme: theme };
+    if (!n) return { stats: [0, 0, 0, 0, 0, 0], raw10: [0, 0, 0, 0, 0, 0], theme: theme };
     var raw10 = sum.map(function(x) { return x / n; });
     var raw100 = raw10.map(function(x) {
       return Math.min(100, Math.max(0, Math.round(x * 10)));
     });
-    return { stats: raw100, theme: theme };
+    return { stats: raw100, raw10: raw10, theme: theme };
+  }
+  function stretchBarWidthsAcrossTeams(raw10Rows) {
+    if (!raw10Rows || !raw10Rows.length) return [];
+    var dims = 6;
+    var n = raw10Rows.length;
+    if (n === 1) {
+      return [raw10Rows[0].map(function(v) {
+        return Math.min(92, Math.max(10, Math.round(20 + v * 7)));
+      })];
+    }
+    var out = [];
+    for (var ti = 0; ti < n; ti++) out.push([0, 0, 0, 0, 0, 0]);
+    for (var k = 0; k < dims; k++) {
+      var col = raw10Rows.map(function(r) { return r[k]; });
+      var sum = 0;
+      for (var i = 0; i < n; i++) sum += col[i];
+      var m = sum / n;
+      var maxAbs = 0;
+      for (i = 0; i < n; i++) {
+        var ad = Math.abs(col[i] - m);
+        if (ad > maxAbs) maxAbs = ad;
+      }
+      if (maxAbs < 0.08) maxAbs = 0.08;
+      var boost = 1.85;
+      for (i = 0; i < n; i++) {
+        var ratio = (col[i] - m) / maxAbs;
+        var pct = 50 + ratio * 44 * boost;
+        out[i][k] = Math.min(96, Math.max(4, Math.round(pct)));
+      }
+    }
+    return out;
+  }
+  function renderStatBars(teamIndex, widths6, theme) {
+    var el = document.getElementById('stat-bars-' + teamIndex);
+    if (!el) return;
+    var labels = ['ATT', 'DEF', 'SPD', 'PAS', 'STA', 'ORG'];
+    var col = theme && theme.border ? theme.border : '#22d3ee';
+    var html = '<div class="stat-bars-inner">';
+    for (var k = 0; k < 6; k++) {
+      var w = widths6[k] != null ? widths6[k] : 0;
+      html += '<div class="stat-bar-row"><span class="stat-bar-lbl">' + labels[k] + '</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:' + w + '%;background:' + col + '"></div></div></div>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
+  }
+  function renderStatBarsStub(teamIndex) {
+    var el = document.getElementById('stat-bars-' + teamIndex);
+    if (!el) return;
+    var labels = ['ATT', 'DEF', 'SPD', 'PAS', 'STA', 'ORG'];
+    var html = '<div class="stat-bars-inner">';
+    for (var k = 0; k < 6; k++) {
+      html += '<div class="stat-bar-row"><span class="stat-bar-lbl">' + labels[k] + '</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:12%;background:rgba(148,163,184,0.35)"></div></div></div>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
+  }
+  function shuffleRosterFriendly(players, teamIndex) {
+    var arr = players.slice();
+    var seedStr = String(teamIndex) + '|' + arr.map(function(p) { return p.n; }).sort().join(',');
+    var seed = 2166136261;
+    for (var c = 0; c < seedStr.length; c++) {
+      seed ^= seedStr.charCodeAt(c);
+      seed = Math.imul(seed, 16777619);
+    }
+    for (var i = arr.length - 1; i > 0; i--) {
+      seed = (seed * 1103515245 + 12345) >>> 0;
+      var j = seed % (i + 1);
+      var t = arr[i];
+      arr[i] = arr[j];
+      arr[j] = t;
+    }
+    return arr;
   }
   var TP_FORMATIONS = [
     { name: '1-2-1 다이아몬드', slots: [
@@ -731,28 +810,12 @@
     }
     return TP_FORMATIONS[bi];
   }
-  function buildTacticalMentFromSix(teamIndex, v) {
-    var T = 'T' + (teamIndex + 1);
-    var kLab = ['공격', '수비', '속도', '패스', '체력', '조직'];
-    var ranked = v.map(function(val, i) { return { i: i, val: Number(val) || 0 }; }).sort(function(x, y) { return y.val - x.val; });
-    var top = ranked[0], low = ranked[5];
-    var line1 = T + ' · 레이더 기준 ' + kLab[top.i] + ' 쪽이 살아 있고 ' + kLab[low.i] + '을(를) 챙기면 무난해요.';
-    var hint = [
-      '피벗·윙 교차로 풀어가 보세요.',
-      '픽소 중심으로 라인만 안 무너지게.',
-      '전환 때 윙이 먼저 달려요.',
-      '짧은 패스로 리듬만 잡아도 됩니다.',
-      '번갈아 앞에 나가며 체력 분산.',
-      '호흡만 맞춰도 조직력은 올라가요.'
-    ][top.i];
-    return line1 + ' ' + hint;
-  }
   function updateTacticalBoard(teamIndex, items, sixVec) {
     const el = document.getElementById('tactical-pitch-' + teamIndex);
     if (!el) return;
     const players = Array.from(items).map(function(it) {
       return { n: it.childNodes[0].textContent.trim(), s: parseFloat(it.dataset.score) || 0 };
-    }).sort(function(a, b) { return b.s - a.s || a.n.localeCompare(b.n, 'ko-KR'); });
+    });
     if (!players.length) {
       el.innerHTML = '<div class="tp-empty">스쿼드를 구성하면 전술판이 표시됩니다.</div>';
       return;
@@ -763,23 +826,30 @@
     }
     var F = pickFormationBySix(sixVec);
     var formationName = F.name;
-    var tagline = buildTacticalMentFromSix(teamIndex, sixVec);
-    var count = Math.min(players.length, 5);
+    var order = shuffleRosterFriendly(players, teamIndex);
+    var starters = order.slice(0, 5);
+    var bench = order.slice(5);
+    var subsBySlot = [[], [], [], [], []];
+    for (var bi = 0; bi < bench.length; bi++) {
+      subsBySlot[bi % 5].push(bench[bi].n);
+    }
     var html = '';
-    html += '<div class="tp-tagline">' + escapeHtmlTp(tagline) + '</div>';
     html += '<div class="tp-formation-title">추천 대형 · ' + formationName + '</div>';
     html += '<div class="tp-field">';
-    for (var j = 0; j < count; j++) {
+    for (var j = 0; j < 5; j++) {
       var sl = F.slots[j];
+      var nm = starters[j] ? escapeHtmlTp(starters[j].n) : '—';
+      var subTxt = '';
+      if (subsBySlot[j].length) {
+        subTxt = '<span class="tp-sub">(SUB ' + subsBySlot[j].map(function(sn) { return escapeHtmlTp(sn); }).join(', ') + ')</span>';
+      }
       html += '<div class="tp-node" style="left:' + sl.x + '%;top:' + sl.y + '%">';
       html += '<span class="tp-pos">' + sl.pos + '</span>';
-      html += '<span class="tp-name">' + escapeHtmlTp(players[j].n) + '</span>';
+      html += '<span class="tp-name">' + nm + '</span>';
+      html += subTxt;
       html += '</div>';
     }
     html += '</div>';
-    if (players.length > 5) {
-      html += '<div class="tp-bench">벤치: ' + players.slice(5).map(function(p) { return escapeHtmlTp(p.n); }).join(', ') + '</div>';
-    }
     el.innerHTML = html;
   }
   function autoAnalyze() {
@@ -796,7 +866,10 @@
     });
     const rawRows = pack.filter(function(p) { return p.rosterOk; }).map(function(p) { return p.rawStats.slice(); });
     const ampRows = amplifyStatsAcrossTeams(rawRows);
+    const raw10Rows = pack.filter(function(p) { return p.rosterOk && p.computed.raw10; }).map(function(p) { return p.computed.raw10.slice(); });
+    const barMatrix = stretchBarWidthsAcrossTeams(raw10Rows);
     var ai = 0;
+    var biBar = 0;
     pack.forEach(function(p) {
       var i = p.i;
       var items = p.items;
@@ -817,41 +890,12 @@
         ovrEl.innerText = '--';
         ovrEl.style.fontSize = '24px';
       }
-      const cData = p.rosterOk ? stats : [0, 0, 0, 0, 0, 0];
-      const ctx = document.getElementById('radar-' + i).getContext('2d');
-      if (charts[i]) charts[i].destroy();
-      charts[i] = new Chart(ctx, {
-        type: 'radar',
-        data: {
-          labels: ['ATT', 'DEF', 'SPD', 'PAS', 'STA', 'ORG'],
-          datasets: [{
-            data: cData,
-            backgroundColor: theme.fill,
-            borderColor: theme.border,
-            borderWidth: 3,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: theme.point,
-            pointBorderColor: theme.border,
-            pointBorderWidth: 1
-          }]
-        },
-        options: {
-          scales: {
-            r: {
-              min: 0,
-              max: 100,
-              ticks: { display: false, stepSize: 25 },
-              grid: { color: 'rgba(255,255,255,0.14)', circular: true },
-              angleLines: { color: 'rgba(255,255,255,0.12)' },
-              pointLabels: { color: '#cbd5e1', font: { size: 9, weight: '800' } }
-            }
-          },
-          plugins: { legend: { display: false } },
-          responsive: true,
-          maintainAspectRatio: false
-        }
-      });
+      if (p.rosterOk && barMatrix.length && barMatrix[biBar]) {
+        renderStatBars(i, barMatrix[biBar], theme);
+        biBar++;
+      } else {
+        renderStatBarsStub(i);
+      }
       var sixForBoard = null;
       if (items.length) {
         if (p.rosterOk) sixForBoard = stats.slice();
