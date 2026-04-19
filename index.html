@@ -191,7 +191,7 @@
 </div>
 
 <script>
-  const TEAM_NAME = "FC 서울";
+  const TEAM_NAME = "FC 서울숲";
   const ADMIN_PW = "1110023";
   const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz1zKQSXupuf-Hi4QR5B9l1gn89Zh-xOsqv5zbNCqn_dxZNffQotzxMPlD63KF5PqKz/exec"; 
   const LOCAL_HISTORY_KEY = 'futsal_manager_local_history_v1';
@@ -555,18 +555,11 @@
   function makeTeams() {
     currentDraftSelection = Array.from(document.querySelectorAll('#attendance-list .player-card.active')).map(function(el) {
       const sp = el.querySelector('.p-name');
-      const n = sp.innerText;
-      const s = parseFloat(sp.dataset.score);
-      const att = parseFloat(sp.dataset.att);
-      if (!isNaN(att)) {
-        return {
-          n: n, s: s,
-          att: att, def: parseFloat(sp.dataset.def), spd: parseFloat(sp.dataset.spd),
-          pas: parseFloat(sp.dataset.pas), sta: parseFloat(sp.dataset.sta), org: parseFloat(sp.dataset.org)
-        };
-      }
-      var fb = isNaN(s) ? getGuestScore() : s;
-      return { n: n, s: fb, att: fb, def: fb, spd: fb, pas: fb, sta: fb, org: fb };
+      const n = String(sp.innerText || '').trim();
+      const six = resolveSixForDataset(sp.dataset, n);
+      const sNum = parseFloat(sp.dataset.score);
+      const s = !isNaN(sNum) ? sNum : (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
+      return { n: n, s: s, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
     });
     currentDraftSelection = [...currentDraftSelection, ...draftGuests];
     if(currentDraftSelection.length < teamCount) return alert("인원 부족");
@@ -580,19 +573,11 @@
   function reshuffle() {
     let currentPlayers = [];
     document.querySelectorAll('.drag-item').forEach(function(el) {
-      const n = el.childNodes[0].textContent.trim();
-      const s = parseFloat(el.dataset.score);
-      const att = parseFloat(el.dataset.att);
-      if (!isNaN(att)) {
-        currentPlayers.push({
-          n: n, s: s,
-          att: att, def: parseFloat(el.dataset.def), spd: parseFloat(el.dataset.spd),
-          pas: parseFloat(el.dataset.pas), sta: parseFloat(el.dataset.sta), org: parseFloat(el.dataset.org)
-        });
-      } else {
-        var fb = isNaN(s) ? getGuestScore() : s;
-        currentPlayers.push({ n: n, s: fb, att: fb, def: fb, spd: fb, pas: fb, sta: fb, org: fb });
-      }
+      const n = getPlayerNameFromDragItem(el);
+      const six = resolveSixForDataset(el.dataset, n);
+      const sNum = parseFloat(el.dataset.score);
+      const s = !isNaN(sNum) ? sNum : (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
+      currentPlayers.push({ n: n, s: s, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org });
     });
     if(currentPlayers.length < teamCount) return;
     currentPlayers.sort(() => Math.random() - 0.5);
@@ -625,6 +610,46 @@
   function isGuestDragItem(el) {
     const n = (el && el.childNodes && el.childNodes[0] && el.childNodes[0].textContent) ? el.childNodes[0].textContent.trim() : '';
     return /^guest\s/i.test(n) || /^guest$/i.test(n);
+  }
+  function getPlayerNameFromDragItem(el) {
+    var first = el && el.childNodes && el.childNodes[0];
+    var t = first && first.textContent ? String(first.textContent).trim() : '';
+    return t;
+  }
+  function parseDatasetSix(ds) {
+    if (!ds) {
+      return { att: NaN, def: NaN, spd: NaN, pas: NaN, sta: NaN, org: NaN };
+    }
+    return {
+      att: parseFloat(ds.att),
+      def: parseFloat(ds.def),
+      spd: parseFloat(ds.spd),
+      pas: parseFloat(ds.pas),
+      sta: parseFloat(ds.sta),
+      org: parseFloat(ds.org)
+    };
+  }
+  function resolveSixForDataset(ds, playerName) {
+    var six = parseDatasetSix(ds);
+    var fb = parseFloat(ds && ds.score);
+    if (isNaN(fb)) fb = getGuestScore();
+    var keys = ['att', 'def', 'spd', 'pas', 'sta', 'org'];
+    var anyCol = keys.some(function(k) { return !isNaN(six[k]); });
+    var nm = String(playerName || '').trim();
+    var mp = masterPlayers.find(function(p) { return String(p.name || '').trim() === nm; });
+    if (!anyCol) {
+      if (mp) {
+        return { att: mp.att, def: mp.def, spd: mp.spd, pas: mp.pas, sta: mp.sta, org: mp.org };
+      }
+      return { att: fb, def: fb, spd: fb, pas: fb, sta: fb, org: fb };
+    }
+    keys.forEach(function(k) {
+      if (isNaN(six[k]) && mp) six[k] = mp[k];
+    });
+    keys.forEach(function(k) {
+      if (isNaN(six[k])) six[k] = fb;
+    });
+    return six;
   }
   const TEAM_RADAR_THEMES = [
     { border: '#22d3ee', fill: 'rgba(34,211,238,0.32)', point: '#67e8f9', ovr: '#22d3ee' },
@@ -669,18 +694,14 @@
     var sum = [0, 0, 0, 0, 0, 0];
     var n = 0;
     Array.from(items).forEach(function(el) {
-      var a = parseFloat(el.dataset.att);
-      if (isNaN(a)) {
-        var sc = parseFloat(el.dataset.score) || 0;
-        for (var k = 0; k < 6; k++) sum[k] += sc;
-      } else {
-        sum[0] += parseFloat(el.dataset.att) || 0;
-        sum[1] += parseFloat(el.dataset.def) || 0;
-        sum[2] += parseFloat(el.dataset.spd) || 0;
-        sum[3] += parseFloat(el.dataset.pas) || 0;
-        sum[4] += parseFloat(el.dataset.sta) || 0;
-        sum[5] += parseFloat(el.dataset.org) || 0;
-      }
+      var name = getPlayerNameFromDragItem(el);
+      var six = resolveSixForDataset(el.dataset, name);
+      sum[0] += six.att;
+      sum[1] += six.def;
+      sum[2] += six.spd;
+      sum[3] += six.pas;
+      sum[4] += six.sta;
+      sum[5] += six.org;
       n++;
     });
     if (!n) return { stats: [0, 0, 0, 0, 0, 0], raw10: [0, 0, 0, 0, 0, 0], theme: theme };
@@ -898,18 +919,11 @@
     const finalTeams = [];
     document.querySelectorAll('.drag-list').forEach((list,idx)=>{
       const members = Array.from(list.querySelectorAll('.drag-item')).map(function(el) {
-        const n = el.childNodes[0].textContent.trim();
-        const s = parseFloat(el.dataset.score) || 0;
-        const att = parseFloat(el.dataset.att);
-        if (!isNaN(att)) {
-          return {
-            n: n, s: s,
-            att: att, def: parseFloat(el.dataset.def), spd: parseFloat(el.dataset.spd),
-            pas: parseFloat(el.dataset.pas), sta: parseFloat(el.dataset.sta), org: parseFloat(el.dataset.org)
-          };
-        }
-        var fb = isNaN(s) ? getGuestScore() : s;
-        return { n: n, s: fb, att: fb, def: fb, spd: fb, pas: fb, sta: fb, org: fb };
+        const n = getPlayerNameFromDragItem(el);
+        const six = resolveSixForDataset(el.dataset, n);
+        const sNum = parseFloat(el.dataset.score);
+        const s = !isNaN(sNum) ? sNum : (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
+        return { n: n, s: s, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
       });
       finalTeams.push({ id:idx, members:members, ovr: document.getElementById(`ovr-${idx}`).innerText });
     });
