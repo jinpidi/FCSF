@@ -193,6 +193,8 @@
 <script>
   const TEAM_NAME = "FC 서울숲";
   const ADMIN_PW = "1110023";
+  /* 시트 웹앱은 players[]에 B~G열(ATT~ORG)을 넣어야 막대가 달라집니다. score만 보내면 6개가 같은 값입니다.
+     예: {"name":"홍길동","b":7,"c":6,"d":8,"e":7,"f":6,"g":7} 또는 ["홍길동",7,6,8,7,6,7] */
   const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz1zKQSXupuf-Hi4QR5B9l1gn89Zh-xOsqv5zbNCqn_dxZNffQotzxMPlD63KF5PqKz/exec"; 
   const LOCAL_HISTORY_KEY = 'futsal_manager_local_history_v1';
 
@@ -330,6 +332,50 @@
     }
     return fb;
   }
+  function numOr(x, fb) {
+    var n = Number(x);
+    return isNaN(n) ? fb : n;
+  }
+  function sixStatsFromAny(p, fb) {
+    var f = typeof fb === 'number' && !isNaN(fb) ? fb : getGuestScore();
+    if (Array.isArray(p)) {
+      if (p.length >= 7) {
+        return {
+          att: numOr(p[1], f),
+          def: numOr(p[2], f),
+          spd: numOr(p[3], f),
+          pas: numOr(p[4], f),
+          sta: numOr(p[5], f),
+          org: numOr(p[6], f)
+        };
+      }
+      return { att: f, def: f, spd: f, pas: f, sta: f, org: f };
+    }
+    return sixStatsFromPayload(p, f);
+  }
+  function objectHasAnyPerStatColumn(o) {
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return false;
+    var keys = ['att', 'ATT', 'def', 'DEF', 'spd', 'SPD', 'pas', 'PAS', 'sta', 'STA', 'org', 'ORG', 'b', 'B', 'c', 'C', 'd', 'D', 'e', 'E', 'f', 'F', 'g', 'G'];
+    for (var i = 0; i < keys.length; i++) {
+      var v = o[keys[i]];
+      if (v !== undefined && v !== null && v !== '' && !isNaN(Number(v))) return true;
+    }
+    return false;
+  }
+  function rawPlayersArrayMissingSixColumns(rawArr) {
+    if (!Array.isArray(rawArr) || !rawArr.length) return false;
+    var i, p, anyRow = false;
+    for (i = 0; i < rawArr.length && i < 80; i++) {
+      p = rawArr[i];
+      if (Array.isArray(p)) {
+        if (p.length >= 7) anyRow = true;
+      } else if (p && typeof p === 'object' && objectHasAnyPerStatColumn(p)) {
+        anyRow = true;
+      }
+      if (anyRow) return false;
+    }
+    return true;
+  }
   function sixStatsFromPayload(p, fb) {
     var f = typeof fb === 'number' && !isNaN(fb) ? fb : getGuestScore();
     return {
@@ -353,7 +399,7 @@
   function sixFromMember(m) {
     var fb = (m.s != null && !isNaN(Number(m.s))) ? Number(m.s) : (m.score != null && !isNaN(Number(m.score)) ? Number(m.score) : getGuestScore());
     if (m && typeof m === 'object') {
-      return sixStatsFromPayload(m, fb);
+      return sixStatsFromAny(m, fb);
     }
     return { att: fb, def: fb, spd: fb, pas: fb, sta: fb, org: fb };
   }
@@ -480,10 +526,19 @@
       if (result && result.data && typeof result.data === 'object') result = result.data;
       let players = result.players != null ? result.players : result.Players;
       masterPlayers = Array.isArray(players) ? players : (players && typeof players === 'object' ? Object.values(players) : []);
+      var rawPlayersSnapshot = masterPlayers.slice();
       masterPlayers = masterPlayers.map(function(p) {
-        var name = String(p.name != null ? p.name : (p.Name != null ? p.Name : (p.n != null ? p.n : ''))).trim();
-        var fb = Number(p.score != null ? p.score : (p.Score != null ? p.Score : (p.s != null ? p.s : 0))) || 0;
-        var six = sixStatsFromPayload(p, fb || getGuestScore());
+        var name;
+        var fb;
+        if (Array.isArray(p)) {
+          name = String(p[0] != null ? p[0] : '').trim();
+          fb = (p.length >= 8 && !isNaN(Number(p[7]))) ? Number(p[7]) : getGuestScore();
+        } else {
+          name = String(p.name != null ? p.name : (p.Name != null ? p.Name : (p.n != null ? p.n : ''))).trim();
+          fb = Number(p.score != null ? p.score : (p.Score != null ? p.Score : (p.s != null ? p.s : 0))) || 0;
+          if (!fb) fb = getGuestScore();
+        }
+        var six = sixStatsFromAny(p, fb);
         var score = (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
         return { name: name, score: score, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
       }).filter(function(p) { return p.name; });
@@ -494,6 +549,9 @@
       saveLocalHistory();
       loadingEl.classList.add('hidden');
       if (!masterPlayers.length) setSyncNote('시트에서 명단(players)을 불러오지 못했습니다. 시트/스크립트 응답을 확인해 주세요.');
+      else if (rawPlayersArrayMissingSixColumns(rawPlayersSnapshot)) {
+        setSyncNote('시트 웹앱이 선수별 B~G열(6개 능력)을 JSON에 넣지 않고 name·score만 보내고 있습니다. 그 경우 6개 막대가 같은 길이로만 나옵니다. Apps Script에서 시트 B~G를 b,c,d,e,f,g(또는 att~org) 필드로 포함해 주세요. 행 배열 [이름,B,C,D,E,F,G] 형식도 지원합니다.');
+      }
       renderAttendanceList();
       renderHistory();
       renderSavedMatches();
@@ -556,7 +614,7 @@
     currentDraftSelection = Array.from(document.querySelectorAll('#attendance-list .player-card.active')).map(function(el) {
       const sp = el.querySelector('.p-name');
       const n = String(sp.innerText || '').trim();
-      const six = resolveSixForDataset(sp.dataset, n);
+      const six = resolveSixForDragElement(sp, n);
       const sNum = parseFloat(sp.dataset.score);
       const s = !isNaN(sNum) ? sNum : (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
       return { n: n, s: s, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
@@ -574,7 +632,7 @@
     let currentPlayers = [];
     document.querySelectorAll('.drag-item').forEach(function(el) {
       const n = getPlayerNameFromDragItem(el);
-      const six = resolveSixForDataset(el.dataset, n);
+      const six = resolveSixForDragElement(el, n);
       const sNum = parseFloat(el.dataset.score);
       const s = !isNaN(sNum) ? sNum : (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
       currentPlayers.push({ n: n, s: s, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org });
@@ -616,22 +674,24 @@
     var t = first && first.textContent ? String(first.textContent).trim() : '';
     return t;
   }
-  function parseDatasetSix(ds) {
-    if (!ds) {
-      return { att: NaN, def: NaN, spd: NaN, pas: NaN, sta: NaN, org: NaN };
+  function parseSixFromDataAttrs(el) {
+    if (!el || !el.getAttribute) {
+      return { att: NaN, def: NaN, spd: NaN, pas: NaN, sta: NaN, org: NaN, score: NaN };
     }
     return {
-      att: parseFloat(ds.att),
-      def: parseFloat(ds.def),
-      spd: parseFloat(ds.spd),
-      pas: parseFloat(ds.pas),
-      sta: parseFloat(ds.sta),
-      org: parseFloat(ds.org)
+      att: parseFloat(el.getAttribute('data-att')),
+      def: parseFloat(el.getAttribute('data-def')),
+      spd: parseFloat(el.getAttribute('data-spd')),
+      pas: parseFloat(el.getAttribute('data-pas')),
+      sta: parseFloat(el.getAttribute('data-sta')),
+      org: parseFloat(el.getAttribute('data-org')),
+      score: parseFloat(el.getAttribute('data-score'))
     };
   }
-  function resolveSixForDataset(ds, playerName) {
-    var six = parseDatasetSix(ds);
-    var fb = parseFloat(ds && ds.score);
+  function resolveSixForDragElement(el, playerName) {
+    var o = parseSixFromDataAttrs(el);
+    var six = { att: o.att, def: o.def, spd: o.spd, pas: o.pas, sta: o.sta, org: o.org };
+    var fb = o.score;
     if (isNaN(fb)) fb = getGuestScore();
     var keys = ['att', 'def', 'spd', 'pas', 'sta', 'org'];
     var anyCol = keys.some(function(k) { return !isNaN(six[k]); });
@@ -695,7 +755,7 @@
     var n = 0;
     Array.from(items).forEach(function(el) {
       var name = getPlayerNameFromDragItem(el);
-      var six = resolveSixForDataset(el.dataset, name);
+      var six = resolveSixForDragElement(el, name);
       sum[0] += six.att;
       sum[1] += six.def;
       sum[2] += six.spd;
@@ -920,7 +980,7 @@
     document.querySelectorAll('.drag-list').forEach((list,idx)=>{
       const members = Array.from(list.querySelectorAll('.drag-item')).map(function(el) {
         const n = getPlayerNameFromDragItem(el);
-        const six = resolveSixForDataset(el.dataset, n);
+        const six = resolveSixForDragElement(el, n);
         const sNum = parseFloat(el.dataset.score);
         const s = !isNaN(sNum) ? sNum : (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
         return { n: n, s: s, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
