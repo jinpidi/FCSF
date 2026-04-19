@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Futsal Manager Pro v12.FINAL</title>
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Futsal Manager Pro · FC 공차">
-  <meta property="og:description" content="게임플랜 공유·매치 기록·라이브 스코어 — 링크를 눌러 바로 열기">
+  <meta property="og:title" content="Futsal Manager Pro · FC 서울숲">
+  <meta property="og:description" content="게임 플랜·매치 기록·라이브 스코어 — 링크를 눌러 바로 열기">
   <meta property="og:image" content="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&amp;w=1200&amp;h=630&amp;fit=crop&amp;q=80">
   <meta property="og:url" id="meta-og-url" content="">
   <meta name="twitter:card" content="summary_large_image">
@@ -314,6 +314,43 @@
   function getGuestScore() {
     return 6;
   }
+  function readNumField(obj, keys, fb) {
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') {
+        var n = Number(obj[k]);
+        if (!isNaN(n)) return n;
+      }
+    }
+    return fb;
+  }
+  function sixStatsFromPayload(p, fb) {
+    var f = typeof fb === 'number' && !isNaN(fb) ? fb : getGuestScore();
+    return {
+      att: readNumField(p, ['att', 'ATT', 'Att', 'b', 'B'], f),
+      def: readNumField(p, ['def', 'DEF', 'Def', 'c', 'C'], f),
+      spd: readNumField(p, ['spd', 'SPD', 'Spd', 'd', 'D'], f),
+      pas: readNumField(p, ['pas', 'PAS', 'Pas', 'e', 'E'], f),
+      sta: readNumField(p, ['sta', 'STA', 'Sta', 'f', 'F'], f),
+      org: readNumField(p, ['org', 'ORG', 'Org', 'g', 'G'], f)
+    };
+  }
+  function sixFromMember(m) {
+    var fb = (m.s != null && !isNaN(Number(m.s))) ? Number(m.s) : (m.score != null && !isNaN(Number(m.score)) ? Number(m.score) : getGuestScore());
+    if (m.att != null && !isNaN(Number(m.att))) {
+      return {
+        att: Number(m.att), def: Number(m.def), spd: Number(m.spd),
+        pas: Number(m.pas), sta: Number(m.sta), org: Number(m.org)
+      };
+    }
+    return { att: fb, def: fb, spd: fb, pas: fb, sta: fb, org: fb };
+  }
+  function buildDragItemHtml(m) {
+    var name = m.n != null ? m.n : m.name;
+    var six = sixFromMember(m);
+    var s = m.s != null ? m.s : (m.score != null ? m.score : (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6);
+    return '<div class="drag-item" data-score="' + s + '" data-att="' + six.att + '" data-def="' + six.def + '" data-spd="' + six.spd + '" data-pas="' + six.pas + '" data-sta="' + six.sta + '" data-org="' + six.org + '">' + name + '<span style="cursor:pointer;" onclick="this.parentElement.remove();autoAnalyze();">✕</span></div>';
+  }
 
   function membersToPlayerList(members) {
     if (!Array.isArray(members)) return [];
@@ -322,10 +359,29 @@
         const n = String(item.n != null ? item.n : item.name).trim();
         const sRaw = item.s != null ? item.s : (item.score != null ? item.score : item.Score);
         const s = Number(sRaw);
-        return { n: n, s: isNaN(s) ? getGuestScore() : s };
+        const baseS = isNaN(s) ? getGuestScore() : s;
+        if (item.att != null && !isNaN(Number(item.att))) {
+          return {
+            n: n, s: baseS,
+            att: Number(item.att), def: Number(item.def), spd: Number(item.spd),
+            pas: Number(item.pas), sta: Number(item.sta), org: Number(item.org)
+          };
+        }
+        const mp = masterPlayers.find(function(p) { return p.name === n; });
+        if (mp) {
+          const six = sixFromMember(mp);
+          return { n: n, s: mp.score != null ? mp.score : baseS, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
+        }
+        return { n: n, s: baseS, att: baseS, def: baseS, spd: baseS, pas: baseS, sta: baseS, org: baseS };
       }
       const name = String(item).trim();
-      return { n: name, s: (masterPlayers.find(function(p) { return p.name === name; }) || { score: getGuestScore() }).score };
+      const mp = masterPlayers.find(function(p) { return p.name === name; });
+      if (mp) {
+        const six = sixFromMember(mp);
+        return { n: name, s: mp.score, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
+      }
+      const g = getGuestScore();
+      return { n: name, s: g, att: g, def: g, spd: g, pas: g, sta: g, org: g };
     });
   }
 
@@ -414,10 +470,13 @@
       if (result && result.data && typeof result.data === 'object') result = result.data;
       let players = result.players != null ? result.players : result.Players;
       masterPlayers = Array.isArray(players) ? players : (players && typeof players === 'object' ? Object.values(players) : []);
-      masterPlayers = masterPlayers.map(p => ({
-        name: String(p.name != null ? p.name : (p.Name != null ? p.Name : (p.n != null ? p.n : ''))).trim(),
-        score: Number(p.score != null ? p.score : (p.Score != null ? p.Score : (p.s != null ? p.s : 0))) || 0
-      })).filter(p => p.name);
+      masterPlayers = masterPlayers.map(function(p) {
+        var name = String(p.name != null ? p.name : (p.Name != null ? p.Name : (p.n != null ? p.n : ''))).trim();
+        var fb = Number(p.score != null ? p.score : (p.Score != null ? p.Score : (p.s != null ? p.s : 0))) || 0;
+        var six = sixStatsFromPayload(p, fb || getGuestScore());
+        var score = (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
+        return { name: name, score: score, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
+      }).filter(function(p) { return p.name; });
       let hist = result.history != null ? result.history : result.History;
       const serverHist = Array.isArray(hist) ? hist : [];
       const localHist = loadLocalHistory();
@@ -461,7 +520,7 @@
     masterPlayers.sort((a,b)=>a.name.localeCompare(b.name,'ko-KR')).forEach(p=>{
       const card = document.createElement('div');
       card.className = 'player-card';
-      card.innerHTML = `<span class="p-name" data-score="${p.score}">${p.name}</span>`;
+      card.innerHTML = `<span class="p-name" data-score="${p.score}" data-att="${p.att}" data-def="${p.def}" data-spd="${p.spd}" data-pas="${p.pas}" data-sta="${p.sta}" data-org="${p.org}">${p.name}</span>`;
       card.addEventListener('click', () => { card.classList.toggle('active'); updateCount(); });
       box.appendChild(card);
     });
@@ -473,7 +532,8 @@
   }
 
   function addDraftGuest() {
-    draftGuests.push({ n: `Guest ${draftGuests.length+1}`, s: getGuestScore() });
+    var g = getGuestScore();
+    draftGuests.push({ n: 'Guest ' + (draftGuests.length + 1), s: g, att: g, def: g, spd: g, pas: g, sta: g, org: g });
     renderDraftGuests(); updateCount();
   }
 
@@ -483,8 +543,20 @@
   }
 
   function makeTeams() {
-    currentDraftSelection = Array.from(document.querySelectorAll('#attendance-list .player-card.active')).map(el=>{
-      const s = el.querySelector('.p-name'); return { n: s.innerText, s: parseFloat(s.dataset.score) };
+    currentDraftSelection = Array.from(document.querySelectorAll('#attendance-list .player-card.active')).map(function(el) {
+      const sp = el.querySelector('.p-name');
+      const n = sp.innerText;
+      const s = parseFloat(sp.dataset.score);
+      const att = parseFloat(sp.dataset.att);
+      if (!isNaN(att)) {
+        return {
+          n: n, s: s,
+          att: att, def: parseFloat(sp.dataset.def), spd: parseFloat(sp.dataset.spd),
+          pas: parseFloat(sp.dataset.pas), sta: parseFloat(sp.dataset.sta), org: parseFloat(sp.dataset.org)
+        };
+      }
+      var fb = isNaN(s) ? getGuestScore() : s;
+      return { n: n, s: fb, att: fb, def: fb, spd: fb, pas: fb, sta: fb, org: fb };
     });
     currentDraftSelection = [...currentDraftSelection, ...draftGuests];
     if(currentDraftSelection.length < teamCount) return alert("인원 부족");
@@ -497,10 +569,20 @@
 
   function reshuffle() {
     let currentPlayers = [];
-    document.querySelectorAll('.drag-item').forEach(el => {
-      const s = parseFloat(el.dataset.score);
+    document.querySelectorAll('.drag-item').forEach(function(el) {
       const n = el.childNodes[0].textContent.trim();
-      currentPlayers.push({ n, s });
+      const s = parseFloat(el.dataset.score);
+      const att = parseFloat(el.dataset.att);
+      if (!isNaN(att)) {
+        currentPlayers.push({
+          n: n, s: s,
+          att: att, def: parseFloat(el.dataset.def), spd: parseFloat(el.dataset.spd),
+          pas: parseFloat(el.dataset.pas), sta: parseFloat(el.dataset.sta), org: parseFloat(el.dataset.org)
+        });
+      } else {
+        var fb = isNaN(s) ? getGuestScore() : s;
+        currentPlayers.push({ n: n, s: fb, att: fb, def: fb, spd: fb, pas: fb, sta: fb, org: fb });
+      }
     });
     if(currentPlayers.length < teamCount) return;
     currentPlayers.sort(() => Math.random() - 0.5);
@@ -523,7 +605,7 @@
         </div>`;
       setTimeout(()=>{
         const listEl = document.getElementById(`team-list-${i}`);
-        t.members.forEach(p=>{ listEl.innerHTML += `<div class="drag-item" data-score="${p.s}">${p.n}<span style="cursor:pointer;" onclick="this.parentElement.remove();autoAnalyze();">✕</span></div>`; });
+        t.members.forEach(function(p) { listEl.innerHTML += buildDragItemHtml(p); });
         new Sortable(listEl, { group:'teams', animation:150, onEnd:autoAnalyze });
         autoAnalyze();
       },0);
@@ -564,64 +646,38 @@
       });
     });
   }
-  function computeRadarStatsFromRoster(scores, teamIndex, allGuest) {
+  function computeTeamRadarFromItems(items, teamIndex, allGuest) {
     const ti = teamIndex | 0;
     const theme = TEAM_RADAR_THEMES[ti % TEAM_RADAR_THEMES.length];
-    if (!scores.length) return { stats: [0,0,0,0,0,0], theme: theme };
+    if (!items || !items.length) return { stats: [0, 0, 0, 0, 0, 0], theme: theme };
     if (allGuest) {
-      const gStats = [0,1,2,3,4,5].map(function(k) {
-        return Math.min(96, Math.max(38, 44 + ((k * 5 + ti * 3) % 19) + (k + ti) % 4));
-      });
-      return { stats: gStats, theme: theme };
+      var g = getGuestScore();
+      var v = Math.min(100, Math.max(0, Math.round(g * 10)));
+      return { stats: [v, v, v, v, v, v], theme: theme };
     }
-    const n = scores.length;
-    const sorted = scores.slice().sort(function(a, b) { return b - a; });
-    const sum = scores.reduce(function(a, x) { return a + x; }, 0);
-    const avg = sum / n;
-    const mn = sorted[n - 1];
-    const mx = sorted[0];
-    const med = n % 2 ? sorted[(n - 1) >> 1] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
-    let variance = 0;
-    if (n > 1) {
-      scores.forEach(function(x) { const d = x - avg; variance += d * d; });
-      variance /= (n - 1);
-    }
-    const stdev = Math.sqrt(variance);
-    const spread = mx - mn;
-    const topK = Math.max(1, Math.ceil(n / 3));
-    const botK = Math.max(1, Math.ceil(n / 3));
-    var sumTop = 0, sumBot = 0, i, j;
-    for (i = 0; i < topK; i++) sumTop += sorted[i];
-    for (j = 0; j < botK; j++) sumBot += sorted[n - 1 - j];
-    const avgTop = sumTop / topK;
-    const avgBot = sumBot / botK;
-    var midLo = topK;
-    var midHi = n - botK;
-    var avgMid = avg;
-    if (midLo < midHi) {
-      var sm = 0;
-      for (var m = midLo; m < midHi; m++) sm += sorted[m];
-      avgMid = sm / (midHi - midLo);
-    }
-    const hiHalf = Math.ceil(n / 2);
-    var sumHi = 0, sumLo = 0;
-    for (i = 0; i < hiHalf; i++) sumHi += sorted[i];
-    for (j = 0; j < n - hiHalf; j++) sumLo += sorted[n - 1 - j];
-    const avgHi = sumHi / hiHalf;
-    const avgLo = sumLo / (n - hiHalf);
-    const halfGap = Math.abs(avgHi - avgLo);
-    const asym = Math.abs(mx - med) + Math.abs(med - mn);
-    var att = 20 + avgTop * 7.6 + (mx - avgTop) * 3.2;
-    var def = 18 + (0.48 * mn + 0.52 * avgBot) * 7.8 - spread * 0.55;
-    var spd = 16 + med * 5.4 + spread * 5.8 + halfGap * 5 + asym * 2.2;
-    var pas = 19 + avgMid * 7.2 + med * 2.1 - Math.abs(avgMid - med) * 2.4;
-    var sta = 20 + avg * 7 + (n >= 5 ? stdev * 1.8 : stdev * 1.2);
-    var org = 22 + (5.5 - Math.min(spread, 5.5)) * 7.5 + (3.2 - Math.min(stdev, 3.2)) * 11 + (n >= 5 ? 6 : 2) - halfGap * 1.35;
-    function clamp(v) {
-      return Math.min(98, Math.max(11, Math.round(v)));
-    }
-    const stats = [clamp(att), clamp(def), clamp(spd), clamp(pas), clamp(sta), clamp(org)];
-    return { stats: stats, theme: theme };
+    var sum = [0, 0, 0, 0, 0, 0];
+    var n = 0;
+    Array.from(items).forEach(function(el) {
+      var a = parseFloat(el.dataset.att);
+      if (isNaN(a)) {
+        var sc = parseFloat(el.dataset.score) || 0;
+        for (var k = 0; k < 6; k++) sum[k] += sc;
+      } else {
+        sum[0] += parseFloat(el.dataset.att) || 0;
+        sum[1] += parseFloat(el.dataset.def) || 0;
+        sum[2] += parseFloat(el.dataset.spd) || 0;
+        sum[3] += parseFloat(el.dataset.pas) || 0;
+        sum[4] += parseFloat(el.dataset.sta) || 0;
+        sum[5] += parseFloat(el.dataset.org) || 0;
+      }
+      n++;
+    });
+    if (!n) return { stats: [0, 0, 0, 0, 0, 0], theme: theme };
+    var raw10 = sum.map(function(x) { return x / n; });
+    var raw100 = raw10.map(function(x) {
+      return Math.min(100, Math.max(0, Math.round(x * 10)));
+    });
+    return { stats: raw100, theme: theme };
   }
   var TP_FORMATIONS = [
     { name: '1-2-1 다이아몬드', slots: [
@@ -629,38 +685,34 @@
       { pos: '픽소', x: 50, y: 58 }, { pos: '골키퍼', x: 50, y: 86 }
     ]},
     { name: '2-1-1 로우 블록', slots: [
-      { pos: '피벗', x: 50, y: 12 }, { pos: '좌 앵커', x: 24, y: 42 }, { pos: '우 앵커', x: 76, y: 42 },
+      { pos: '피벗', x: 50, y: 12 }, { pos: '좌 윙', x: 24, y: 42 }, { pos: '우 윙', x: 76, y: 42 },
       { pos: '픽소', x: 50, y: 64 }, { pos: '골키퍼', x: 50, y: 88 }
     ]},
     { name: '와이드 2-1-1', slots: [
       { pos: '피벗', x: 50, y: 13 }, { pos: '좌 윙', x: 16, y: 36 }, { pos: '우 윙', x: 84, y: 36 },
       { pos: '픽소', x: 50, y: 58 }, { pos: '골키퍼', x: 50, y: 87 }
     ]},
-    { name: '3-1 퍼싱 라인', slots: [
-      { pos: '좌 공격', x: 28, y: 16 }, { pos: '중앙 공격', x: 50, y: 14 }, { pos: '우 공격', x: 72, y: 16 },
-      { pos: '스위퍼', x: 50, y: 56 }, { pos: '골키퍼', x: 50, y: 86 }
+    { name: '3-1 전진', slots: [
+      { pos: '좌 윙', x: 28, y: 16 }, { pos: '피벗', x: 50, y: 14 }, { pos: '우 윙', x: 72, y: 16 },
+      { pos: '픽소', x: 50, y: 56 }, { pos: '골키퍼', x: 50, y: 86 }
     ]},
     { name: '2-2 박스', slots: [
-      { pos: '좌 전방', x: 30, y: 22 }, { pos: '우 전방', x: 70, y: 22 },
-      { pos: '좌 후방', x: 30, y: 52 }, { pos: '우 후방', x: 70, y: 52 }, { pos: '골키퍼', x: 50, y: 86 }
+      { pos: '좌 윙', x: 30, y: 22 }, { pos: '우 윙', x: 70, y: 22 },
+      { pos: '좌 픽소', x: 30, y: 52 }, { pos: '우 픽소', x: 70, y: 52 }, { pos: '골키퍼', x: 50, y: 86 }
     ]},
-    { name: '1-1-2 더블 서포트', slots: [
-      { pos: '피벗', x: 50, y: 14 }, { pos: '서포트', x: 50, y: 36 },
-      { pos: '좌 윙백', x: 24, y: 54 }, { pos: '우 윙백', x: 76, y: 54 }, { pos: '골키퍼', x: 50, y: 86 }
+    { name: '1-1-2 더블 픽소', slots: [
+      { pos: '피벗', x: 50, y: 14 }, { pos: '세컨 픽소', x: 50, y: 36 },
+      { pos: '좌 윙', x: 24, y: 54 }, { pos: '우 윙', x: 76, y: 54 }, { pos: '골키퍼', x: 50, y: 86 }
     ]},
-    { name: '1-3-1 트라이포스', slots: [
-      { pos: '피벗', x: 50, y: 12 }, { pos: '좌 미드', x: 26, y: 40 }, { pos: '중앙 미드', x: 50, y: 44 },
-      { pos: '우 미드', x: 74, y: 40 }, { pos: '골키퍼', x: 50, y: 86 }
+    { name: '1-3-1', slots: [
+      { pos: '피벗', x: 50, y: 12 }, { pos: '좌 윙', x: 26, y: 40 }, { pos: '픽소', x: 50, y: 44 },
+      { pos: '우 윙', x: 74, y: 40 }, { pos: '골키퍼', x: 50, y: 86 }
     ]},
     { name: '역습 2-1-1', slots: [
-      { pos: '카운터 탑', x: 50, y: 15 }, { pos: '좌 연결', x: 26, y: 38 }, { pos: '우 연결', x: 74, y: 38 },
-      { pos: '앵커', x: 50, y: 60 }, { pos: '골키퍼', x: 50, y: 87 }
+      { pos: '피벗', x: 50, y: 15 }, { pos: '좌 윙', x: 26, y: 38 }, { pos: '우 윙', x: 74, y: 38 },
+      { pos: '픽소', x: 50, y: 60 }, { pos: '골키퍼', x: 50, y: 87 }
     ]}
   ];
-  function statPtDisplay(x) {
-    if (x == null || isNaN(x)) return '-';
-    return (Number(x) / 10).toFixed(1);
-  }
   function pickFormationBySix(v) {
     var a = v[0], d = v[1], sp = v[2], pa = v[3], st = v[4], o = v[5];
     var fit = [
@@ -681,35 +733,19 @@
   }
   function buildTacticalMentFromSix(teamIndex, v) {
     var T = 'T' + (teamIndex + 1);
-    var lab = ['ATT', 'DEF', 'SPD', 'PAS', 'STA', 'ORG'];
+    var kLab = ['공격', '수비', '속도', '패스', '체력', '조직'];
     var ranked = v.map(function(val, i) { return { i: i, val: Number(val) || 0 }; }).sort(function(x, y) { return y.val - x.val; });
     var top = ranked[0], low = ranked[5];
-    var tips = [];
-    tips.push(T + ' 팀 평균 지표(레이더 환산 10점 만점): ' + lab.map(function(L, i) { return L + ' ' + statPtDisplay(v[i]); }).join(' · ') + '.');
-    tips.push('상대적 강점 ' + lab[top.i] + '(' + statPtDisplay(top.val) + '), 보완 포인트 ' + lab[low.i] + '(' + statPtDisplay(low.val) + ').');
-    var add = [];
-    switch (top.i) {
-      case 0: add.push('전방 2선·피벗 연계로 마무리 터치 수를 늘리고 역습 시 1선 복귀를 짧게 유지하세요.'); break;
-      case 1: add.push('라인 간격을 좁히고 슛 각을 바깥으로 돌린 뒤 리바운드·2볼에 대비하세요.'); break;
-      case 2: add.push('턴오버 직후 전방 패스 옵션을 두 개 이상 만들고 수비 전환 3초 안에 형태를 잡으세요.'); break;
-      case 3: add.push('삼각 패스로 볼 순환을 돌리고 강측 당겨 약측 스위칭으로 빈 공간을 노리세요.'); break;
-      case 4: add.push('쿼터마다 로테이션으로 압박 강도를 유지하고, 무리한 개인 돌파보다 연결 우선을 권장합니다.'); break;
-      case 5: add.push('킥·스로인·세트 담당을 정하고 수비 재편·공격 전환 시 동선을 맞추세요.'); break;
-      default: add.push('세트 플레이·수비 재편 신호를 통일하고 역할 분담을 명확히 하세요.'); break;
-    }
-    switch (low.i) {
-      case 0: add.push('(ATT 보완) 측면 1:1·크로스 각을 늘리고 중앙 밀집 시 원터치 연계를 쓰세요.'); break;
-      case 1: add.push('(DEF 보완) 최후방 한 명을 앵커로 두고 역습 대비 거리감을 유지하세요.'); break;
-      case 2: add.push('(SPD 보완) 패스 템포를 올려 볼 이동으로 상대 압박을 피하고, 긴 볼은 최소화하세요.'); break;
-      case 3: add.push('(PAS 보완) 지그재그·월패스로 전진 각을 만들고 강한 발만 쓰지 말고 짧은 연결을 섞으세요.'); break;
-      case 4: add.push('(STA 보완) 압박 거리·타이밍을 맞추고, 불필요한 추격을 줄이세요.'); break;
-      default: add.push('(ORG 보완) 킥·스로인 담당과 킥오프 패턴을 정해 혼선을 줄이세요.'); break;
-    }
-    if (top.i !== low.i && Math.abs(top.val - low.val) < (v.reduce(function(s, x) { return s + x; }, 0) / 6) * 0.15) {
-      add.push('지표 편차가 크지 않아 밸런스형 대형에서 미세한 역할만 조정하면 됩니다.');
-    }
-    tips.push(add.join(' '));
-    return tips.join(' ');
+    var line1 = T + ' · 레이더 기준 ' + kLab[top.i] + ' 쪽이 살아 있고 ' + kLab[low.i] + '을(를) 챙기면 무난해요.';
+    var hint = [
+      '피벗·윙 교차로 풀어가 보세요.',
+      '픽소 중심으로 라인만 안 무너지게.',
+      '전환 때 윙이 먼저 달려요.',
+      '짧은 패스로 리듬만 잡아도 됩니다.',
+      '번갈아 앞에 나가며 체력 분산.',
+      '호흡만 맞춰도 조직력은 올라가요.'
+    ][top.i];
+    return line1 + ' ' + hint;
   }
   function updateTacticalBoard(teamIndex, items, sixVec) {
     const el = document.getElementById('tactical-pitch-' + teamIndex);
@@ -752,11 +788,10 @@
     cols.forEach(function(col, i) {
       const items = col.querySelectorAll('.drag-item');
       const allGuest = items.length > 0 && Array.from(items).every(isGuestDragItem);
-      const scores = Array.from(items).map(function(it) { return parseFloat(it.dataset.score) || 0; });
       const showGuestFixed = allGuest && items.length > 0;
       const rosterOk = items.length >= 5 || showGuestFixed;
-      const computed = computeRadarStatsFromRoster(scores, i, showGuestFixed);
-      const rawStats = rosterOk ? computed.stats : [0, 0, 0, 0, 0, 0];
+      const computed = computeTeamRadarFromItems(items, i, showGuestFixed);
+      const rawStats = rosterOk ? computed.stats.slice() : [0, 0, 0, 0, 0, 0];
       pack.push({ i: i, items: items, showGuestFixed: showGuestFixed, rosterOk: rosterOk, computed: computed, rawStats: rawStats });
     });
     const rawRows = pack.filter(function(p) { return p.rosterOk; }).map(function(p) { return p.rawStats.slice(); });
@@ -830,7 +865,18 @@
     const finalTeams = [];
     document.querySelectorAll('.drag-list').forEach((list,idx)=>{
       const members = Array.from(list.querySelectorAll('.drag-item')).map(function(el) {
-        return { n: el.childNodes[0].textContent.trim(), s: parseFloat(el.dataset.score) || 0 };
+        const n = el.childNodes[0].textContent.trim();
+        const s = parseFloat(el.dataset.score) || 0;
+        const att = parseFloat(el.dataset.att);
+        if (!isNaN(att)) {
+          return {
+            n: n, s: s,
+            att: att, def: parseFloat(el.dataset.def), spd: parseFloat(el.dataset.spd),
+            pas: parseFloat(el.dataset.pas), sta: parseFloat(el.dataset.sta), org: parseFloat(el.dataset.org)
+          };
+        }
+        var fb = isNaN(s) ? getGuestScore() : s;
+        return { n: n, s: fb, att: fb, def: fb, spd: fb, pas: fb, sta: fb, org: fb };
       });
       finalTeams.push({ id:idx, members:members, ovr: document.getElementById(`ovr-${idx}`).innerText });
     });
@@ -1106,23 +1152,45 @@
     else if(step==='result') { document.getElementById('match-page').classList.add('hidden'); document.getElementById('result-page').classList.remove('hidden'); }
   }
   function openAddPlayerModal() {
-    const cur = Array.from(document.querySelectorAll('.drag-item')).map(el=>el.childNodes[0].textContent.trim());
-    const box = document.getElementById('modal-player-list'); box.innerHTML = '';
-    masterPlayers.filter(p=>!cur.includes(p.name)).forEach(p=>{ box.innerHTML += `<div class="player-card" onclick="addLastMinutePlayer('${p.name}',${p.score});closeModal();"><span>${p.name}</span></div>`; });
+    const cur = Array.from(document.querySelectorAll('.drag-item')).map(function(el) { return el.childNodes[0].textContent.trim(); });
+    const box = document.getElementById('modal-player-list');
+    box.innerHTML = '';
+    masterPlayers.forEach(function(p, pi) {
+      if (cur.includes(p.name)) return;
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      card.innerHTML = '<span>' + p.name + '</span>';
+      card.addEventListener('click', function() { addLastMinutePlayerIdx(pi); closeModal(); });
+      box.appendChild(card);
+    });
     document.getElementById('add-modal').classList.remove('hidden');
   }
 
-  function addLastMinutePlayer(n, s) { 
-    let minTeam = 0;
-    let minCount = Infinity;
-    for(let i=0; i<teamCount; i++) {
-      let count = document.getElementById(`team-list-${i}`).querySelectorAll('.drag-item').length;
-      if(count < minCount) { minCount = count; minTeam = i; }
+  function addLastMinutePlayerIdx(pi) {
+    var p = masterPlayers[pi];
+    if (!p) return;
+    var minTeam = 0;
+    var minCount = Infinity;
+    for (var ti = 0; ti < teamCount; ti++) {
+      var count = document.getElementById('team-list-' + ti).querySelectorAll('.drag-item').length;
+      if (count < minCount) { minCount = count; minTeam = ti; }
     }
-    document.getElementById(`team-list-${minTeam}`).innerHTML += `<div class="drag-item" data-score="${s}">${n}<span style="cursor:pointer;" onclick="this.parentElement.remove();autoAnalyze();">✕</span></div>`; 
-    autoAnalyze(); 
+    document.getElementById('team-list-' + minTeam).innerHTML += buildDragItemHtml(p);
+    autoAnalyze();
   }
-  function addDraftGuestModal() { addLastMinutePlayer(`Guest ${document.querySelectorAll('.drag-item').length + 1}`, getGuestScore()); }
+  function addDraftGuestModal() {
+    var idx = document.querySelectorAll('.drag-item').length + 1;
+    var g = getGuestScore();
+    var guest = { n: 'Guest ' + idx, s: g, att: g, def: g, spd: g, pas: g, sta: g, org: g };
+    var minTeam = 0;
+    var minCount = Infinity;
+    for (var ti = 0; ti < teamCount; ti++) {
+      var c = document.getElementById('team-list-' + ti).querySelectorAll('.drag-item').length;
+      if (c < minCount) { minCount = c; minTeam = ti; }
+    }
+    document.getElementById('team-list-' + minTeam).innerHTML += buildDragItemHtml(guest);
+    autoAnalyze();
+  }
   function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
   (function initApp() {
     importGamePlanFromUrlIfPresent();
