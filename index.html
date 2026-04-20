@@ -36,23 +36,22 @@
       width: 100%;
       box-shadow: 0 8px 16px rgba(15,23,42,0.08);
     }
-    .date-badge { background: var(--accent-color); color: white; padding: 4px 12px; border-radius: 50px; font-weight: 900; font-size: 12.5px; margin-left: 5px; box-shadow: 0 2px 4px rgba(16,185,129,0.2); }
+    .date-badge { background: var(--accent-color); color: white; padding: 4px 10px; border-radius: 50px; font-weight: 900; font-size: 12px; margin-left: 0; box-shadow: 0 2px 4px rgba(16,185,129,0.2); white-space: nowrap; }
     .admin-del { color: #f87171; cursor: pointer; font-weight: 900; margin-left: 8px; padding: 0 4px; }
-    .saved-match-row { flex: 1; display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; min-width: 0; }
+    .saved-match-row { flex: 1; display: flex; align-items: flex-start; flex-wrap: nowrap; gap: 8px; min-width: 0; }
     .saved-match-start {
-      flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: nowrap; gap: 12px; cursor: pointer; line-height: 1.25;
+      flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; cursor: pointer; line-height: 1.25;
     }
     .saved-tap-main {
-      flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: nowrap; gap: 6px;
-      overflow: hidden;
+      width: 100%; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
     }
     .saved-tap-main .saved-md-text {
-      flex-shrink: 0; font-size: 13px; font-weight: 900; color: #065f46; letter-spacing: -0.03em; white-space: nowrap;
+      flex-shrink: 0; font-size: 12px; font-weight: 900; color: #065f46; letter-spacing: -0.02em;
     }
     .saved-tap-main .date-badge {
-      flex-shrink: 0; margin-left: 2px; font-size: 13px; padding: 5px 14px; font-weight: 900;
+      flex-shrink: 0; font-size: 12px; padding: 4px 10px; font-weight: 900;
     }
-    .saved-match-actions { flex-shrink: 0; display: flex; align-items: center; margin-left: 2px; }
+    .saved-match-actions { flex-shrink: 0; display: flex; align-items: center; margin-left: 0; margin-top: 2px; }
     .saved-copy-link-btn {
       width: auto; margin: 0; margin-top: 0; padding: 4px 10px; border-radius: 999px; font-size: 10px; font-weight: 800; line-height: 1.15;
       border: 1px solid #86efac; color: #047857; background: #fff; cursor: pointer; white-space: nowrap;
@@ -274,6 +273,7 @@
     if (!payload) return;
     const m = matchFromSharePayload(payload, tagHint);
     if (!m) return;
+    deepLinkedGamePlan = m;
     try { localStorage.setItem('saved_manager_match', JSON.stringify(m)); } catch (e) {}
     try {
       const u = new URL(location.href);
@@ -283,6 +283,17 @@
       u.hash = '';
       history.replaceState(null, '', u.pathname + u.search);
     } catch (e2) {}
+  }
+  function openDeepLinkedGamePlanIfAny() {
+    if (!deepLinkedGamePlan) return;
+    activeMatch = deepLinkedGamePlan;
+    const iso = activeMatch.dateIso || '';
+    if (iso) document.getElementById('match-date-input').value = iso;
+    renderVSMode((activeMatch.teams || []).map(function(t) {
+      return { members: membersToPlayerList(t.members) };
+    }));
+    document.getElementById('shuffle-btn').classList.add('hidden');
+    deepLinkedGamePlan = null;
   }
   function buildGamePlanShareUrl(m) {
     const sp = sharePayloadFromMatch(m);
@@ -324,6 +335,7 @@
     copyTextToClipboard(buildGamePlanShareUrl(m));
   }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
+  let deepLinkedGamePlan = null;
   let recordDedupeKey = '';
   let recordDedupeTs = 0;
   let historyMonthIndex = 0;
@@ -1026,7 +1038,7 @@
             <div class="saved-match-row">
               <div class="saved-match-start" onclick="loadSavedMatch()">
                 <div class="saved-tap-main">
-                  <span class="saved-md-text">⚽ Match Day:</span>
+                  <span class="saved-md-text">Match Day</span>
                   <span class="date-badge">${badgeDate}</span>
                 </div>
                 <div class="saved-preview-sub">
@@ -1360,6 +1372,7 @@
       renderHistory();
     }
     renderSavedMatches();
+    openDeepLinkedGamePlanIfAny();
     fetchMasterData();
   })();
 </script>
