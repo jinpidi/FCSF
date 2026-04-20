@@ -83,10 +83,57 @@
     @keyframes dots { 0%, 20% { color: rgba(0,0,0,0); text-shadow: .5em 0 0 rgba(0,0,0,0), 1em 0 0 rgba(0,0,0,0); } 40% { color: var(--text-sub); text-shadow: .5em 0 0 rgba(0,0,0,0), 1em 0 0 rgba(0,0,0,0); } 60% { text-shadow: .5em 0 0 var(--text-sub), 1em 0 0 rgba(0,0,0,0); } 80%, 100% { text-shadow: .5em 0 0 var(--text-sub), 1em 0 0 var(--text-sub); } }
     #loading { min-height: 44px; }
 
-    .simple-config-bar { display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 8px 12px; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 12px; }
-    .match-type-selector { display: flex; gap: 5px; flex: 1; }
-    .type-btn { flex: 1; padding: 8px 0; border: 1px solid #cbd5e1; background: white; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 10.5px; color: var(--text-sub); }
-    .type-btn.active { border-color: var(--primary-color); background: var(--primary-color); color: white; }
+    .simple-config-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #ffffff;
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid #dbe2ea;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+    }
+    .match-type-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      flex: 1;
+      background: #f1f5f9;
+      border-radius: 9px;
+      padding: 3px;
+    }
+    .type-btn {
+      flex: 1;
+      padding: 6px 0;
+      border: 1px solid transparent;
+      background: transparent;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 0;
+    }
+    .type-btn.active {
+      border-color: #bfdbfe;
+      background: #ffffff;
+      color: #1d4ed8;
+      box-shadow: 0 1px 3px rgba(59,130,246,0.16);
+    }
+    #att-count {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 800;
+      color: #475569;
+      background: #f8fafc;
+      border: 1px solid #dbe2ea;
+      border-radius: 999px;
+      padding: 5px 8px;
+      line-height: 1;
+      min-width: 78px;
+      text-align: center;
+    }
 
     .vs-grid { display: flex; gap: 8px; align-items: stretch; margin-top: 5px; overflow-x: auto; padding-bottom: 5px; }
     .team-column { flex: 1; min-width: 165px; display: flex; flex-direction: column; gap: 8px; }
@@ -1063,7 +1110,7 @@
             <div class="saved-match-row">
               <div class="saved-match-start" onclick="loadSavedMatch()">
                 <div class="saved-tap-main">
-                  <span class="saved-md-text">라인업 캡슐이 준비됐어요</span>
+                  <span class="saved-md-text">Tonight's lineup is set</span>
                 </div>
                 <div class="saved-preview-sub">
                   <span class="saved-preview-meta">${playerTotal}명의 조합 · ${teamTotal}개 스쿼드 봉인 완료</span>
@@ -1072,7 +1119,7 @@
               </div>
             </div>
             <div class="saved-match-actions">
-              <button type="button" class="saved-copy-link-btn" onclick="event.stopPropagation(); copyGamePlanShareFromSaved();">공유링크</button>
+              <button type="button" class="saved-copy-link-btn" onclick="event.stopPropagation(); copyGamePlanShareFromSaved();">Share Link</button>
             </div>
             <span class="admin-del" onclick="deleteLocalMatch()">✕</span>
           </div>
