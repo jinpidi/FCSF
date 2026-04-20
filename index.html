@@ -109,8 +109,8 @@
     #result-page.plan-loading .btn-save-plan,
     #result-page.plan-loading .btn-accent,
     #result-page.plan-loading .btn-outline {
-      filter: blur(2px);
-      opacity: 0.6;
+      filter: blur(6px);
+      opacity: 0.2;
       pointer-events: none;
       user-select: none;
     }
@@ -1142,7 +1142,7 @@
       }
       updateTacticalBoard(i, items, sixForBoard);
     });
-    if (deepLinkNeedsReanalyze) {
+    if (deepLinkNeedsReanalyze && masterPlayers && masterPlayers.length) {
       deepLinkNeedsReanalyze = false;
       togglePlanLoading(false);
     }
@@ -1215,10 +1215,6 @@
     if (masterPlayers && masterPlayers.length) {
       setTimeout(function() {
         autoAnalyze();
-        if (deepLinkNeedsReanalyze) {
-          deepLinkNeedsReanalyze = false;
-          togglePlanLoading(false);
-        }
       }, 30);
     }
     if (activeMatch.rounds && activeMatch.rounds.some(r => r.winner !== null)) {
