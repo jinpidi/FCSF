@@ -527,30 +527,24 @@
     let m;
     try { m = JSON.parse(mStr); } catch (e) { return; }
     const longUrl = buildGamePlanShareUrl(m);
-    // 1) Click context while alive: always copy a usable link first.
-    copyTextToClipboard(longUrl, '링크를 먼저 복사했습니다. 단축 링크를 생성 중입니다...');
-
-    // 2) Then resolve short link in background.
+    // Mobile-safe deterministic flow:
+    // Resolve short link first, then show one final link for copy.
     let shortUrl = await buildShortShareUrl(m);
     if (!shortUrl) {
       await new Promise(function(resolve) { setTimeout(resolve, 900); });
       shortUrl = await buildShortShareUrl(m);
     }
-    if (!shortUrl) {
-      alert('단축 링크 생성이 지연되어 일반 링크로 사용해 주세요.');
-      return;
-    }
-
-    // 3) Try to overwrite clipboard with short URL.
+    const finalUrl = shortUrl || longUrl;
+    const isShort = !!shortUrl;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(shortUrl).then(function() {
-        alert('단축 링크로 업데이트해 복사했습니다. 카톡에 붙여넣기 하세요.');
-      }).catch(function() {
-        window.prompt('자동 복사 제한이 있어요. 아래 단축 링크를 수동 복사해 주세요.', shortUrl);
-      });
-    } else {
-      window.prompt('아래 단축 링크를 수동 복사해 주세요.', shortUrl);
+      navigator.clipboard.writeText(finalUrl).catch(function() {});
     }
+    window.prompt(
+      isShort
+        ? '단축 링크입니다. 전체 선택 후 복사해서 카톡에 붙여넣어 주세요.'
+        : '단축 링크 생성이 실패해 일반 링크를 표시합니다. 전체 선택 후 복사해 주세요.',
+      finalUrl
+    );
   }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let deepLinkedGamePlan = null;
