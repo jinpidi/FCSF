@@ -478,6 +478,66 @@
     } catch (e) { return ''; }
   }
 
+  function getAppBaseUrlForShare() {
+    try {
+      const u = new URL(location.href);
+      u.search = '';
+      u.hash = '';
+      return u.toString();
+    } catch (e) {
+      return String(location.href).split('?')[0].split('#')[0];
+    }
+  }
+
+  async function requestShortShareUrl(sp, m) {
+    const fallback = buildGamePlanShareUrl(m);
+    if (!fallback) return '';
+    if (!SHEET_API_URL) return fallback;
+    if (!sp || !sp.data) return fallback;
+    if (location.protocol === 'file:') return fallback;
+    const appUrl = getAppBaseUrlForShare();
+    const title = TEAM_NAME + ' | 이번주 라인업 미리보기';
+    const body = JSON.stringify({
+      action: 'CREATE_SHARE',
+      payload: sp.data,
+      tag: sp.tag || 'p',
+      appUrl: appUrl,
+      title: title
+    });
+    try {
+      const res = await fetch(SHEET_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: body,
+        mode: 'cors',
+        cache: 'no-store'
+      });
+      const text = (await res.text()).replace(/^\uFEFF/, '').trim();
+      const j = JSON.parse(text);
+      if (j && j.ok && j.shortUrl) return String(j.shortUrl);
+    } catch (e) { /* try GET */ }
+    try {
+      const params = new URLSearchParams();
+      params.set('action', 'CREATE_SHARE');
+      params.set('payload', sp.data);
+      params.set('tag', sp.tag || 'p');
+      params.set('appUrl', appUrl);
+      params.set('title', title);
+      const fullUrl = SHEET_API_URL + '?' + params.toString();
+      if (fullUrl.length > 2000) return fallback;
+      const res = await fetch(fullUrl, {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-store',
+        headers: { Accept: 'application/json,text/plain,*/*' }
+      });
+      const text = (await res.text()).replace(/^\uFEFF/, '').trim();
+      const j = JSON.parse(text);
+      if (j && j.ok && j.shortUrl) return String(j.shortUrl);
+    } catch (e2) {}
+    return fallback;
+  }
+
   function showLinkCopiedFeedback() {
     var btn = document.getElementById('saved-copy-link-btn');
     if (!btn) return;
@@ -517,17 +577,37 @@
     return false;
   }
 
-  function copyGamePlanShareFromSaved() {
+  async function copyGamePlanShareFromSaved() {
     const mStr = localStorage.getItem('saved_manager_match');
     if (!mStr) return;
     let m;
     try { m = JSON.parse(mStr); } catch (e) { return; }
-    const url = buildGamePlanShareUrl(m);
-    if (!url) {
+    const sp = sharePayloadFromMatch(m);
+    const fallback = buildGamePlanShareUrl(m);
+    if (!fallback && (!sp || !sp.data)) {
       alert('공유할 링크를 만들 수 없습니다.');
       return;
     }
-    copyTextToClipboardSync(url, '', true);
+    const btn = document.getElementById('saved-copy-link-btn');
+    var orig = '';
+    if (btn) {
+      orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '…';
+    }
+    try {
+      const url = await requestShortShareUrl(sp, m);
+      if (!url) {
+        alert('공유할 링크를 만들 수 없습니다.');
+        return;
+      }
+      copyTextToClipboardSync(url, '', true);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    }
   }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let deepLinkedGamePlan = null;
