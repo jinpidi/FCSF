@@ -26,15 +26,15 @@
     
     #saved-matches-section { margin-bottom: 12px; }
     .saved-match-card {
-      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-      border: 1px solid #dbeafe;
-      border-radius: 12px;
-      padding: 8px 34px 8px 9px;
+      background: linear-gradient(140deg, #0f172a 0%, #1e293b 62%, #334155 100%);
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 9px 34px 9px 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       width: 100%;
-      box-shadow: 0 4px 10px rgba(15,23,42,0.05);
+      box-shadow: 0 8px 18px rgba(2,6,23,0.26);
       position: relative;
     }
     .date-badge { background: var(--accent-color); color: white; padding: 4px 10px; border-radius: 50px; font-weight: 900; font-size: 12px; margin-left: 0; box-shadow: 0 2px 4px rgba(16,185,129,0.2); white-space: nowrap; }
@@ -46,35 +46,22 @@
     .saved-tap-main {
       width: 100%; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
     }
-    .saved-peek-tab {
-      display: inline-flex;
-      align-items: center;
-      height: 18px;
-      padding: 0 7px;
-      border-radius: 999px;
-      border: 1px solid #bfdbfe;
-      background: #eff6ff;
-      color: #1d4ed8;
-      font-size: 8px;
-      font-weight: 900;
-      letter-spacing: 0.04em;
-    }
     .saved-tap-main .saved-md-text {
-      flex-shrink: 0; font-size: 11px; font-weight: 900; color: #0f172a; letter-spacing: -0.02em;
+      flex-shrink: 0; font-size: 12px; font-weight: 900; color: #f8fafc; letter-spacing: -0.02em;
     }
     .saved-tap-main .date-badge {
       flex-shrink: 0; font-size: 12px; padding: 4px 10px; font-weight: 900;
     }
     .saved-match-actions { flex-shrink: 0; display: flex; align-items: center; margin-left: 0; margin-top: 0; }
     .saved-copy-link-btn {
-      width: auto; margin: 0; margin-top: 0; padding: 3px 8px; border-radius: 999px; font-size: 9px; font-weight: 800; line-height: 1.1;
-      border: 1px solid #86efac; color: #047857; background: #fff; cursor: pointer; white-space: nowrap;
-      box-shadow: 0 1px 2px rgba(16,185,129,0.12);
+      width: auto; margin: 0; margin-top: 0; padding: 4px 9px; border-radius: 999px; font-size: 9px; font-weight: 900; line-height: 1.1;
+      border: 1px solid rgba(255,255,255,0.28); color: #e2e8f0; background: rgba(255,255,255,0.08); cursor: pointer; white-space: nowrap;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
     }
     .saved-copy-link-btn:active { opacity: 0.88; transform: scale(0.97); }
     .saved-preview-sub { margin-top: 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; max-width: 100%; overflow: hidden; }
-    .saved-preview-meta { font-size: 8.5px; font-weight: 800; color: #475569; letter-spacing: -0.01em; text-overflow: ellipsis; overflow: hidden; }
-    .saved-preview-hint { font-size: 8.5px; font-weight: 900; color: #0f766e; letter-spacing: -0.01em; flex-shrink: 0; }
+    .saved-preview-meta { font-size: 8.5px; font-weight: 800; color: #cbd5e1; letter-spacing: -0.01em; text-overflow: ellipsis; overflow: hidden; }
+    .saved-preview-hint { font-size: 8.5px; font-weight: 900; color: #67e8f9; letter-spacing: 0; flex-shrink: 0; }
     .saved-match-card .admin-del {
       position: absolute;
       top: 6px;
@@ -612,8 +599,12 @@
       renderAttendanceList();
       renderHistory();
       renderSavedMatches();
-      if (!document.getElementById('result-page').classList.contains('hidden')) {
-        setTimeout(function() { autoAnalyze(); }, 0);
+      if (!document.getElementById('result-page').classList.contains('hidden') && activeMatch && Array.isArray(activeMatch.teams)) {
+        renderVSMode(activeMatch.teams.map(function(t) {
+          return { members: membersToPlayerList(t.members) };
+        }));
+        document.getElementById('shuffle-btn').classList.add('hidden');
+        setTimeout(function() { autoAnalyze(); }, 20);
       }
     } catch (e) {
       console.error(e);
@@ -1061,7 +1052,6 @@
     if (mStr) {
       let m;
       try { m = JSON.parse(mStr); } catch (e) { section.classList.add('hidden'); list.innerHTML = ''; return; }
-      const badgeDate = String(m.date != null ? m.date : '').replace(/</g, '');
       const teamTotal = Array.isArray(m.teams) ? m.teams.length : 0;
       const playerTotal = Array.isArray(m.teams)
         ? m.teams.reduce((acc, t) => acc + ((t && Array.isArray(t.members)) ? t.members.length : 0), 0)
@@ -1073,18 +1063,16 @@
             <div class="saved-match-row">
               <div class="saved-match-start" onclick="loadSavedMatch()">
                 <div class="saved-tap-main">
-                  <span class="saved-peek-tab">PREVIEW</span>
-                  <span class="saved-md-text">Match Day</span>
-                  <span class="date-badge">${badgeDate}</span>
+                  <span class="saved-md-text">라인업 캡슐이 준비됐어요</span>
                 </div>
                 <div class="saved-preview-sub">
-                  <span class="saved-preview-meta">${playerTotal}명 출전 · ${teamTotal}팀 편성 완료</span>
-                  <span class="saved-preview-hint">tap to open lineup</span>
+                  <span class="saved-preview-meta">${playerTotal}명의 조합 · ${teamTotal}개 스쿼드 봉인 완료</span>
+                  <span class="saved-preview-hint">OPEN</span>
                 </div>
               </div>
             </div>
             <div class="saved-match-actions">
-              <button type="button" class="saved-copy-link-btn" onclick="event.stopPropagation(); copyGamePlanShareFromSaved();">링크 복사</button>
+              <button type="button" class="saved-copy-link-btn" onclick="event.stopPropagation(); copyGamePlanShareFromSaved();">공유링크</button>
             </div>
             <span class="admin-del" onclick="deleteLocalMatch()">✕</span>
           </div>
