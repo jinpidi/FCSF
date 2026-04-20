@@ -464,7 +464,7 @@
       return u.toString();
     } catch (e) { return ''; }
   }
-  async function buildShortShareUrl(m, timeoutMs) {
+  async function buildShortShareUrl(m) {
     const sp = sharePayloadFromMatch(m);
     if (!sp || !sp.data) return '';
     try {
@@ -485,13 +485,7 @@
           title: 'FC 서울숲 | 이번주 라인업 미리보기'
         })
       });
-      const request = (typeof timeoutMs === 'number' && timeoutMs > 0)
-        ? Promise.race([
-            fetchTask,
-            new Promise(function(resolve) { setTimeout(function() { resolve(null); }, timeoutMs); })
-          ])
-        : fetchTask;
-      const r = await request;
+      const r = await fetchTask;
       if (!r || !r.ok) return '';
       const text = (await r.text()).replace(/^\uFEFF/, '').trim();
       const out = JSON.parse(text);
@@ -532,16 +526,31 @@
     if (!mStr) return;
     let m;
     try { m = JSON.parse(mStr); } catch (e) { return; }
-    let shortUrl = await buildShortShareUrl(m, 12000);
+    const longUrl = buildGamePlanShareUrl(m);
+    // 1) Click context while alive: always copy a usable link first.
+    copyTextToClipboard(longUrl, '링크를 먼저 복사했습니다. 단축 링크를 생성 중입니다...');
+
+    // 2) Then resolve short link in background.
+    let shortUrl = await buildShortShareUrl(m);
     if (!shortUrl) {
-      await new Promise(function(resolve) { setTimeout(resolve, 700); });
-      shortUrl = await buildShortShareUrl(m, 12000);
+      await new Promise(function(resolve) { setTimeout(resolve, 900); });
+      shortUrl = await buildShortShareUrl(m);
     }
-    if (shortUrl) {
-      copyTextToClipboard(shortUrl, '단축 링크가 복사되었습니다. 카톡에 붙여넣기 하세요.');
+    if (!shortUrl) {
+      alert('단축 링크 생성이 지연되어 일반 링크로 사용해 주세요.');
       return;
     }
-    copyTextToClipboard(buildGamePlanShareUrl(m), '단축 링크 생성에 실패해 일반 링크를 복사했습니다.');
+
+    // 3) Try to overwrite clipboard with short URL.
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shortUrl).then(function() {
+        alert('단축 링크로 업데이트해 복사했습니다. 카톡에 붙여넣기 하세요.');
+      }).catch(function() {
+        window.prompt('자동 복사 제한이 있어요. 아래 단축 링크를 수동 복사해 주세요.', shortUrl);
+      });
+    } else {
+      window.prompt('아래 단축 링크를 수동 복사해 주세요.', shortUrl);
+    }
   }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let deepLinkedGamePlan = null;
