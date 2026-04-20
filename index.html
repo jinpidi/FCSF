@@ -65,11 +65,26 @@
     }
     .saved-tap-main .saved-md-text {
       flex-shrink: 0;
-      font-size: 12.5px;
+      font-size: 13px;
       font-weight: 900;
-      letter-spacing: -0.02em;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
       color: #0f172a;
-      text-shadow: 0 0 10px rgba(59,130,246,0.18);
+      text-shadow: 0 0 12px rgba(59,130,246,0.2);
+    }
+    .saved-md-kicker {
+      display: inline-flex;
+      align-items: center;
+      height: 16px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #dbeafe;
+      border: 1px solid #93c5fd;
+      color: #1d4ed8;
+      font-size: 7px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
     .saved-match-date-mini {
       margin-left: auto;
@@ -105,6 +120,7 @@
       border-radius: 999px;
       background: #ecfeff;
       border: 1px solid #a5f3fc;
+      text-transform: uppercase;
     }
     .saved-match-card .admin-del {
       position: absolute;
@@ -1164,6 +1180,10 @@
       }
       updateTacticalBoard(i, items, sixForBoard);
     });
+    if (deepLinkNeedsReanalyze) {
+      deepLinkNeedsReanalyze = false;
+      togglePlanLoading(false);
+    }
   }
 
   function saveMatchToHistory(mode) {
@@ -1193,10 +1213,6 @@
       let m;
       try { m = JSON.parse(mStr); } catch (e) { section.classList.add('hidden'); list.innerHTML = ''; return; }
       const matchDateMini = String((m && (m.dateIso || m.date)) || '').replace(/</g, '');
-      const teamTotal = Array.isArray(m.teams) ? m.teams.length : 0;
-      const playerTotal = Array.isArray(m.teams)
-        ? m.teams.reduce((acc, t) => acc + ((t && Array.isArray(t.members)) ? t.members.length : 0), 0)
-        : 0;
       section.classList.remove('hidden');
       list.innerHTML = `
         <div class="saved-match-wrap" style="width:100%;">
@@ -1204,12 +1220,12 @@
             <div class="saved-match-row">
               <div class="saved-match-start" onclick="loadSavedMatch()">
                 <div class="saved-tap-main">
-                  <span class="saved-md-text">Sunday morning lineup</span>
+                  <span class="saved-md-kicker">Matchday</span>
+                  <span class="saved-md-text">Sunday Match Preview</span>
                   <span class="saved-match-date-mini">${matchDateMini}</span>
                 </div>
                 <div class="saved-preview-sub">
-                  <span class="saved-preview-meta">${playerTotal} players · ${teamTotal} teams</span>
-                  <span class="saved-preview-hint">Preview</span>
+                  <span class="saved-preview-hint">View Lineup</span>
                 </div>
               </div>
             </div>
