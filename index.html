@@ -404,6 +404,9 @@
     renderVSMode((activeMatch.teams || []).map(function(t) {
       return { members: membersToPlayerList(t.members) };
     }));
+    setTimeout(function() {
+      if (deepLinkNeedsReanalyze) togglePlanLoading(true);
+    }, 0);
     document.getElementById('shuffle-btn').classList.add('hidden');
     deepLinkedGamePlan = null;
   }
@@ -412,11 +415,23 @@
     const page = document.getElementById('result-page');
     if (!el) return;
     if (show) {
+      planLoadingShownAt = Date.now();
       el.classList.remove('hidden');
       if (page) page.classList.add('plan-loading');
     } else {
-      el.classList.add('hidden');
-      if (page) page.classList.remove('plan-loading');
+      const elapsed = Date.now() - planLoadingShownAt;
+      const minVisibleMs = 260;
+      if (elapsed < minVisibleMs) {
+        setTimeout(function() {
+          if (!deepLinkNeedsReanalyze) {
+            el.classList.add('hidden');
+            if (page) page.classList.remove('plan-loading');
+          }
+        }, minVisibleMs - elapsed);
+      } else {
+        el.classList.add('hidden');
+        if (page) page.classList.remove('plan-loading');
+      }
     }
   }
   function buildGamePlanShareUrl(m) {
@@ -462,6 +477,7 @@
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let deepLinkedGamePlan = null;
   let deepLinkNeedsReanalyze = false;
+  let planLoadingShownAt = 0;
   let recordDedupeKey = '';
   let recordDedupeTs = 0;
   let historyMonthIndex = 0;
