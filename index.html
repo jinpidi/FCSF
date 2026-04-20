@@ -1413,12 +1413,12 @@
         const rec = (rk.record != null && rk.record !== '') ? rk.record : '-';
         const ratingTxt = (rk.ovr != null && String(rk.ovr).trim() !== '') ? String(rk.ovr).trim() : '--';
         teamsBlock += `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;">
-          <div style="display:flex;align-items:center;gap:7px;white-space:nowrap;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:6px;min-width:0;">
             <span style="font-size:10px;font-weight:900;color:var(--primary-color);"><b>${rk.r}${rk.sfx}</b></span>
             <span style="font-size:10px;font-weight:900;color:var(--accent-color);">${rk.pts}pt</span>
-            <span style="font-size:9px;color:#64748b;font-weight:800;">${rec}</span>
-            <span style="font-size:9px;color:#0f172a;font-weight:700;overflow:hidden;text-overflow:ellipsis;">${rk.names || ''}</span>
-            <span style="margin-left:auto;font-size:9px;font-weight:900;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 6px;border-radius:999px;flex-shrink:0;">RATING ${ratingTxt}</span>
+            <span style="font-size:9px;color:#64748b;font-weight:800;flex-shrink:0;">${rec}</span>
+            <span style="font-size:9px;color:#0f172a;font-weight:700;flex:1;min-width:0;white-space:normal;word-break:keep-all;line-height:1.25;">${rk.names || ''}</span>
+            <span style="margin-left:4px;font-size:8px;font-weight:900;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 5px;border-radius:999px;flex-shrink:0;">RTG ${ratingTxt}</span>
           </div>
         </div>`;
       });
