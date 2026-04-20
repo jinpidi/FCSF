@@ -348,7 +348,7 @@
   const ADMIN_PW = "1110023";
   /* 시트 웹앱은 players[]에 B~G열(ATT~ORG)을 넣어야 막대가 달라집니다. score만 보내면 6개가 같은 값입니다.
      예: {"name":"홍길동","b":7,"c":6,"d":8,"e":7,"f":6,"g":7} 또는 ["홍길동",7,6,8,7,6,7] */
-  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyYau-svxJ7_z86GjLeh1-MOXQ9DCnv1YnRrpiWBvnzTMDAyddfBz1rOLsWiXWe9Wn9/exec"; 
+  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbycVee58gGb-Lw8-2QWyzP-sBE64LaJ8wJqepkFnM8Ctjr0QDAQ6-0WTlJiE3KMhPpy/exec"; 
   const LOCAL_HISTORY_KEY = 'futsal_manager_local_history_v1';
 
   function sharePayloadFromMatch(m) {
@@ -478,66 +478,6 @@
     } catch (e) { return ''; }
   }
 
-  function getAppBaseUrlForShare() {
-    try {
-      const u = new URL(location.href);
-      u.search = '';
-      u.hash = '';
-      return u.toString();
-    } catch (e) {
-      return String(location.href).split('?')[0].split('#')[0];
-    }
-  }
-
-  async function requestShortShareUrl(sp, m) {
-    const fallback = buildGamePlanShareUrl(m);
-    if (!fallback) return '';
-    if (!SHEET_API_URL) return fallback;
-    if (!sp || !sp.data) return fallback;
-    if (location.protocol === 'file:') return fallback;
-    const appUrl = getAppBaseUrlForShare();
-    const title = TEAM_NAME + ' | 이번주 라인업 미리보기';
-    const body = JSON.stringify({
-      action: 'CREATE_SHARE',
-      payload: sp.data,
-      tag: sp.tag || 'p',
-      appUrl: appUrl,
-      title: title
-    });
-    try {
-      const res = await fetch(SHEET_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: body,
-        mode: 'cors',
-        cache: 'no-store'
-      });
-      const text = (await res.text()).replace(/^\uFEFF/, '').trim();
-      const j = JSON.parse(text);
-      if (j && j.ok && j.shortUrl) return String(j.shortUrl);
-    } catch (e) { /* try GET */ }
-    try {
-      const params = new URLSearchParams();
-      params.set('action', 'CREATE_SHARE');
-      params.set('payload', sp.data);
-      params.set('tag', sp.tag || 'p');
-      params.set('appUrl', appUrl);
-      params.set('title', title);
-      const fullUrl = SHEET_API_URL + '?' + params.toString();
-      if (fullUrl.length > 2000) return fallback;
-      const res = await fetch(fullUrl, {
-        method: 'GET',
-        mode: 'cors',
-        cache: 'no-store',
-        headers: { Accept: 'application/json,text/plain,*/*' }
-      });
-      const text = (await res.text()).replace(/^\uFEFF/, '').trim();
-      const j = JSON.parse(text);
-      if (j && j.ok && j.shortUrl) return String(j.shortUrl);
-    } catch (e2) {}
-    return fallback;
-  }
-
   function showLinkCopiedFeedback() {
     var btn = document.getElementById('saved-copy-link-btn');
     if (!btn) return;
@@ -550,64 +490,106 @@
     }, 1400);
   }
 
-  function copyTextToClipboardSync(text, okMsg, quiet) {
-    if (!text) { alert('복사할 링크가 없습니다.'); return false; }
-    const successMsg = okMsg || '링크가 복사되었습니다.';
-    try {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', '');
-      ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;outline:0;opacity:0;font-size:16px;';
-      document.body.appendChild(ta);
+  function showCopyFallbackModal(text) {
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fff;border-radius:12px;max-width:420px;width:100%;padding:16px;box-shadow:0 20px 40px rgba(0,0,0,.2);';
+    box.innerHTML =
+      '<div style="font-weight:800;margin-bottom:10px;color:#0f172a;font-size:14px;">링크 복사</div>' +
+      '<p style="font-size:12px;color:#64748b;margin:0 0 10px;line-height:1.45;">지금 보는 화면과 같은 주소입니다. 아래를 길게 눌러 복사하거나, 선택 후 복사해 주세요.</p>' +
+      '<textarea id="copy-fallback-ta" readonly style="width:100%;min-height:88px;font-size:13px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;resize:vertical;box-sizing:border-box;font-family:ui-monospace,monospace;word-break:break-all;"></textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;flex-wrap:wrap;">' +
+      '<button type="button" id="copy-fallback-close" class="btn-outline" style="margin:0;">닫기</button>' +
+      '<button type="button" id="copy-fallback-retry" class="btn-accent" style="margin:0;">다시 복사</button></div>';
+    wrap.appendChild(box);
+    document.body.appendChild(wrap);
+    var ta = box.querySelector('#copy-fallback-ta');
+    ta.value = text;
+    ta.focus();
+    ta.select();
+    function close() {
+      if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+    }
+    box.querySelector('#copy-fallback-close').onclick = close;
+    box.querySelector('#copy-fallback-retry').onclick = function() {
       ta.focus();
       ta.select();
-      ta.setSelectionRange(0, text.length);
-      const ok = document.execCommand('copy');
-      document.body.removeChild(ta);
-      if (ok) {
-        if (quiet) {
+      try {
+        if (document.execCommand('copy')) {
           showLinkCopiedFeedback();
-        } else {
-          alert(successMsg);
+          close();
         }
-        return true;
-      }
-    } catch (e) {}
-    window.prompt('자동 복사가 막혔을 수 있어요. 아래 링크를 길게 눌러 복사해 주세요.', text);
-    return false;
+      } catch (e) {}
+    };
+    wrap.addEventListener('click', function(e) {
+      if (e.target === wrap) close();
+    });
   }
 
-  async function copyGamePlanShareFromSaved() {
-    const mStr = localStorage.getItem('saved_manager_match');
+  function copyTextToClipboard(text, quiet) {
+    if (!text) {
+      alert('복사할 링크가 없습니다.');
+      return;
+    }
+    var quietOk = quiet !== false && quiet !== undefined;
+    var done = function() {
+      if (quietOk) showLinkCopiedFeedback();
+      else alert('링크가 복사되었습니다.');
+    };
+    var fallbackChain = function() {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:1px;padding:0;border:0;opacity:0;font-size:18px;';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, text.length);
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) {
+          done();
+          return;
+        }
+      } catch (e) {}
+      if (navigator.share && typeof navigator.share === 'function') {
+        var shareUrl = function() {
+          return navigator.share({ url: text }).then(done).catch(function(err) {
+            if (err && err.name === 'AbortError') return;
+            return navigator.share({ title: TEAM_NAME, text: text }).then(done).catch(function() {
+              showCopyFallbackModal(text);
+            });
+          });
+        };
+        shareUrl();
+        return;
+      }
+      showCopyFallbackModal(text);
+    };
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(text).then(done).catch(fallbackChain);
+      return;
+    }
+    fallbackChain();
+  }
+
+  function copyGamePlanShareFromSaved() {
+    var mStr = localStorage.getItem('saved_manager_match');
     if (!mStr) return;
-    let m;
-    try { m = JSON.parse(mStr); } catch (e) { return; }
-    const sp = sharePayloadFromMatch(m);
-    const fallback = buildGamePlanShareUrl(m);
-    if (!fallback && (!sp || !sp.data)) {
+    var m;
+    try {
+      m = JSON.parse(mStr);
+    } catch (e) {
+      return;
+    }
+    var url = buildGamePlanShareUrl(m);
+    if (!url) {
       alert('공유할 링크를 만들 수 없습니다.');
       return;
     }
-    const btn = document.getElementById('saved-copy-link-btn');
-    var orig = '';
-    if (btn) {
-      orig = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = '…';
-    }
-    try {
-      const url = await requestShortShareUrl(sp, m);
-      if (!url) {
-        alert('공유할 링크를 만들 수 없습니다.');
-        return;
-      }
-      copyTextToClipboardSync(url, '', true);
-    } finally {
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = orig;
-      }
-    }
+    copyTextToClipboard(url, true);
   }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let deepLinkedGamePlan = null;
