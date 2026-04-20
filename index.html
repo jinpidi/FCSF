@@ -500,11 +500,13 @@
     return '';
   }
   function copyTextToClipboard(text, okMsg) {
-    if (!text) { alert('복사할 링크가 없습니다.'); return; }
+    if (!text) { alert('복사할 링크가 없습니다.'); return false; }
     const successMsg = okMsg || '링크가 복사되었습니다.';
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function() { alert(successMsg); }).catch(function() { copyTextToClipboardFallback(text, successMsg); });
-    } else copyTextToClipboardFallback(text, successMsg);
+      return true;
+    }
+    return copyTextToClipboardFallback(text, successMsg);
   }
   function copyTextToClipboardFallback(text, okMsg) {
     const ta = document.createElement('textarea');
@@ -516,25 +518,37 @@
     try {
       document.execCommand('copy');
       alert(okMsg || '복사했습니다.');
+      return true;
     } catch (e) {
-      alert('복사에 실패했습니다. 다른 브라우저에서 다시 시도해 주세요.');
+      // Final fallback: show raw URL so user can copy manually.
+      window.prompt('자동 복사에 실패했습니다. 아래 링크를 수동 복사해 주세요.', text);
+      return false;
+    } finally {
+      document.body.removeChild(ta);
     }
-    document.body.removeChild(ta);
   }
   async function copyGamePlanShareFromSaved() {
     const mStr = localStorage.getItem('saved_manager_match');
     if (!mStr) return;
     let m;
     try { m = JSON.parse(mStr); } catch (e) { return; }
+    const fallbackUrl = buildGamePlanShareUrl(m);
+    // Copy immediately while still in direct click context.
+    copyTextToClipboard(fallbackUrl, '링크가 복사되었습니다. 카톡에 붙여넣기 하세요.');
+
     let shortUrl = await buildShortShareUrl(m, 2500);
     if (!shortUrl) {
       await new Promise(function(resolve) { setTimeout(resolve, 700); });
       shortUrl = await buildShortShareUrl(m, 2500);
     }
     if (shortUrl) {
-      copyTextToClipboard(shortUrl, '단축 링크가 복사되었습니다. 카톡에 붙여넣기 하세요.');
-    } else {
-      copyTextToClipboard(buildGamePlanShareUrl(m), '단축 링크 생성에 실패하여 일반 링크를 복사했습니다. (웹앱 배포/권한 확인)');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shortUrl).then(function() {
+          alert('단축 링크로 업데이트해 복사했습니다. 카톡에 붙여넣기 하세요.');
+        }).catch(function() {
+          // Keep the already-copied fallback link without extra failure noise.
+        });
+      }
     }
   }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
