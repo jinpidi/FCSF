@@ -64,7 +64,24 @@
       width: 100%; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
     }
     .saved-tap-main .saved-md-text {
-      flex-shrink: 0; font-size: 12px; font-weight: 900; color: #0f172a; letter-spacing: -0.02em;
+      flex-shrink: 0;
+      font-size: 12.5px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: #0f172a;
+      text-shadow: 0 0 10px rgba(59,130,246,0.18);
+    }
+    .saved-match-date-mini {
+      margin-left: auto;
+      font-size: 8px;
+      font-weight: 800;
+      color: #334155;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      padding: 2px 6px;
+      border-radius: 999px;
+      white-space: nowrap;
+      line-height: 1.1;
     }
     .saved-tap-main .date-badge {
       flex-shrink: 0; font-size: 12px; padding: 4px 10px; font-weight: 900;
@@ -1175,6 +1192,7 @@
     if (mStr) {
       let m;
       try { m = JSON.parse(mStr); } catch (e) { section.classList.add('hidden'); list.innerHTML = ''; return; }
+      const matchDateMini = String((m && (m.dateIso || m.date)) || '').replace(/</g, '');
       const teamTotal = Array.isArray(m.teams) ? m.teams.length : 0;
       const playerTotal = Array.isArray(m.teams)
         ? m.teams.reduce((acc, t) => acc + ((t && Array.isArray(t.members)) ? t.members.length : 0), 0)
@@ -1187,6 +1205,7 @@
               <div class="saved-match-start" onclick="loadSavedMatch()">
                 <div class="saved-tap-main">
                   <span class="saved-md-text">Sunday morning lineup</span>
+                  <span class="saved-match-date-mini">${matchDateMini}</span>
                 </div>
                 <div class="saved-preview-sub">
                   <span class="saved-preview-meta">${playerTotal} players · ${teamTotal} teams</span>
@@ -1212,9 +1231,20 @@
 
   function loadSavedMatch() {
     activeMatch = JSON.parse(localStorage.getItem('saved_manager_match'));
+    deepLinkNeedsReanalyze = true;
+    togglePlanLoading(true);
     document.getElementById('shuffle-btn').classList.add('hidden');
     document.getElementById('match-date-input').value = activeMatch.dateIso || activeMatch.date.replace(/\. /g, '-');
     renderVSMode(activeMatch.teams.map(function(t) { return { members: membersToPlayerList(t.members) }; }));
+    if (masterPlayers && masterPlayers.length) {
+      setTimeout(function() {
+        autoAnalyze();
+        if (deepLinkNeedsReanalyze) {
+          deepLinkNeedsReanalyze = false;
+          togglePlanLoading(false);
+        }
+      }, 30);
+    }
     if (activeMatch.rounds && activeMatch.rounds.some(r => r.winner !== null)) {
       if (confirm("이전에 기록하던 경기 데이터가 있습니다. 대시보드로 바로 이동할까요?")) {
         startDashboard(activeMatch);
