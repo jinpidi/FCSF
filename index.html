@@ -532,10 +532,10 @@
     if (!mStr) return;
     let m;
     try { m = JSON.parse(mStr); } catch (e) { return; }
-    let shortUrl = await buildShortShareUrl(m, 2500);
+    let shortUrl = await buildShortShareUrl(m, 12000);
     if (!shortUrl) {
       await new Promise(function(resolve) { setTimeout(resolve, 700); });
-      shortUrl = await buildShortShareUrl(m, 2500);
+      shortUrl = await buildShortShareUrl(m, 12000);
     }
     if (shortUrl) {
       copyTextToClipboard(shortUrl, '단축 링크가 복사되었습니다. 카톡에 붙여넣기 하세요.');
