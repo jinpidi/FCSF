@@ -81,7 +81,9 @@
       border: 1px solid #60a5fa; color: #dbeafe; background: rgba(59,130,246,0.2); cursor: pointer; white-space: nowrap;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.16);
     }
-    .saved-copy-link-btn:active { opacity: 0.88; transform: scale(0.97); }
+    .saved-copy-link-btn:active:not(:disabled) { opacity: 0.88; transform: scale(0.97); }
+    .saved-copy-link-btn:disabled { opacity: 0.45; cursor: not-allowed; border-color: rgba(96,165,250,0.35); color: rgba(219,234,254,0.65); }
+    .saved-copy-link-btn.saved-link-copied { border-color: #34d399; color: #ecfdf5; background: rgba(16,185,129,0.35); }
     .saved-preview-sub { margin-top: 0; }
     .saved-match-card .admin-del {
       position: absolute;
@@ -352,6 +354,101 @@
   const SHARE_BRIDGE_URL = "";
   const LOCAL_HISTORY_KEY = 'futsal_manager_local_history_v1';
 
+  /** Pre-built Apps Script short URL so Link click can copy without await (mobile clipboard). */
+  let shortShareCache = { key: '', url: '' };
+  var linkButtonFallbackTimer = null;
+
+  function sharePayloadKeyFromMatch(m) {
+    const sp = sharePayloadFromMatch(m);
+    return sp && sp.data ? String(sp.data) : '';
+  }
+
+  function setSavedLinkButtonState(mode) {
+    var btn = document.getElementById('saved-copy-link-btn');
+    if (!btn) return;
+    delete btn.dataset.linkRetry;
+    if (mode === 'loading') {
+      btn.disabled = true;
+      btn.textContent = '…';
+    } else if (mode === 'ready') {
+      btn.disabled = false;
+      btn.textContent = 'Link';
+    } else if (mode === 'retry') {
+      btn.disabled = false;
+      btn.textContent = 'Retry';
+      btn.dataset.linkRetry = '1';
+    }
+  }
+
+  function showLinkCopiedFeedback() {
+    var btn = document.getElementById('saved-copy-link-btn');
+    if (!btn) return;
+    var orig = btn.textContent;
+    btn.textContent = 'Copied ✓';
+    btn.classList.add('saved-link-copied');
+    setTimeout(function() {
+      btn.textContent = orig;
+      btn.classList.remove('saved-link-copied');
+    }, 1400);
+  }
+
+  function prewarmShortShareUrl() {
+    const mStr = localStorage.getItem('saved_manager_match');
+    if (!mStr) {
+      if (linkButtonFallbackTimer) clearTimeout(linkButtonFallbackTimer);
+      shortShareCache.key = '';
+      shortShareCache.url = '';
+      return;
+    }
+    let m;
+    try { m = JSON.parse(mStr); } catch (e) {
+      setSavedLinkButtonState('retry');
+      return;
+    }
+    const k = sharePayloadKeyFromMatch(m);
+    if (!k) {
+      setSavedLinkButtonState('retry');
+      return;
+    }
+    if (shortShareCache.key === k && shortShareCache.url) {
+      setSavedLinkButtonState('ready');
+      return;
+    }
+    setSavedLinkButtonState('loading');
+    if (linkButtonFallbackTimer) clearTimeout(linkButtonFallbackTimer);
+    linkButtonFallbackTimer = setTimeout(function() {
+      setSavedLinkButtonState('retry');
+    }, 28000);
+    function finishShortUrl(url) {
+      if (linkButtonFallbackTimer) clearTimeout(linkButtonFallbackTimer);
+      if (url && String(url).length) {
+        shortShareCache.key = k;
+        shortShareCache.url = url;
+        setSavedLinkButtonState('ready');
+      } else {
+        setSavedLinkButtonState('retry');
+      }
+    }
+    buildShortShareUrl(m).then(function(url) {
+      if (url) {
+        finishShortUrl(url);
+        return;
+      }
+      return buildShortShareUrl(m);
+    }).then(function(url2) {
+      if (url2 && typeof url2 === 'string' && url2.length) {
+        finishShortUrl(url2);
+      } else if (url2 === undefined) {
+        return;
+      } else {
+        finishShortUrl('');
+      }
+    }).catch(function() {
+      if (linkButtonFallbackTimer) clearTimeout(linkButtonFallbackTimer);
+      setSavedLinkButtonState('retry');
+    });
+  }
+
   function sharePayloadFromMatch(m) {
     try {
       const json = JSON.stringify(m);
@@ -500,17 +597,20 @@
         })
       });
       const r = await fetchTask;
-      if (!r || !r.ok) return '';
+      if (!r || !r.ok) {
+        return '';
+      }
       const text = (await r.text()).replace(/^\uFEFF/, '').trim();
       const out = JSON.parse(text);
-      if (out && out.ok && out.shortUrl) return String(out.shortUrl);
+      if (out && out.ok && out.shortUrl) {
+        return String(out.shortUrl);
+      }
     } catch (e) {}
     return '';
   }
-  async function copyTextToClipboard(text, okMsg) {
+  function copyTextToClipboardSync(text, okMsg, quiet) {
     if (!text) { alert('복사할 링크가 없습니다.'); return false; }
     const successMsg = okMsg || '링크가 복사되었습니다.';
-    // After async work, Clipboard API often fails (lost user gesture). Try execCommand first.
     try {
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -523,38 +623,36 @@
       const ok = document.execCommand('copy');
       document.body.removeChild(ta);
       if (ok) {
-        alert(successMsg);
+        if (quiet) {
+          showLinkCopiedFeedback();
+        } else {
+          alert(successMsg);
+        }
         return true;
       }
     } catch (e) {}
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(text);
-        alert(successMsg);
-        return true;
-      } catch (e) {}
-    }
     window.prompt('자동 복사가 막혔을 수 있어요. 아래 링크를 길게 눌러 복사해 주세요.', text);
     return false;
   }
-  async function copyGamePlanShareFromSaved() {
+
+  function copyGamePlanShareFromSaved() {
     const mStr = localStorage.getItem('saved_manager_match');
     if (!mStr) return;
+    var btn = document.getElementById('saved-copy-link-btn');
+    if (btn && btn.dataset.linkRetry === '1') {
+      setSavedLinkButtonState('loading');
+      prewarmShortShareUrl();
+      return;
+    }
+    if (btn && btn.disabled) return;
     let m;
     try { m = JSON.parse(mStr); } catch (e) { return; }
-    const longUrl = buildGamePlanShareUrl(m);
-    let shortUrl = await buildShortShareUrl(m);
-    if (!shortUrl) {
-      await new Promise(function(resolve) { setTimeout(resolve, 900); });
-      shortUrl = await buildShortShareUrl(m);
+    const payloadKey = sharePayloadKeyFromMatch(m);
+    if (payloadKey && shortShareCache.key === payloadKey && shortShareCache.url) {
+      copyTextToClipboardSync(shortShareCache.url, '', true);
+      return;
     }
-    if (shortUrl) {
-      await copyTextToClipboard(shortUrl, '단축 링크가 복사되었습니다. 카톡에 붙여넣기 하세요.');
-    } else if (longUrl) {
-      await copyTextToClipboard(longUrl, '단축 링크 생성에 실패해 일반 링크를 복사했습니다.');
-    } else {
-      alert('공유할 링크를 만들 수 없습니다. 라인업 저장을 확인해 주세요.');
-    }
+    alert('단축 링크가 아직 준비되지 않았습니다. 잠시 후 Link가 보일 때 다시 눌러 주세요.');
   }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let deepLinkedGamePlan = null;
@@ -1263,6 +1361,7 @@
     const iso = document.getElementById('match-date-input').value;
     activeMatch = { id:Date.now(), date: iso.replace(/-/g, '. '), dateIso: iso, teams:finalTeams, rounds:[] };
     localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
+    shortShareCache = { key: '', url: '' };
     syncUrlWithGamePlan(activeMatch);
     if (mode === 'dashboard') {
       startDashboard(activeMatch);
@@ -1271,6 +1370,7 @@
       goBack('setup');
       renderSavedMatches();
     }
+    prewarmShortShareUrl();
   }
 
   function renderSavedMatches() {
@@ -1296,7 +1396,7 @@
               </div>
             </div>
             <div class="saved-match-actions">
-              <button type="button" class="saved-copy-link-btn" onclick="event.stopPropagation(); copyGamePlanShareFromSaved();">Link</button>
+              <button type="button" id="saved-copy-link-btn" class="saved-copy-link-btn" disabled onclick="event.stopPropagation(); copyGamePlanShareFromSaved();">…</button>
             </div>
             <span class="admin-del" onclick="deleteLocalMatch()">✕</span>
           </div>
@@ -1305,10 +1405,11 @@
       section.classList.add('hidden');
       list.innerHTML = '';
     }
+    prewarmShortShareUrl();
   }
 
   function deleteLocalMatch() {
-    if(prompt("Password:") === ADMIN_PW) { localStorage.removeItem('saved_manager_match'); renderSavedMatches(); }
+    if(prompt("Password:") === ADMIN_PW) { localStorage.removeItem('saved_manager_match'); shortShareCache = { key: '', url: '' }; renderSavedMatches(); }
   }
 
   function loadSavedMatch() {
