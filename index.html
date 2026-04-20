@@ -6,7 +6,7 @@
   <title>Futsal Manager Pro v12.FINAL</title>
   <meta property="og:type" content="website">
   <meta property="og:title" content="Futsal Manager Pro · FC 서울숲">
-  <meta property="og:description" content="우리의 게임은 더 재밌어져야 한다">
+  <meta property="og:description" content="게임 플랜·매치 기록·라이브 스코어 — 링크를 눌러 바로 열기">
   <meta property="og:image" content="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&amp;w=1200&amp;h=630&amp;fit=crop&amp;q=80">
   <meta property="og:url" id="meta-og-url" content="">
   <meta name="twitter:card" content="summary_large_image">
@@ -1460,4 +1460,235 @@
       activeMatch.rounds.forEach(r=>{ 
         if(r.winner==='t1'&&r.t1===tid){w++;p+=3;} 
         else if(r.winner==='t2'&&r.t2===tid){w++;p+=3;} 
-        else
+        else if(r.winner==='draw'&&(r.t1===tid||r.t2===tid)){d++;p+=1;} 
+        else if(r.winner&&(r.t1===tid||r.t2===tid)) l++; 
+      });
+      return { names: membersToNameCsv(t.members), ovr:t.ovr, record:`${w}W ${d}D ${l}L`, pts:p };
+    });
+    st.sort((a,b)=>b.pts - a.pts);
+    
+    const log = { id:activeMatch.id, date:activeMatch.date, dateIso: activeMatch.dateIso || null, rank:st.map((s,i)=>({r:i+1,sfx:i===0?`st`:i===1?`nd`:`rd`,names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
+
+    fetch(SHEET_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(log)
+    }).catch(e => console.log("Sync bypassed")); 
+
+    localStorage.removeItem('saved_manager_match'); 
+    if (!Array.isArray(hData)) hData = [];
+    hData.push(log); 
+    saveLocalHistory();
+    
+    document.body.style.opacity = "1";
+    document.getElementById('match-page').classList.add('hidden');
+    document.getElementById('setup-page').classList.remove('hidden');
+    
+    renderHistory(); 
+    renderSavedMatches();
+    
+    setTimeout(() => { alert("Archived Successfully! 🏆"); }, 50);
+  }
+
+  function historyMonthNav(delta) {
+    historyMonthIndex = (historyMonthIndex || 0) + delta;
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const box = document.getElementById('history-list');
+    const navEl = document.getElementById('history-month-nav');
+    box.innerHTML = '';
+    if (!hData || hData.length === 0) {
+      if (navEl) { navEl.innerHTML = ''; navEl.style.display = 'none'; }
+      renderLeaderboard();
+      return;
+    }
+    if (navEl) navEl.style.display = 'flex';
+
+    const groups = [...hData].sort((a,b)=>b.id-a.id).reduce((acc,h)=>{
+      const key = monthKeyFromMatch(h);
+      if(!acc[key]) acc[key]=[];
+      acc[key].push(h);
+      return acc;
+    },{});
+
+    const monthKeys = Object.keys(groups).sort((a,b) => {
+      if (a === 'unknown') return 1;
+      if (b === 'unknown') return -1;
+      return b.localeCompare(a);
+    });
+
+    historyMonthIndex = Math.max(0, Math.min(historyMonthIndex || 0, monthKeys.length - 1));
+    const curKey = monthKeys[historyMonthIndex];
+
+    if (navEl) {
+      const monthTitle = `<div style="flex:1;min-width:0;text-align:center;font-weight:900;font-size:12px;color:var(--primary-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${formatMonthLabel(curKey)}</div>`;
+      if (monthKeys.length <= 1) {
+        navEl.innerHTML = monthTitle;
+      } else {
+        const atOldest = historyMonthIndex >= monthKeys.length - 1;
+        const atNewest = historyMonthIndex <= 0;
+        navEl.innerHTML = `
+          <button type="button" class="btn-outline" style="margin-top:0;flex:0 0 44px;padding:8px 0;font-size:16px;line-height:1;" ${atOldest ? 'disabled' : ''} onclick="historyMonthNav(1)" title="Prev month">◀</button>
+          ${monthTitle}
+          <button type="button" class="btn-outline" style="margin-top:0;flex:0 0 44px;padding:8px 0;font-size:16px;line-height:1;" ${atNewest ? 'disabled' : ''} onclick="historyMonthNav(-1)" title="Next month">▶</button>`;
+      }
+    }
+
+    let mHtml = '';
+    (groups[curKey] || []).forEach(h=>{
+      const dateStr = displayDateFromMatch(h);
+      let teamsBlock = '';
+      (Array.isArray(h.rank) ? h.rank : []).forEach(rk=>{
+        const rec = (rk.record != null && rk.record !== '') ? rk.record : '-';
+        const ratingTxt = (rk.ovr != null && String(rk.ovr).trim() !== '') ? String(rk.ovr).trim() : '--';
+        teamsBlock += `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;">
+          <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+            <span style="font-size:10px;font-weight:900;color:var(--primary-color);"><b>${rk.r}${rk.sfx}</b></span>
+            <span style="font-size:10px;font-weight:900;color:var(--accent-color);">${rk.pts}pt</span>
+            <span style="font-size:9px;color:#64748b;font-weight:800;flex-shrink:0;">${rec}</span>
+            <span style="font-size:9px;color:#0f172a;font-weight:700;flex:1;min-width:0;white-space:normal;word-break:keep-all;line-height:1.25;">${rk.names || ''}</span>
+            <span style="margin-left:4px;font-size:8px;font-weight:900;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 5px;border-radius:999px;flex-shrink:0;">RTG ${ratingTxt}</span>
+          </div>
+        </div>`;
+      });
+      let roundPills = '';
+      if (h.rounds && h.rounds.length) {
+        roundPills = `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;">` +
+          h.rounds.map(r => {
+            let t = '—';
+            if (r.winner === 't1') t = `T${r.t1 + 1}`;
+            else if (r.winner === 't2') t = `T${r.t2 + 1}`;
+            else if (r.winner === 'draw') t = '무';
+            return `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:1.75em;padding:2px 3px;border-radius:4px;background:#f1f5f9;font-size:8.5px;font-weight:800;color:#334155;">${t}</span>`;
+          }).join('') + `</div>`;
+      }
+      const hasArchive = h.id != null && ((Array.isArray(h.rank) && h.rank.length > 0) || (Array.isArray(h.rounds) && h.rounds.length > 0));
+      const delBtn = hasArchive ? `<span class="admin-del" style="position:absolute;top:8px;right:8px;" onclick="deleteCloudMatch(${h.id})">✕</span>` : '';
+      mHtml += `<div class="history-card" style="background:#fff;padding:8px 10px;border-radius:10px;border:1px solid #eee;margin-bottom:8px;position:relative;">
+        <div style="font-size:10px;font-weight:900;margin-bottom:4px;padding-right:${hasArchive ? '22px' : '0'};">${dateStr}${delBtn}</div>
+        ${teamsBlock}
+        ${roundPills}
+      </div>`;
+    });
+    box.innerHTML = `<div class="history-month-group">${mHtml}</div>`;
+    renderLeaderboard();
+  }
+
+  function deleteCloudMatch(id) {
+    if(prompt("Admin Password:") === ADMIN_PW) { 
+      if(!confirm("영구 삭제?")) return; 
+      fetch(SHEET_API_URL, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({action: "DELETE", id: id}) 
+      }).catch(e => console.log("Bypass"));
+      
+      hData = hData.filter(h => h.id !== id);
+      saveLocalHistory();
+      renderHistory();
+      alert("Deleted!"); 
+    }
+  }
+
+  function renderLeaderboard() {
+    const stats = {};
+    hData.forEach(h => {
+      if (!h || !Array.isArray(h.rank)) return;
+      h.rank.forEach(rk => {
+        const pts = Number(rk.pts) || 0;
+        const names = String(rk.names || '').split(',').map(n => n.trim()).filter(Boolean);
+        names.forEach(name => {
+          if (name.toLowerCase().includes('guest')) return;
+          if (!stats[name]) stats[name] = { play: 0, win: 0, pts: 0 };
+          stats[name].play++;
+          stats[name].pts += pts;
+          if (rk.r === 1) stats[name].win++;
+        });
+      });
+    });
+    const winProb = (s) => (s.play ? (s.win / s.play) : 0);
+    const winProbPctInt = (s) => (s.play ? Math.round((s.win / s.play) * 100) : 0);
+    const sorted = Object.entries(stats)
+      .sort((a, b) =>
+        (b[1].pts - a[1].pts) ||
+        (winProb(b[1]) - winProb(a[1])) ||
+        (b[1].play - a[1].play)
+      )
+      .slice(0, 20);
+    let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th>PTS</th><th>WIN PROB.</th><th>WIN</th><th>GAMES</th></tr></thead><tbody>`;
+    sorted.forEach(([name, s], i) => {
+      let rank = 1;
+      for (let j = 0; j < i; j++) {
+        const prev = sorted[j][1];
+        if (
+          prev.pts !== s.pts ||
+          winProbPctInt(prev) !== winProbPctInt(s) ||
+          prev.play !== s.play
+        ) rank++;
+      }
+      html += `<tr><td><b>${rank}</b></td><td>${name}</td><td><b>${s.pts}</b></td><td><span class="prob-badge">${(winProb(s)*100).toFixed(0)}%</span></td><td>${s.win}승</td><td>${s.play}회</td></tr>`;
+    });
+    document.getElementById('leaderboard-area').innerHTML = html + `</tbody></table>`;
+  }
+
+  function goBack(step) {
+    if(step==='setup') { document.getElementById('result-page').classList.add('hidden'); document.getElementById('setup-page').classList.remove('hidden'); renderSavedMatches(); }
+    else if(step==='result') { document.getElementById('match-page').classList.add('hidden'); document.getElementById('result-page').classList.remove('hidden'); }
+  }
+  function openAddPlayerModal() {
+    const cur = Array.from(document.querySelectorAll('.drag-item')).map(function(el) { return el.childNodes[0].textContent.trim(); });
+    const box = document.getElementById('modal-player-list');
+    box.innerHTML = '';
+    masterPlayers.forEach(function(p, pi) {
+      if (cur.includes(p.name)) return;
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      card.innerHTML = '<span>' + p.name + '</span>';
+      card.addEventListener('click', function() { addLastMinutePlayerIdx(pi); closeModal(); });
+      box.appendChild(card);
+    });
+    document.getElementById('add-modal').classList.remove('hidden');
+  }
+
+  function addLastMinutePlayerIdx(pi) {
+    var p = masterPlayers[pi];
+    if (!p) return;
+    var minTeam = 0;
+    var minCount = Infinity;
+    for (var ti = 0; ti < teamCount; ti++) {
+      var count = document.getElementById('team-list-' + ti).querySelectorAll('.drag-item').length;
+      if (count < minCount) { minCount = count; minTeam = ti; }
+    }
+    document.getElementById('team-list-' + minTeam).innerHTML += buildDragItemHtml(p);
+    autoAnalyze();
+  }
+  function addDraftGuestModal() {
+    var idx = document.querySelectorAll('.drag-item').length + 1;
+    var g = getGuestScore();
+    var guest = { n: 'Guest ' + idx, s: g, att: g, def: g, spd: g, pas: g, sta: g, org: g };
+    var minTeam = 0;
+    var minCount = Infinity;
+    for (var ti = 0; ti < teamCount; ti++) {
+      var c = document.getElementById('team-list-' + ti).querySelectorAll('.drag-item').length;
+      if (c < minCount) { minCount = c; minTeam = ti; }
+    }
+    document.getElementById('team-list-' + minTeam).innerHTML += buildDragItemHtml(guest);
+    autoAnalyze();
+  }
+  function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
+  (function initApp() {
+    importGamePlanFromUrlIfPresent();
+    const lh = loadLocalHistory();
+    if (lh.length) {
+      hData = lh;
+      renderHistory();
+    }
+    renderSavedMatches();
+    openDeepLinkedGamePlanIfAny();
+    fetchMasterData();
+  })();
+</script>
+</body>
+</html>
