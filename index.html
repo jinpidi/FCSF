@@ -462,6 +462,32 @@
       return u.toString();
     } catch (e) { return ''; }
   }
+  async function buildShortShareUrl(m) {
+    const sp = sharePayloadFromMatch(m);
+    if (!sp || !sp.data) return '';
+    try {
+      const u = new URL(location.href);
+      ['gp', 'p', 'plan'].forEach(function(k) { u.searchParams.delete(k); });
+      u.hash = '';
+      const appUrl = u.toString();
+      const r = await fetch(SHEET_API_URL, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'CREATE_SHARE',
+          payload: sp.data,
+          tag: sp.tag || 'p',
+          appUrl: appUrl,
+          title: 'FC 서울숲 | 이번주 라인업 미리보기'
+        })
+      });
+      const text = (await r.text()).replace(/^\uFEFF/, '').trim();
+      const out = JSON.parse(text);
+      if (out && out.ok && out.shortUrl) return String(out.shortUrl);
+    } catch (e) {}
+    return '';
+  }
   function copyTextToClipboard(text) {
     if (!text) { alert('복사할 링크가 없습니다.'); return; }
     const okMsg = '미리보기 카드가 붙는 주소(단축 데이터 포함)가 복사되었습니다. 카톡에 붙여넣기 하세요.';
@@ -484,12 +510,14 @@
     }
     document.body.removeChild(ta);
   }
-  function copyGamePlanShareFromSaved() {
+  async function copyGamePlanShareFromSaved() {
     const mStr = localStorage.getItem('saved_manager_match');
     if (!mStr) return;
     let m;
     try { m = JSON.parse(mStr); } catch (e) { return; }
-    copyTextToClipboard(buildGamePlanShareUrl(m));
+    const shortUrl = await buildShortShareUrl(m);
+    if (shortUrl) copyTextToClipboard(shortUrl);
+    else copyTextToClipboard(buildGamePlanShareUrl(m));
   }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let deepLinkedGamePlan = null;
