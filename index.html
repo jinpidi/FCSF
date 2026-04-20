@@ -26,28 +26,28 @@
     
     #saved-matches-section { margin-bottom: 12px; }
     .saved-match-card {
-      background: linear-gradient(140deg, #0f172a 0%, #1e293b 62%, #334155 100%);
-      border: 1px solid #334155;
+      background: linear-gradient(140deg, #ffffff 0%, #f8fafc 70%, #eef2ff 100%);
+      border: 1px solid #dbeafe;
       border-radius: 14px;
       padding: 9px 34px 9px 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       width: 100%;
-      box-shadow: 0 8px 18px rgba(2,6,23,0.26);
+      box-shadow: 0 6px 14px rgba(15,23,42,0.08);
       position: relative;
     }
     .date-badge { background: var(--accent-color); color: white; padding: 4px 10px; border-radius: 50px; font-weight: 900; font-size: 12px; margin-left: 0; box-shadow: 0 2px 4px rgba(16,185,129,0.2); white-space: nowrap; }
     .admin-del { color: #f87171; cursor: pointer; font-weight: 900; margin-left: 8px; padding: 0 4px; }
     .saved-match-row { flex: 1; display: flex; align-items: center; flex-wrap: nowrap; gap: 4px; min-width: 0; }
     .saved-match-start {
-      flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; cursor: pointer; line-height: 1.15;
+      flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; cursor: pointer; line-height: 1.28;
     }
     .saved-tap-main {
       width: 100%; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
     }
     .saved-tap-main .saved-md-text {
-      flex-shrink: 0; font-size: 12px; font-weight: 900; color: #f8fafc; letter-spacing: -0.02em;
+      flex-shrink: 0; font-size: 12px; font-weight: 900; color: #0f172a; letter-spacing: -0.02em;
     }
     .saved-tap-main .date-badge {
       flex-shrink: 0; font-size: 12px; padding: 4px 10px; font-weight: 900;
@@ -55,13 +55,13 @@
     .saved-match-actions { flex-shrink: 0; display: flex; align-items: center; margin-left: 0; margin-top: 0; }
     .saved-copy-link-btn {
       width: auto; margin: 0; margin-top: 0; padding: 4px 9px; border-radius: 999px; font-size: 9px; font-weight: 900; line-height: 1.1;
-      border: 1px solid rgba(255,255,255,0.28); color: #e2e8f0; background: rgba(255,255,255,0.08); cursor: pointer; white-space: nowrap;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+      border: 1px solid #bfdbfe; color: #1d4ed8; background: #eff6ff; cursor: pointer; white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(59,130,246,0.14);
     }
     .saved-copy-link-btn:active { opacity: 0.88; transform: scale(0.97); }
-    .saved-preview-sub { margin-top: 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; max-width: 100%; overflow: hidden; }
-    .saved-preview-meta { font-size: 8.5px; font-weight: 800; color: #cbd5e1; letter-spacing: -0.01em; text-overflow: ellipsis; overflow: hidden; }
-    .saved-preview-hint { font-size: 8.5px; font-weight: 900; color: #67e8f9; letter-spacing: 0; flex-shrink: 0; }
+    .saved-preview-sub { margin-top: 1px; display: flex; align-items: center; gap: 8px; white-space: nowrap; max-width: 100%; overflow: hidden; }
+    .saved-preview-meta { font-size: 9px; font-weight: 800; color: #475569; letter-spacing: -0.01em; text-overflow: ellipsis; overflow: hidden; }
+    .saved-preview-hint { font-size: 9px; font-weight: 900; color: #0f766e; letter-spacing: 0; flex-shrink: 0; }
     .saved-match-card .admin-del {
       position: absolute;
       top: 6px;
@@ -69,6 +69,17 @@
       margin: 0;
       font-size: 12px;
       line-height: 1;
+    }
+    #plan-loading-note {
+      margin: 8px 0 6px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: center;
     }
     #history-section {
       margin-top: 20px;
@@ -225,6 +236,7 @@
 
   <div id="result-page" class="hidden">
     <header><h1 style="color:var(--accent-color);">Match Briefing</h1></header>
+    <div id="plan-loading-note" class="hidden">Preparing lineup metrics<span class="loading-dots"></span></div>
     <div id="vs-display-grid" class="vs-grid"></div>
     <div class="match-date-card">
       <div class="match-date-label">Match date</div>
@@ -358,7 +370,15 @@
       return { members: membersToPlayerList(t.members) };
     }));
     document.getElementById('shuffle-btn').classList.add('hidden');
+    deepLinkNeedsReanalyze = true;
+    togglePlanLoading(true);
     deepLinkedGamePlan = null;
+  }
+  function togglePlanLoading(show) {
+    const el = document.getElementById('plan-loading-note');
+    if (!el) return;
+    if (show) el.classList.remove('hidden');
+    else el.classList.add('hidden');
   }
   function buildGamePlanShareUrl(m) {
     const sp = sharePayloadFromMatch(m);
@@ -402,6 +422,7 @@
   }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let deepLinkedGamePlan = null;
+  let deepLinkNeedsReanalyze = false;
   let recordDedupeKey = '';
   let recordDedupeTs = 0;
   let historyMonthIndex = 0;
@@ -651,7 +672,16 @@
           return { members: membersToPlayerList(t.members) };
         }));
         document.getElementById('shuffle-btn').classList.add('hidden');
-        setTimeout(function() { autoAnalyze(); }, 20);
+        setTimeout(function() {
+          autoAnalyze();
+          if (deepLinkNeedsReanalyze) {
+            deepLinkNeedsReanalyze = false;
+            togglePlanLoading(false);
+          }
+        }, 20);
+      } else if (deepLinkNeedsReanalyze) {
+        deepLinkNeedsReanalyze = false;
+        togglePlanLoading(false);
       }
     } catch (e) {
       console.error(e);
@@ -660,6 +690,7 @@
         hData = localH;
         masterPlayers = [];
         loadingEl.classList.add('hidden');
+        if (deepLinkNeedsReanalyze) { deepLinkNeedsReanalyze = false; togglePlanLoading(false); }
         setSyncNote('구글 시트와 연결하지 못했습니다. 이 기기에 저장된 경기 기록·랭킹만 표시합니다. (명단은 시트 연결 후 다시 받아옵니다)');
         renderAttendanceList();
         renderHistory();
@@ -668,6 +699,7 @@
         masterPlayers = [];
         hData = [];
         showSyncFailed();
+        if (deepLinkNeedsReanalyze) { deepLinkNeedsReanalyze = false; togglePlanLoading(false); }
         renderAttendanceList();
         renderHistory();
         renderSavedMatches();
@@ -1110,16 +1142,16 @@
             <div class="saved-match-row">
               <div class="saved-match-start" onclick="loadSavedMatch()">
                 <div class="saved-tap-main">
-                  <span class="saved-md-text">Tonight's lineup is set</span>
+                  <span class="saved-md-text">Sunday morning lineup</span>
                 </div>
                 <div class="saved-preview-sub">
-                  <span class="saved-preview-meta">${playerTotal}명의 조합 · ${teamTotal}개 스쿼드 봉인 완료</span>
-                  <span class="saved-preview-hint">OPEN</span>
+                  <span class="saved-preview-meta">${playerTotal} players · ${teamTotal} teams</span>
+                  <span class="saved-preview-hint">Preview</span>
                 </div>
               </div>
             </div>
             <div class="saved-match-actions">
-              <button type="button" class="saved-copy-link-btn" onclick="event.stopPropagation(); copyGamePlanShareFromSaved();">Share Link</button>
+              <button type="button" class="saved-copy-link-btn" onclick="event.stopPropagation(); copyGamePlanShareFromSaved();">Link</button>
             </div>
             <span class="admin-del" onclick="deleteLocalMatch()">✕</span>
           </div>
