@@ -26,27 +26,41 @@
     
     #saved-matches-section { margin-bottom: 12px; }
     .saved-match-card {
-      background: radial-gradient(circle at 12% 10%, rgba(16,185,129,0.18) 0%, rgba(16,185,129,0.05) 35%, rgba(15,23,42,0.02) 100%), #f8fafc;
-      border: 1px solid #bbf7d0;
-      border-radius: 14px;
-      padding: 8px 10px;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid #dbeafe;
+      border-radius: 12px;
+      padding: 8px 34px 8px 9px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       width: 100%;
-      box-shadow: 0 6px 12px rgba(15,23,42,0.06);
+      box-shadow: 0 4px 10px rgba(15,23,42,0.05);
+      position: relative;
     }
     .date-badge { background: var(--accent-color); color: white; padding: 4px 10px; border-radius: 50px; font-weight: 900; font-size: 12px; margin-left: 0; box-shadow: 0 2px 4px rgba(16,185,129,0.2); white-space: nowrap; }
     .admin-del { color: #f87171; cursor: pointer; font-weight: 900; margin-left: 8px; padding: 0 4px; }
-    .saved-match-row { flex: 1; display: flex; align-items: center; flex-wrap: nowrap; gap: 6px; min-width: 0; }
+    .saved-match-row { flex: 1; display: flex; align-items: center; flex-wrap: nowrap; gap: 4px; min-width: 0; }
     .saved-match-start {
-      flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; cursor: pointer; line-height: 1.2;
+      flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; cursor: pointer; line-height: 1.15;
     }
     .saved-tap-main {
       width: 100%; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
     }
+    .saved-peek-tab {
+      display: inline-flex;
+      align-items: center;
+      height: 18px;
+      padding: 0 7px;
+      border-radius: 999px;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+    }
     .saved-tap-main .saved-md-text {
-      flex-shrink: 0; font-size: 12px; font-weight: 900; color: #065f46; letter-spacing: -0.02em;
+      flex-shrink: 0; font-size: 11px; font-weight: 900; color: #0f172a; letter-spacing: -0.02em;
     }
     .saved-tap-main .date-badge {
       flex-shrink: 0; font-size: 12px; padding: 4px 10px; font-weight: 900;
@@ -59,8 +73,16 @@
     }
     .saved-copy-link-btn:active { opacity: 0.88; transform: scale(0.97); }
     .saved-preview-sub { margin-top: 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; max-width: 100%; overflow: hidden; }
-    .saved-preview-meta { font-size: 9px; font-weight: 800; color: #334155; letter-spacing: -0.01em; text-overflow: ellipsis; overflow: hidden; }
-    .saved-preview-hint { font-size: 9px; font-weight: 800; color: #0f766e; letter-spacing: -0.01em; flex-shrink: 0; }
+    .saved-preview-meta { font-size: 8.5px; font-weight: 800; color: #475569; letter-spacing: -0.01em; text-overflow: ellipsis; overflow: hidden; }
+    .saved-preview-hint { font-size: 8.5px; font-weight: 900; color: #0f766e; letter-spacing: -0.01em; flex-shrink: 0; }
+    .saved-match-card .admin-del {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      margin: 0;
+      font-size: 12px;
+      line-height: 1;
+    }
     #history-section {
       margin-top: 20px;
       background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
@@ -590,6 +612,9 @@
       renderAttendanceList();
       renderHistory();
       renderSavedMatches();
+      if (!document.getElementById('result-page').classList.contains('hidden')) {
+        setTimeout(function() { autoAnalyze(); }, 0);
+      }
     } catch (e) {
       console.error(e);
       const localH = loadLocalHistory();
@@ -1048,12 +1073,13 @@
             <div class="saved-match-row">
               <div class="saved-match-start" onclick="loadSavedMatch()">
                 <div class="saved-tap-main">
+                  <span class="saved-peek-tab">PREVIEW</span>
                   <span class="saved-md-text">Match Day</span>
                   <span class="date-badge">${badgeDate}</span>
                 </div>
                 <div class="saved-preview-sub">
                   <span class="saved-preview-meta">${playerTotal}명 출전 · ${teamTotal}팀 편성 완료</span>
-                  <span class="saved-preview-hint">라인업 열기 →</span>
+                  <span class="saved-preview-hint">tap to open lineup</span>
                 </div>
               </div>
             </div>
