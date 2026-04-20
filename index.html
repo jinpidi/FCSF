@@ -1,39 +1,1630 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FC 서울숲 | 이번주 라인업 미리보기</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Futsal Manager Pro v12.FINAL</title>
   <meta property="og:type" content="website">
-  <meta property="og:title" content="FC 서울숲 | 이번주 라인업 미리보기">
-  <meta property="og:description" content="이번 주 라인업과 매치업 포인트를 먼저 확인하세요">
-  <meta property="og:image" content="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=1200&h=630&q=80">
+  <meta property="og:title" content="Futsal Manager Pro · FC 서울숲">
+  <meta property="og:description" content="게임 플랜·매치 기록·라이브 스코어 — 링크를 눌러 바로 열기">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&amp;w=1200&amp;h=630&amp;fit=crop&amp;q=80">
+  <meta property="og:url" id="meta-og-url" content="">
   <meta name="twitter:card" content="summary_large_image">
+  <script>try{var b=location.origin+location.pathname;var e=document.getElementById('meta-og-url');if(e)e.setAttribute('content',b);}catch(x){}</script>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; display: grid; place-items: center; min-height: 100vh; }
-    .msg { font-weight: 700; letter-spacing: 0.01em; }
+    :root { --primary-color: #0f172a; --accent-color: #10b981; --bg-color: #f1f5f9; --card-bg: #ffffff; --text-main: #1e293b; --text-sub: #64748b; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; touch-action: manipulation; }
+    body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 10px; display: flex; justify-content: center; font-size: 13px; }
+    .container { width: 100%; max-width: 800px; background: var(--card-bg); padding: 15px; border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    header { text-align: center; margin-bottom: 12px; }
+    h1 { font-size: 1.3rem; font-weight: 900; color: var(--primary-color); margin: 0; letter-spacing: -1.2px; text-transform: uppercase; }
+    .team-title-label { font-size: 13px; font-weight: 700; color: var(--accent-color); margin-top: 2px; display: block; }
+    .section-title { font-size: 9px; font-weight: 800; margin: 12px 0 6px; color: var(--text-sub); text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 3px; }
+    
+    #saved-matches-section { margin-bottom: 12px; }
+    .saved-match-card {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 58%, #334155 100%);
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 10px 34px 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      box-shadow: 0 10px 20px rgba(15,23,42,0.24);
+      position: relative;
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+    .saved-match-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 13px 24px rgba(15,23,42,0.3);
+    }
+    .date-badge { background: var(--accent-color); color: white; padding: 4px 10px; border-radius: 50px; font-weight: 900; font-size: 12px; margin-left: 0; box-shadow: 0 2px 4px rgba(16,185,129,0.2); white-space: nowrap; }
+    .admin-del { color: #f87171; cursor: pointer; font-weight: 900; margin-left: 8px; padding: 0 4px; }
+    .saved-match-row { flex: 1; display: flex; align-items: center; flex-wrap: nowrap; gap: 4px; min-width: 0; }
+    .saved-match-start {
+      flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; cursor: pointer; line-height: 1.3;
+      padding-left: 0;
+    }
+    .saved-tap-main {
+      width: 100%; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+    }
+    .saved-tap-main .saved-md-text {
+      flex-shrink: 0;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.01em;
+      color: #ffffff;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.28);
+    }
+    .saved-match-date-mini {
+      margin-left: 2px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #e2e8f0;
+      background: rgba(255,255,255,0.09);
+      border: 1px solid rgba(226,232,240,0.35);
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+      line-height: 1.1;
+    }
+    .saved-tap-main .date-badge {
+      flex-shrink: 0; font-size: 12px; padding: 4px 10px; font-weight: 900;
+    }
+    .saved-match-actions { flex-shrink: 0; display: flex; align-items: center; margin-left: 0; margin-top: 0; }
+    .saved-copy-link-btn {
+      width: auto; margin: 0; margin-top: 0; padding: 4px 9px; border-radius: 999px; font-size: 9px; font-weight: 900; line-height: 1.1;
+      border: 1px solid #60a5fa; color: #dbeafe; background: rgba(59,130,246,0.2); cursor: pointer; white-space: nowrap;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.16);
+    }
+    .saved-copy-link-btn:active { opacity: 0.88; transform: scale(0.97); }
+    .saved-preview-sub { margin-top: 0; }
+    .saved-match-card .admin-del {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      margin: 0;
+      font-size: 12px;
+      line-height: 1;
+      color: rgba(255,255,255,0.78);
+    }
+    #plan-loading-note {
+      margin: 8px 0 6px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: center;
+    }
+    #result-page.plan-loading {
+      position: relative;
+    }
+    #result-page.plan-loading:before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(241,245,249,0.38);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      z-index: 2;
+      pointer-events: none;
+    }
+    #result-page.plan-loading #plan-loading-note {
+      position: relative;
+      z-index: 3;
+    }
+    #result-page.plan-loading #vs-display-grid,
+    #result-page.plan-loading .match-date-card,
+    #result-page.plan-loading #shuffle-btn,
+    #result-page.plan-loading .btn-save-plan,
+    #result-page.plan-loading .btn-accent,
+    #result-page.plan-loading .btn-outline {
+      filter: blur(4px);
+      opacity: 0.22;
+      pointer-events: none;
+      user-select: none;
+    }
+    #history-section {
+      margin-top: 20px;
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+
+    .loading-dots:after { content: ' .'; animation: dots 0.65s steps(5, end) infinite; }
+    @keyframes dots { 0%, 20% { color: rgba(0,0,0,0); text-shadow: .5em 0 0 rgba(0,0,0,0), 1em 0 0 rgba(0,0,0,0); } 40% { color: var(--text-sub); text-shadow: .5em 0 0 rgba(0,0,0,0), 1em 0 0 rgba(0,0,0,0); } 60% { text-shadow: .5em 0 0 var(--text-sub), 1em 0 0 rgba(0,0,0,0); } 80%, 100% { text-shadow: .5em 0 0 var(--text-sub), 1em 0 0 var(--text-sub); } }
+    #loading { min-height: 44px; }
+
+    .simple-config-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #ffffff;
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid #dbe2ea;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+    }
+    .match-type-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      flex: 1;
+      background: #f1f5f9;
+      border-radius: 9px;
+      padding: 3px;
+    }
+    .type-btn {
+      flex: 1;
+      padding: 6px 0;
+      border: 1px solid transparent;
+      background: transparent;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 0;
+    }
+    .type-btn.active {
+      border-color: #bfdbfe;
+      background: #ffffff;
+      color: #1d4ed8;
+      box-shadow: 0 1px 3px rgba(59,130,246,0.16);
+    }
+    #att-count {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 800;
+      color: #475569;
+      background: #f8fafc;
+      border: 1px solid #dbe2ea;
+      border-radius: 999px;
+      padding: 5px 8px;
+      line-height: 1;
+      min-width: 78px;
+      text-align: center;
+    }
+
+    .vs-grid { display: flex; gap: 8px; align-items: stretch; margin-top: 5px; overflow-x: auto; padding-bottom: 5px; }
+    .team-column { flex: 1; min-width: 165px; display: flex; flex-direction: column; gap: 8px; }
+    .team-box { background: #f8fafc; border-radius: 14px; padding: 10px; border: 1px solid #e2e8f0; flex: 1; }
+    .drag-list { min-height: 120px; background: rgba(255,255,255,0.5); border-radius: 10px; border: 1px dashed #cbd5e1; padding: 4px; }
+    .drag-item { background: white; padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; border: 1px solid #e2e8f0; font-weight: 700; font-size: 10.5px; display: flex; justify-content: space-between; align-items: center; }
+
+    .tactical-card { background: #111827; color: #fff; padding: 10px; border-radius: 14px; text-align: center; }
+    .ovr-val { font-size: 24px; font-weight: 900; color: var(--accent-color); line-height: 1; }
+    .chart-mini-box { background: rgba(255,255,255,0.03); border-radius: 10px; position: relative; margin-top: 3px; }
+    .stat-bars-box { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 6px 6px 5px; margin-top: 3px; }
+    .stat-bars-inner { text-align: left; }
+    .stat-bar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; font-size: 9px; }
+    .stat-bar-row:last-child { margin-bottom: 0; }
+    .stat-bar-lbl { width: 30px; flex-shrink: 0; font-weight: 800; color: #94a3b8; letter-spacing: -0.02em; }
+    .stat-bar-track { flex: 1; height: 11px; background: rgba(255,255,255,0.07); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
+    .stat-bar-fill { height: 100%; border-radius: 5px; min-width: 3px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15); }
+    .tactical-pitch-wrap { margin-top: 4px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 5px; display: flex; flex-direction: column; align-items: center; width: 100%; }
+    .tp-tagline { font-size: 8.5px; font-weight: 800; color: #e9d5ff; letter-spacing: -0.02em; line-height: 1.45; margin-bottom: 6px; max-width: 100%; padding: 0 4px; }
+    .tp-formation-title { font-size: 9px; font-weight: 900; color: #a5b4fc; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; margin-top: 0; text-align: center; line-height: 1.35; }
+    .tp-field { position: relative; width: 100%; max-width: 228px; margin-left: auto; margin-right: auto; aspect-ratio: 5/7; border-radius: 12px; background: linear-gradient(180deg, #14532d 0%, #166534 45%, #15803d 100%); border: 2px solid rgba(255,255,255,0.2); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25); overflow: hidden; }
+    .tp-field:before { content: ''; position: absolute; left: 50%; top: 50%; width: 32%; padding-bottom: 32%; border: 1px solid rgba(255,255,255,0.22); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    .tp-node { position: absolute; min-width: 0; max-width: 88%; display: flex; flex-direction: column; align-items: center; gap: 2px; z-index: 1; transform: translate(-50%, -50%); }
+    .tp-pos { font-size: 7px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 0 1px 2px rgba(0,0,0,0.5); letter-spacing: 0.02em; }
+    .tp-name { font-size: 9px; font-weight: 800; color: #fff; background: rgba(15,23,42,0.82); padding: 3px 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.18); line-height: 1.2; max-width: 100%; text-align: center; word-break: keep-all; }
+    .tp-sub { font-size: 7px; font-weight: 800; color: #fde68a; margin-top: 3px; text-align: center; max-width: 100%; word-break: keep-all; line-height: 1.25; opacity: 0.95; }
+    .tp-empty { font-size: 9px; font-weight: 700; color: #64748b; text-align: center; padding: 10px 4px 4px; }
+
+    .match-card { background: #f8fafc; border-radius: 14px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: row !important; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+    .round-info { font-size: 10px; font-weight: 900; color: var(--accent-color); min-width: 35px; white-space: nowrap; }
+    .vs-area { display: flex; flex-direction: row !important; align-items: center; flex: 1; gap: 10px; justify-content: center; }
+    .team-label { font-weight: 900; font-size: 11px; min-width: 25px; text-align: center; }
+    .score-btns { display: flex; flex-direction: row !important; gap: 4px; flex: 1; max-width: 170px; }
+    .s-btn { flex: 1; padding: 8px 0; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .s-btn.selected { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+
+    button { background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; font-size: 13px; margin-top: 6px; }
+    .btn-accent { background: var(--accent-color); height: 50px; font-size: 15px; }
+    .btn-save-plan { background: var(--primary-color); border: 2px solid var(--primary-color); color: white; font-weight: 900; }
+    .btn-outline { background: transparent; color: var(--text-sub); border: 1px solid #e2e8f0; }
+
+    .attendance-list { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; max-height: 250px; overflow-y: auto; }
+    #attendance-list { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+    #attendance-list .player-card { touch-action: pan-y; }
+    .player-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 5px; border-radius: 10px; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; font-size: 11px; -webkit-user-select: none; }
+    .player-card.active { border-color: var(--accent-color); background: #ecfdf5; font-weight: 800; }
+    .hidden { display: none !important; }
+
+    .match-date-card { background: #fff; border: 2px solid var(--accent-color); padding: 12px 14px; border-radius: 16px; margin-top: 12px; box-shadow: 0 4px 12px rgba(16,185,129,0.1); display: flex; flex-direction: column; align-items: stretch; gap: 8px; width: 100%; }
+    .match-date-label { font-size: 10px; font-weight: 900; color: var(--accent-color); letter-spacing: 0.06em; text-transform: uppercase; }
+    .match-date-row { display: flex; align-items: center; justify-content: stretch; width: 100%; min-height: 44px; padding: 6px 10px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; }
+    .match-date-input { width: 100%; min-width: 0; border: none; background: transparent; font-family: inherit; font-weight: 800; color: var(--primary-color); font-size: 15px; cursor: pointer; text-align: left; line-height: 1.2; }
+    .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; background: white; border-radius: 16px; overflow: hidden; border: 1px solid #eee; }
+    .leaderboard-table th { background: #f8fafc; padding: 10px; text-align: left; color: var(--text-sub); font-size: 9px; }
+    .leaderboard-table td { padding: 10px; border-bottom: 1px solid #f8fafc; }
+    .prob-badge { background: #ecfdf5; color: #059669; padding: 2px 6px; border-radius: 6px; font-weight: 800; font-size: 10px; }
   </style>
 </head>
 <body>
-  <div class="msg">FC 서울숲 라인업 페이지로 이동 중...</div>
-  <script>
-    var SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbycVee58gGb-Lw8-2QWyzP-sBE64LaJ8wJqepkFnM8Ctjr0QDAQ6-0WTlJiE3KMhPpy/exec";
-    var sid = new URLSearchParams(location.search).get("sid");
-    if (!sid) {
-      document.querySelector(".msg").textContent = "공유 코드가 없습니다.";
+
+<div class="container">
+  <div id="setup-page">
+    <header><h1>Futsal Manager Pro</h1><span id="display-team-name" class="team-title-label"></span></header>
+    <div id="sheet-sync-note" class="hidden" style="font-size:11px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px 10px;margin:8px 0 0;text-align:center;font-weight:600;line-height:1.35;"></div>
+    
+    <div id="saved-matches-section" class="hidden">
+        <div class="section-title">This Week Match Preview</div>
+        <div id="saved-list"></div>
+    </div>
+
+    <div class="section-title">Quick Settings</div>
+    <div class="simple-config-bar">
+      <div class="match-type-selector">
+        <button id="btn-2team" class="type-btn active" onclick="setTeamCount(2)">2-TEAMS</button>
+        <button id="btn-3team" class="type-btn" onclick="setTeamCount(3)">3-TEAMS</button>
+      </div>
+      <div id="att-count">0 Selected</div>
+    </div>
+
+    <div class="section-title">Attendance Checklist</div>
+    <div id="loading" style="text-align: center; padding: 12px 10px; color: var(--text-sub); font-weight: 600;">
+      Loading<span class="loading-dots"></span>
+    </div>
+    <div class="attendance-list" id="attendance-list"></div>
+    <div id="guest-draft-area" style="margin-top:8px; display:flex; gap:4px; flex-wrap: wrap;"></div>
+    <button class="btn-outline" onclick="addDraftGuest()">+ Add Guest Player</button>
+    <button class="btn-accent" onclick="makeTeams()">Draft Teams ⚡</button>
+  </div>
+
+  <div id="result-page" class="hidden">
+    <header><h1 style="color:var(--accent-color);">Match Briefing</h1></header>
+    <div id="plan-loading-note" class="hidden">Preparing lineup metrics<span class="loading-dots"></span></div>
+    <div id="vs-display-grid" class="vs-grid"></div>
+    <div class="match-date-card">
+      <div class="match-date-label">Match date</div>
+      <div class="match-date-row">
+        <input type="date" id="match-date-input" class="match-date-input">
+      </div>
+    </div>
+    
+    <button id="shuffle-btn" class="btn-outline" style="margin-top: 12px; border-color: var(--accent-color); color: var(--accent-color);" onclick="reshuffle()">Reshuffle Squads</button>
+    <button class="btn-outline" onclick="openAddPlayerModal()">+ Add Last-minute Player</button>
+    <button class="btn-save-plan" onclick="saveMatchToHistory('exit')">Save Game Plan 💾</button>
+    <button class="btn-accent" onclick="saveMatchToHistory('dashboard')">Start Game Now ⚽</button>
+    <button class="btn-outline" style="border:none;" onclick="goBack('setup')">← Back to Setup</button>
+  </div>
+
+  <div id="match-page" class="hidden">
+    <header><h1>Live Dashboard</h1></header>
+    <div id="live-ranking" style="background:var(--primary-color); color:white; padding:10px; border-radius:14px; margin-bottom:12px; font-size:11px; text-align:center; font-weight:700;"></div>
+    <div id="round-list"></div>
+    <button class="btn-accent" onclick="finishMatch()">Complete & Archive 🏁</button>
+    <button class="btn-outline" onclick="goBack('result')">← Back to Game Plan</button>
+  </div>
+
+  <div id="add-modal" class="modal hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 100; padding: 20px;">
+    <div style="background: #fff; width: 100%; max-width: 400px; border-radius: 20px; padding: 20px;">
+      <div class="section-title">Last-minute Entry</div>
+      <div id="modal-player-list" class="attendance-list" style="margin-bottom:12px; grid-template-columns: 1fr 1fr;"></div>
+      <button class="btn-outline" onclick="addDraftGuestModal()">+ Add New Guest</button>
+      <button class="btn-outline" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+
+  <div id="history-section">
+    <div class="section-title">Monthly Game Records</div>
+    <div id="history-month-nav" style="display:none;justify-content:space-between;align-items:center;gap:10px;margin:4px 0 10px;"></div>
+    <div id="history-list"></div>
+    <div class="section-title">Player Power Rankings</div>
+    <div id="leaderboard-area"></div>
+  </div>
+</div>
+
+<script>
+  const TEAM_NAME = "FC 서울숲";
+  const ADMIN_PW = "1110023";
+  /* 시트 웹앱은 players[]에 B~G열(ATT~ORG)을 넣어야 막대가 달라집니다. score만 보내면 6개가 같은 값입니다.
+     예: {"name":"홍길동","b":7,"c":6,"d":8,"e":7,"f":6,"g":7} 또는 ["홍길동",7,6,8,7,6,7] */
+  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbycVee58gGb-Lw8-2QWyzP-sBE64LaJ8wJqepkFnM8Ctjr0QDAQ6-0WTlJiE3KMhPpy/exec"; 
+  // Optional: set this to your hosted bridge page URL (e.g. Netlify/GitHub Pages)
+  const SHARE_BRIDGE_URL = "https://neon-madeleine-cf1d20.netlify.app/";
+  const LOCAL_HISTORY_KEY = 'futsal_manager_local_history_v1';
+
+  function sharePayloadFromMatch(m) {
+    try {
+      const json = JSON.stringify(m);
+      if (typeof LZString !== 'undefined' && LZString.compressToEncodedURIComponent) {
+        const lz = LZString.compressToEncodedURIComponent(json);
+        if (lz) return { tag: 'p', data: lz };
+      }
+    } catch (e) {}
+    try {
+      return { tag: 'gp', data: btoa(unescape(encodeURIComponent(JSON.stringify(m)))) };
+    } catch (e) { return null; }
+  }
+  function matchFromSharePayload(raw, tagHint) {
+    let decoded = raw;
+    try { decoded = decodeURIComponent(String(raw).replace(/ /g, '+')); } catch (e) {}
+    const tryLz = function() {
+      if (typeof LZString === 'undefined' || !LZString.decompressFromEncodedURIComponent) return null;
+      try {
+        const json = LZString.decompressFromEncodedURIComponent(decoded);
+        if (!json) return null;
+        const m = JSON.parse(json);
+        if (m && typeof m === 'object' && Array.isArray(m.teams)) return m;
+      } catch (e) {}
+      return null;
+    };
+    const tryB64 = function() {
+      try {
+        const json = decodeURIComponent(escape(atob(decoded)));
+        const m = JSON.parse(json);
+        if (m && typeof m === 'object' && Array.isArray(m.teams)) return m;
+      } catch (e) {}
+      return null;
+    };
+    if (tagHint === 'p') return tryLz() || tryB64();
+    return tryB64() || tryLz();
+  }
+  function syncUrlWithGamePlan(m) {
+    const sp = sharePayloadFromMatch(m);
+    if (!sp || !sp.data) return;
+    try {
+      const u = new URL(location.href);
+      ['gp', 'p', 'plan'].forEach(function(k) { u.searchParams.delete(k); });
+      u.searchParams.set('plan', sp.data);
+      u.hash = '';
+      history.replaceState(null, '', u.toString());
+    } catch (e) {}
+  }
+  function importGamePlanFromUrlIfPresent() {
+    let tagHint = 'gp';
+    let payload = '';
+    try {
+      const h = location.hash.slice(1);
+      if (h.startsWith('p=')) { tagHint = 'p'; payload = h.slice(2); }
+      else if (h.startsWith('gp=')) { tagHint = 'gp'; payload = h.slice(3); }
+      if (!payload) {
+        const u = new URL(location.href);
+        if (u.searchParams.get('p')) { tagHint = 'p'; payload = u.searchParams.get('p'); }
+        else if (u.searchParams.get('gp')) { tagHint = 'gp'; payload = u.searchParams.get('gp'); }
+        else if (u.searchParams.get('plan')) { tagHint = 'gp'; payload = u.searchParams.get('plan'); }
+      }
+    } catch (e) {}
+    if (!payload) return;
+    const m = matchFromSharePayload(payload, tagHint);
+    if (!m) return;
+    deepLinkedGamePlan = m;
+    try { localStorage.setItem('saved_manager_match', JSON.stringify(m)); } catch (e) {}
+    try {
+      const u = new URL(location.href);
+      u.searchParams.delete('gp');
+      u.searchParams.delete('p');
+      u.searchParams.delete('plan');
+      u.hash = '';
+      history.replaceState(null, '', u.pathname + u.search);
+    } catch (e2) {}
+  }
+  function openDeepLinkedGamePlanIfAny() {
+    if (!deepLinkedGamePlan) return;
+    activeMatch = deepLinkedGamePlan;
+    deepLinkNeedsReanalyze = true;
+    togglePlanLoading(true);
+    const iso = activeMatch.dateIso || '';
+    if (iso) document.getElementById('match-date-input').value = iso;
+    renderVSMode((activeMatch.teams || []).map(function(t) {
+      return { members: membersToPlayerList(t.members) };
+    }));
+    setTimeout(function() {
+      if (deepLinkNeedsReanalyze) togglePlanLoading(true);
+    }, 0);
+    document.getElementById('shuffle-btn').classList.add('hidden');
+    deepLinkedGamePlan = null;
+  }
+  function togglePlanLoading(show) {
+    const el = document.getElementById('plan-loading-note');
+    const page = document.getElementById('result-page');
+    if (!el) return;
+    if (show) {
+      planLoadingShownAt = Date.now();
+      el.classList.remove('hidden');
+      if (page) page.classList.add('plan-loading');
     } else {
-      fetch(SCRIPT_API_URL + "?resolve=1&s=" + encodeURIComponent(sid), { cache: "no-store" })
-        .then(function(r) { return r.json(); })
-        .then(function(out) {
-          if (!out || !out.ok || !out.data || !out.data.appUrl || !out.data.payload) throw new Error("not found");
-          var base = String(out.data.appUrl);
-          var sep = base.indexOf("?") >= 0 ? "&" : "?";
-          location.replace(base + sep + "plan=" + encodeURIComponent(out.data.payload));
-        })
-        .catch(function() {
-          document.querySelector(".msg").textContent = "링크를 열 수 없습니다. Link 버튼에서 다시 복사해 주세요.";
-        });
+      const elapsed = Date.now() - planLoadingShownAt;
+      const minVisibleMs = 260;
+      if (elapsed < minVisibleMs) {
+        setTimeout(function() {
+          if (!deepLinkNeedsReanalyze) {
+            el.classList.add('hidden');
+            if (page) page.classList.remove('plan-loading');
+          }
+        }, minVisibleMs - elapsed);
+      } else {
+        el.classList.add('hidden');
+        if (page) page.classList.remove('plan-loading');
+      }
     }
-  </script>
+  }
+  function buildGamePlanShareUrl(m) {
+    const sp = sharePayloadFromMatch(m);
+    if (!sp || !sp.data) return '';
+    try {
+      const u = new URL(location.href);
+      ['gp', 'p', 'plan'].forEach(function(k) { u.searchParams.delete(k); });
+      u.searchParams.set('plan', sp.data);
+      u.hash = '';
+      return u.toString();
+    } catch (e) { return ''; }
+  }
+  async function buildShortShareUrl(m, timeoutMs) {
+    const sp = sharePayloadFromMatch(m);
+    if (!sp || !sp.data) return '';
+    try {
+      const u = new URL(location.href);
+      ['gp', 'p', 'plan'].forEach(function(k) { u.searchParams.delete(k); });
+      u.hash = '';
+      const appUrl = u.toString();
+      const fetchTask = fetch(SHEET_API_URL, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'CREATE_SHARE',
+          payload: sp.data,
+          tag: sp.tag || 'p',
+          appUrl: appUrl,
+          bridgeUrl: SHARE_BRIDGE_URL,
+          title: 'FC 서울숲 | 이번주 라인업 미리보기'
+        })
+      });
+      const request = (typeof timeoutMs === 'number' && timeoutMs > 0)
+        ? Promise.race([
+            fetchTask,
+            new Promise(function(resolve) { setTimeout(function() { resolve(null); }, timeoutMs); })
+          ])
+        : fetchTask;
+      const r = await request;
+      if (!r || !r.ok) return '';
+      const text = (await r.text()).replace(/^\uFEFF/, '').trim();
+      const out = JSON.parse(text);
+      if (out && out.ok && out.shortUrl) return String(out.shortUrl);
+    } catch (e) {}
+    return '';
+  }
+  function copyTextToClipboard(text, okMsg) {
+    if (!text) { alert('복사할 링크가 없습니다.'); return false; }
+    const successMsg = okMsg || '링크가 복사되었습니다.';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() { alert(successMsg); }).catch(function() { copyTextToClipboardFallback(text, successMsg); });
+      return true;
+    }
+    return copyTextToClipboardFallback(text, successMsg);
+  }
+  function copyTextToClipboardFallback(text, okMsg) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+      alert(okMsg || '복사했습니다.');
+      return true;
+    } catch (e) {
+      // Final fallback: show raw URL so user can copy manually.
+      window.prompt('자동 복사에 실패했습니다. 아래 링크를 수동 복사해 주세요.', text);
+      return false;
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+  async function copyGamePlanShareFromSaved() {
+    const mStr = localStorage.getItem('saved_manager_match');
+    if (!mStr) return;
+    let m;
+    try { m = JSON.parse(mStr); } catch (e) { return; }
+    const fallbackUrl = buildGamePlanShareUrl(m);
+    // Copy immediately while still in direct click context.
+    copyTextToClipboard(fallbackUrl, '링크가 복사되었습니다. 카톡에 붙여넣기 하세요.');
+
+    let shortUrl = await buildShortShareUrl(m, 2500);
+    if (!shortUrl) {
+      await new Promise(function(resolve) { setTimeout(resolve, 700); });
+      shortUrl = await buildShortShareUrl(m, 2500);
+    }
+    if (shortUrl) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shortUrl).then(function() {
+          alert('단축 링크로 업데이트해 복사했습니다. 카톡에 붙여넣기 하세요.');
+        }).catch(function() {
+          // Keep the already-copied fallback link without extra failure noise.
+        });
+      }
+    }
+  }
+  let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
+  let deepLinkedGamePlan = null;
+  let deepLinkNeedsReanalyze = false;
+  let planLoadingShownAt = 0;
+  let recordDedupeKey = '';
+  let recordDedupeTs = 0;
+  let historyMonthIndex = 0;
+
+  const todayStr = new Date().toISOString().substring(0, 10);
+  document.getElementById('match-date-input').value = todayStr;
+  document.getElementById('display-team-name').innerText = TEAM_NAME;
+
+  function getGuestScore() {
+    return 6;
+  }
+  function readNumField(obj, keys, fb) {
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') {
+        var n = Number(obj[k]);
+        if (!isNaN(n)) return n;
+      }
+    }
+    return fb;
+  }
+  function numOr(x, fb) {
+    var n = Number(x);
+    return isNaN(n) ? fb : n;
+  }
+  function sixStatsFromAny(p, fb) {
+    var f = typeof fb === 'number' && !isNaN(fb) ? fb : getGuestScore();
+    if (Array.isArray(p)) {
+      if (p.length >= 7) {
+        return {
+          att: numOr(p[1], f),
+          def: numOr(p[2], f),
+          spd: numOr(p[3], f),
+          pas: numOr(p[4], f),
+          sta: numOr(p[5], f),
+          org: numOr(p[6], f)
+        };
+      }
+      return { att: f, def: f, spd: f, pas: f, sta: f, org: f };
+    }
+    return sixStatsFromPayload(p, f);
+  }
+  function objectHasAnyPerStatColumn(o) {
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return false;
+    var keys = ['att', 'ATT', 'def', 'DEF', 'spd', 'SPD', 'pas', 'PAS', 'sta', 'STA', 'org', 'ORG', 'b', 'B', 'c', 'C', 'd', 'D', 'e', 'E', 'f', 'F', 'g', 'G'];
+    for (var i = 0; i < keys.length; i++) {
+      var v = o[keys[i]];
+      if (v !== undefined && v !== null && v !== '' && !isNaN(Number(v))) return true;
+    }
+    return false;
+  }
+  function rawPlayersArrayMissingSixColumns(rawArr) {
+    if (!Array.isArray(rawArr) || !rawArr.length) return false;
+    var i, p, anyRow = false;
+    for (i = 0; i < rawArr.length && i < 80; i++) {
+      p = rawArr[i];
+      if (Array.isArray(p)) {
+        if (p.length >= 7) anyRow = true;
+      } else if (p && typeof p === 'object' && objectHasAnyPerStatColumn(p)) {
+        anyRow = true;
+      }
+      if (anyRow) return false;
+    }
+    return true;
+  }
+  function sixStatsFromPayload(p, fb) {
+    var f = typeof fb === 'number' && !isNaN(fb) ? fb : getGuestScore();
+    return {
+      att: readNumField(p, ['att', 'ATT', 'Att', 'b', 'B'], f),
+      def: readNumField(p, ['def', 'DEF', 'Def', 'c', 'C'], f),
+      spd: readNumField(p, ['spd', 'SPD', 'Spd', 'd', 'D'], f),
+      pas: readNumField(p, ['pas', 'PAS', 'Pas', 'e', 'E'], f),
+      sta: readNumField(p, ['sta', 'STA', 'Sta', 'f', 'F'], f),
+      org: readNumField(p, ['org', 'ORG', 'Org', 'g', 'G'], f)
+    };
+  }
+  function payloadHasAnySixColumn(obj) {
+    if (!obj || typeof obj !== 'object') return false;
+    var keys = ['att', 'def', 'spd', 'pas', 'sta', 'org', 'b', 'B', 'c', 'C', 'd', 'D', 'e', 'E', 'f', 'F', 'g', 'G'];
+    for (var i = 0; i < keys.length; i++) {
+      var v = obj[keys[i]];
+      if (v != null && v !== '' && !isNaN(Number(v))) return true;
+    }
+    return false;
+  }
+  function sixFromMember(m) {
+    var fb = (m.s != null && !isNaN(Number(m.s))) ? Number(m.s) : (m.score != null && !isNaN(Number(m.score)) ? Number(m.score) : getGuestScore());
+    if (m && typeof m === 'object') {
+      return sixStatsFromAny(m, fb);
+    }
+    return { att: fb, def: fb, spd: fb, pas: fb, sta: fb, org: fb };
+  }
+  function buildDragItemHtml(m) {
+    var name = m.n != null ? m.n : m.name;
+    var six = sixFromMember(m);
+    var s = m.s != null ? m.s : (m.score != null ? m.score : (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6);
+    return '<div class="drag-item" data-score="' + s + '" data-att="' + six.att + '" data-def="' + six.def + '" data-spd="' + six.spd + '" data-pas="' + six.pas + '" data-sta="' + six.sta + '" data-org="' + six.org + '">' + name + '<span style="cursor:pointer;" onclick="this.parentElement.remove();autoAnalyze();">✕</span></div>';
+  }
+
+  function membersToPlayerList(members) {
+    if (!Array.isArray(members)) return [];
+    return members.map(function(item) {
+      if (item != null && typeof item === 'object' && (item.n != null || item.name != null)) {
+        const n = String(item.n != null ? item.n : item.name).trim();
+        const sRaw = item.s != null ? item.s : (item.score != null ? item.score : item.Score);
+        const s = Number(sRaw);
+        const baseS = isNaN(s) ? getGuestScore() : s;
+        if (payloadHasAnySixColumn(item)) {
+          const six = sixFromMember(item);
+          return { n: n, s: baseS, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
+        }
+        const mp = masterPlayers.find(function(p) { return p.name === n; });
+        if (mp) {
+          const six = sixFromMember(mp);
+          return { n: n, s: mp.score != null ? mp.score : baseS, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
+        }
+        const sixItem = sixFromMember(item);
+        return { n: n, s: baseS, att: sixItem.att, def: sixItem.def, spd: sixItem.spd, pas: sixItem.pas, sta: sixItem.sta, org: sixItem.org };
+      }
+      const name = String(item).trim();
+      const mp = masterPlayers.find(function(p) { return p.name === name; });
+      if (mp) {
+        const six = sixFromMember(mp);
+        return { n: name, s: mp.score, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
+      }
+      const g = getGuestScore();
+      return { n: name, s: g, att: g, def: g, spd: g, pas: g, sta: g, org: g };
+    });
+  }
+
+  function membersToNameCsv(members) {
+    return membersToPlayerList(members).map(function(p) { return p.n; }).join(',');
+  }
+
+  function monthKeyFromMatch(h) {
+    const iso = h && (h.dateIso || '');
+    if (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}/.test(iso)) return iso.slice(0, 7);
+    const raw = String((h && h.date) || '');
+    const mDot = raw.match(/^(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
+    if (mDot) return `${mDot[1]}-${String(mDot[2]).padStart(2, '0')}`;
+    const mDash = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (mDash) return `${mDash[1]}-${mDash[2]}`;
+    return 'unknown';
+  }
+
+  function formatMonthLabel(key) {
+    if (!key || key === 'unknown') return '';
+    const [y, mo] = key.split('-');
+    if (y && mo) return `${y}년 ${String(mo).padStart(2, '0')}월`;
+    return '';
+  }
+
+  function displayDateFromMatch(h) {
+    if (h && h.dateIso && /^\d{4}-\d{2}-\d{2}$/.test(h.dateIso)) {
+      const [y, mo, d] = h.dateIso.split('-');
+      return `${y}. ${mo}. ${d}.`;
+    }
+    return (h && h.date) ? h.date : '';
+  }
+
+  function loadLocalHistory() {
+    try {
+      const raw = localStorage.getItem(LOCAL_HISTORY_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+  }
+
+  function saveLocalHistory() {
+    try {
+      if (Array.isArray(hData) && hData.length) localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(hData));
+      else localStorage.removeItem(LOCAL_HISTORY_KEY);
+    } catch (e) { /* quota */ }
+  }
+
+  function mergeHistoryById(serverArr, localArr) {
+    const map = new Map();
+    (Array.isArray(localArr) ? localArr : []).forEach(h => { if (h && h.id != null) map.set(Number(h.id), h); });
+    (Array.isArray(serverArr) ? serverArr : []).forEach(h => { if (h && h.id != null) map.set(Number(h.id), h); });
+    return Array.from(map.values()).sort((a, b) => Number(b.id) - Number(a.id));
+  }
+
+  function setSyncNote(msg) {
+    const el = document.getElementById('sheet-sync-note');
+    if (!el) return;
+    if (!msg) { el.classList.add('hidden'); el.textContent = ''; return; }
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  async function fetchMasterData() {
+    const loadingEl = document.getElementById('loading');
+    const setLoadingVisible = () => { loadingEl.classList.remove('hidden'); loadingEl.innerHTML = 'Loading<span class="loading-dots"></span>'; loadingEl.style.textAlign = 'center'; loadingEl.style.color = 'var(--text-sub)'; };
+    const showSyncFailed = () => {
+      loadingEl.classList.remove('hidden');
+      loadingEl.style.textAlign = 'center';
+      loadingEl.style.color = '#b91c1c';
+      loadingEl.innerHTML = '<div style="font-weight:800;margin-bottom:6px;">동기화 실패</div><div style="font-size:11px;color:#64748b;line-height:1.4;margin-bottom:10px;">네트워크·웹앱 배포 URL·실행 권한(누구나)을 확인해 주세요.<br>HTML을 파일로만 열면 구글 요청이 차단될 수 있습니다.</div><button type="button" class="btn-outline" style="margin-top:0;" onclick="fetchMasterData()">다시 시도</button>';
+    };
+    setSyncNote('');
+    setLoadingVisible();
+    if (deepLinkNeedsReanalyze) togglePlanLoading(true);
+    try {
+      const response = await fetch(SHEET_API_URL, { method: 'GET', mode: 'cors', cache: 'no-store', redirect: 'follow', headers: { Accept: 'application/json,text/plain,*/*' } });
+      const text = (await response.text()).replace(/^\uFEFF/, '').trim();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (parseErr) {
+        console.error('JSON parse error', parseErr, text.slice(0, 400));
+        throw parseErr;
+      }
+      if (result && result.data && typeof result.data === 'object') result = result.data;
+      let players = result.players != null ? result.players : result.Players;
+      masterPlayers = Array.isArray(players) ? players : (players && typeof players === 'object' ? Object.values(players) : []);
+      var rawPlayersSnapshot = masterPlayers.slice();
+      masterPlayers = masterPlayers.map(function(p) {
+        var name;
+        var fb;
+        if (Array.isArray(p)) {
+          name = String(p[0] != null ? p[0] : '').trim();
+          fb = (p.length >= 8 && !isNaN(Number(p[7]))) ? Number(p[7]) : getGuestScore();
+        } else {
+          name = String(p.name != null ? p.name : (p.Name != null ? p.Name : (p.n != null ? p.n : ''))).trim();
+          fb = Number(p.score != null ? p.score : (p.Score != null ? p.Score : (p.s != null ? p.s : 0))) || 0;
+          if (!fb) fb = getGuestScore();
+        }
+        var six = sixStatsFromAny(p, fb);
+        var score = (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
+        return { name: name, score: score, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
+      }).filter(function(p) { return p.name; });
+      let hist = result.history != null ? result.history : result.History;
+      const serverHist = Array.isArray(hist) ? hist : [];
+      const localHist = loadLocalHistory();
+      hData = mergeHistoryById(serverHist, localHist);
+      saveLocalHistory();
+      loadingEl.classList.add('hidden');
+      if (!masterPlayers.length) setSyncNote('시트에서 명단(players)을 불러오지 못했습니다. 시트/스크립트 응답을 확인해 주세요.');
+      else if (rawPlayersArrayMissingSixColumns(rawPlayersSnapshot)) {
+        setSyncNote('시트 웹앱이 선수별 B~G열(6개 능력)을 JSON에 넣지 않고 name·score만 보내고 있습니다. 그 경우 6개 막대가 같은 길이로만 나옵니다. Apps Script에서 시트 B~G를 b,c,d,e,f,g(또는 att~org) 필드로 포함해 주세요. 행 배열 [이름,B,C,D,E,F,G] 형식도 지원합니다.');
+      }
+      renderAttendanceList();
+      renderHistory();
+      renderSavedMatches();
+      if (!document.getElementById('result-page').classList.contains('hidden') && activeMatch && Array.isArray(activeMatch.teams)) {
+        renderVSMode(activeMatch.teams.map(function(t) {
+          return { members: membersToPlayerList(t.members) };
+        }));
+        document.getElementById('shuffle-btn').classList.add('hidden');
+        setTimeout(function() {
+          autoAnalyze();
+          if (deepLinkNeedsReanalyze) {
+            deepLinkNeedsReanalyze = false;
+            togglePlanLoading(false);
+          }
+        }, 20);
+      } else if (deepLinkNeedsReanalyze) {
+        deepLinkNeedsReanalyze = false;
+        togglePlanLoading(false);
+      }
+    } catch (e) {
+      console.error(e);
+      const localH = loadLocalHistory();
+      if (localH.length) {
+        hData = localH;
+        masterPlayers = [];
+        loadingEl.classList.add('hidden');
+        if (deepLinkNeedsReanalyze) { deepLinkNeedsReanalyze = false; togglePlanLoading(false); }
+        setSyncNote('구글 시트와 연결하지 못했습니다. 이 기기에 저장된 경기 기록·랭킹만 표시합니다. (명단은 시트 연결 후 다시 받아옵니다)');
+        renderAttendanceList();
+        renderHistory();
+        renderSavedMatches();
+      } else {
+        masterPlayers = [];
+        hData = [];
+        showSyncFailed();
+        if (deepLinkNeedsReanalyze) { deepLinkNeedsReanalyze = false; togglePlanLoading(false); }
+        renderAttendanceList();
+        renderHistory();
+        renderSavedMatches();
+      }
+    }
+  }
+
+  function setTeamCount(val) {
+    teamCount = val;
+    document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+    val === 2 ? document.getElementById('btn-2team').classList.add('active') : document.getElementById('btn-3team').classList.add('active');
+  }
+
+  function renderAttendanceList() {
+    const box = document.getElementById('attendance-list'); box.innerHTML = '';
+    masterPlayers.sort((a,b)=>a.name.localeCompare(b.name,'ko-KR')).forEach(p=>{
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      card.innerHTML = `<span class="p-name" data-score="${p.score}" data-att="${p.att}" data-def="${p.def}" data-spd="${p.spd}" data-pas="${p.pas}" data-sta="${p.sta}" data-org="${p.org}">${p.name}</span>`;
+      card.addEventListener('click', () => { card.classList.toggle('active'); updateCount(); });
+      box.appendChild(card);
+    });
+  }
+
+  function updateCount() {
+    const activeCards = document.querySelectorAll('#attendance-list .player-card.active');
+    document.getElementById('att-count').innerText = `${activeCards.length + draftGuests.length} Selected`;
+  }
+
+  function addDraftGuest() {
+    var g = getGuestScore();
+    draftGuests.push({ n: 'Guest ' + (draftGuests.length + 1), s: g, att: g, def: g, spd: g, pas: g, sta: g, org: g });
+    renderDraftGuests(); updateCount();
+  }
+
+  function renderDraftGuests() {
+    const area = document.getElementById('guest-draft-area');
+    area.innerHTML = draftGuests.map((g,i)=>`<div style="background:#e2e8f0; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:700;">${g.n} <span style="cursor:pointer;" onclick="draftGuests.splice(${i},1);renderDraftGuests();updateCount();">✕</span></div>`).join('');
+  }
+
+  function makeTeams() {
+    currentDraftSelection = Array.from(document.querySelectorAll('#attendance-list .player-card.active')).map(function(el) {
+      const sp = el.querySelector('.p-name');
+      const n = String(sp.innerText || '').trim();
+      const six = resolveSixForDragElement(sp, n);
+      const sNum = parseFloat(sp.dataset.score);
+      const s = !isNaN(sNum) ? sNum : (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
+      return { n: n, s: s, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
+    });
+    currentDraftSelection = [...currentDraftSelection, ...draftGuests];
+    if(currentDraftSelection.length < teamCount) return alert("인원 부족");
+    document.getElementById('shuffle-btn').classList.remove('hidden');
+    let sel = [...currentDraftSelection]; sel.sort((a,b)=>b.s-a.s);
+    let teams = Array.from({length:teamCount}, ()=>({members:[]}));
+    let idx=0, dir=1; sel.forEach(p=>{ teams[idx].members.push(p); idx+=dir; if(idx===teamCount||idx===-1){dir*=-1;idx+=dir;} });
+    renderVSMode(teams);
+  }
+
+  function reshuffle() {
+    let currentPlayers = [];
+    document.querySelectorAll('.drag-item').forEach(function(el) {
+      const n = getPlayerNameFromDragItem(el);
+      const six = resolveSixForDragElement(el, n);
+      const sNum = parseFloat(el.dataset.score);
+      const s = !isNaN(sNum) ? sNum : (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
+      currentPlayers.push({ n: n, s: s, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org });
+    });
+    if(currentPlayers.length < teamCount) return;
+    currentPlayers.sort(() => Math.random() - 0.5);
+    let teams = Array.from({length:teamCount}, ()=>({members:[]}));
+    currentPlayers.forEach((p, idx) => teams[idx % teamCount].members.push(p));
+    renderVSMode(teams);
+  }
+
+  function renderVSMode(teams) {
+    document.getElementById('setup-page').classList.add('hidden');
+    document.getElementById('result-page').classList.remove('hidden');
+    if (deepLinkNeedsReanalyze) togglePlanLoading(true);
+    const grid = document.getElementById('vs-display-grid'); grid.innerHTML = '';
+    charts.forEach(function(c) { try { c.destroy(); } catch (e) {} }); charts = [];
+    teams.forEach((t, i)=>{
+      t.members.sort((a,b)=>a.n.localeCompare(b.n,'ko-KR'));
+      grid.innerHTML += `
+        <div class="team-column">
+          <div class="team-box"><div class="section-title" style="margin:0 0 5px;">T${i+1} Squad</div><div class="drag-list" id="team-list-${i}"></div></div>
+          <div class="tactical-card"><div class="ovr-lbl">Rating</div><div class="ovr-val" id="ovr-${i}">--</div><div class="chart-mini-box stat-bars-box" id="stat-bars-${i}"></div><div class="tactical-pitch-wrap" id="tactical-pitch-${i}"></div></div>
+        </div>`;
+      setTimeout(()=>{
+        const listEl = document.getElementById(`team-list-${i}`);
+        t.members.forEach(function(p) { listEl.innerHTML += buildDragItemHtml(p); });
+        new Sortable(listEl, { group:'teams', animation:150, onEnd:autoAnalyze });
+        autoAnalyze();
+      },0);
+    });
+  }
+
+  function isGuestDragItem(el) {
+    const n = (el && el.childNodes && el.childNodes[0] && el.childNodes[0].textContent) ? el.childNodes[0].textContent.trim() : '';
+    return /^guest\s/i.test(n) || /^guest$/i.test(n);
+  }
+  function getPlayerNameFromDragItem(el) {
+    var first = el && el.childNodes && el.childNodes[0];
+    var t = first && first.textContent ? String(first.textContent).trim() : '';
+    return t;
+  }
+  function parseSixFromDataAttrs(el) {
+    if (!el || !el.getAttribute) {
+      return { att: NaN, def: NaN, spd: NaN, pas: NaN, sta: NaN, org: NaN, score: NaN };
+    }
+    return {
+      att: parseFloat(el.getAttribute('data-att')),
+      def: parseFloat(el.getAttribute('data-def')),
+      spd: parseFloat(el.getAttribute('data-spd')),
+      pas: parseFloat(el.getAttribute('data-pas')),
+      sta: parseFloat(el.getAttribute('data-sta')),
+      org: parseFloat(el.getAttribute('data-org')),
+      score: parseFloat(el.getAttribute('data-score'))
+    };
+  }
+  function resolveSixForDragElement(el, playerName) {
+    var o = parseSixFromDataAttrs(el);
+    var six = { att: o.att, def: o.def, spd: o.spd, pas: o.pas, sta: o.sta, org: o.org };
+    var fb = o.score;
+    if (isNaN(fb)) fb = getGuestScore();
+    var keys = ['att', 'def', 'spd', 'pas', 'sta', 'org'];
+    var anyCol = keys.some(function(k) { return !isNaN(six[k]); });
+    var nm = String(playerName || '').trim();
+    var mp = masterPlayers.find(function(p) { return String(p.name || '').trim() === nm; });
+    if (!anyCol) {
+      if (mp) {
+        return { att: mp.att, def: mp.def, spd: mp.spd, pas: mp.pas, sta: mp.sta, org: mp.org };
+      }
+      return { att: fb, def: fb, spd: fb, pas: fb, sta: fb, org: fb };
+    }
+    keys.forEach(function(k) {
+      if (isNaN(six[k]) && mp) six[k] = mp[k];
+    });
+    keys.forEach(function(k) {
+      if (isNaN(six[k])) six[k] = fb;
+    });
+    return six;
+  }
+  const TEAM_RADAR_THEMES = [
+    { border: '#22d3ee', fill: 'rgba(34,211,238,0.32)', point: '#67e8f9', ovr: '#22d3ee' },
+    { border: '#f472b6', fill: 'rgba(244,114,182,0.34)', point: '#fbcfe8', ovr: '#f472b6' },
+    { border: '#fbbf24', fill: 'rgba(251,191,36,0.36)', point: '#fde68a', ovr: '#fbbf24' }
+  ];
+  function escapeHtmlTp(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function amplifyStatsAcrossTeams(rows) {
+    if (!rows || !rows.length) return [];
+    var dims = 6;
+    if (rows.length === 1) {
+      return [rows[0].map(function(v) {
+        return Math.min(100, Math.max(0, Math.round(50 + (v - 50) * 2)));
+      })];
+    }
+    var means = [];
+    var k, i, s;
+    for (k = 0; k < dims; k++) {
+      s = 0;
+      for (i = 0; i < rows.length; i++) s += rows[i][k];
+      means[k] = s / rows.length;
+    }
+    return rows.map(function(row) {
+      return row.map(function(v, k) {
+        var stretched = means[k] + (v - means[k]) * 2;
+        return Math.min(100, Math.max(0, Math.round(stretched)));
+      });
+    });
+  }
+  function computeTeamRadarFromItems(items, teamIndex, allGuest) {
+    const ti = teamIndex | 0;
+    const theme = TEAM_RADAR_THEMES[ti % TEAM_RADAR_THEMES.length];
+    if (!items || !items.length) return { stats: [0, 0, 0, 0, 0, 0], raw10: [0, 0, 0, 0, 0, 0], theme: theme };
+    if (allGuest) {
+      var g = getGuestScore();
+      var v = Math.min(100, Math.max(0, Math.round(g * 10)));
+      var g6 = [g, g, g, g, g, g];
+      return { stats: [v, v, v, v, v, v], raw10: g6.slice(), theme: theme };
+    }
+    var sum = [0, 0, 0, 0, 0, 0];
+    var n = 0;
+    Array.from(items).forEach(function(el) {
+      var name = getPlayerNameFromDragItem(el);
+      var six = resolveSixForDragElement(el, name);
+      sum[0] += six.att;
+      sum[1] += six.def;
+      sum[2] += six.spd;
+      sum[3] += six.pas;
+      sum[4] += six.sta;
+      sum[5] += six.org;
+      n++;
+    });
+    if (!n) return { stats: [0, 0, 0, 0, 0, 0], raw10: [0, 0, 0, 0, 0, 0], theme: theme };
+    var raw10 = sum.map(function(x) { return x / n; });
+    var raw100 = raw10.map(function(x) {
+      return Math.min(100, Math.max(0, Math.round(x * 10)));
+    });
+    return { stats: raw100, raw10: raw10, theme: theme };
+  }
+  var STAT_BAR_SCALE_MIN = 3;
+  var STAT_BAR_SCALE_MAX = 9;
+  function barWidthsFromTeamRaw10(raw10Rows) {
+    if (!raw10Rows || !raw10Rows.length) return [];
+    var lo = STAT_BAR_SCALE_MIN;
+    var hi = STAT_BAR_SCALE_MAX;
+    var span = hi - lo;
+    return raw10Rows.map(function(row) {
+      return row.map(function(v) {
+        var x = Number(v);
+        if (isNaN(x)) x = 0;
+        var clamped = Math.min(hi, Math.max(lo, x));
+        return Math.round(((clamped - lo) / span) * 100);
+      });
+    });
+  }
+  function renderStatBars(teamIndex, widths6, theme) {
+    var el = document.getElementById('stat-bars-' + teamIndex);
+    if (!el) return;
+    var labels = ['ATT', 'DEF', 'SPD', 'PAS', 'STA', 'ORG'];
+    var col = theme && theme.border ? theme.border : '#22d3ee';
+    var html = '<div class="stat-bars-inner">';
+    for (var k = 0; k < 6; k++) {
+      var w = widths6[k] != null ? widths6[k] : 0;
+      html += '<div class="stat-bar-row"><span class="stat-bar-lbl">' + labels[k] + '</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:' + w + '%;background:' + col + '"></div></div></div>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
+  }
+  function renderStatBarsStub(teamIndex) {
+    var el = document.getElementById('stat-bars-' + teamIndex);
+    if (!el) return;
+    var labels = ['ATT', 'DEF', 'SPD', 'PAS', 'STA', 'ORG'];
+    var html = '<div class="stat-bars-inner">';
+    for (var k = 0; k < 6; k++) {
+      html += '<div class="stat-bar-row"><span class="stat-bar-lbl">' + labels[k] + '</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:12%;background:rgba(148,163,184,0.35)"></div></div></div>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
+  }
+  function shuffleRosterFriendly(players, teamIndex) {
+    var arr = players.slice();
+    var seedStr = String(teamIndex) + '|' + arr.map(function(p) { return p.n; }).sort().join(',');
+    var seed = 2166136261;
+    for (var c = 0; c < seedStr.length; c++) {
+      seed ^= seedStr.charCodeAt(c);
+      seed = Math.imul(seed, 16777619);
+    }
+    for (var i = arr.length - 1; i > 0; i--) {
+      seed = (seed * 1103515245 + 12345) >>> 0;
+      var j = seed % (i + 1);
+      var t = arr[i];
+      arr[i] = arr[j];
+      arr[j] = t;
+    }
+    return arr;
+  }
+  var TP_FORMATIONS = [
+    { name: '1-2-1 다이아몬드', slots: [
+      { pos: '피벗', x: 50, y: 14 }, { pos: '좌 윙', x: 22, y: 38 }, { pos: '우 윙', x: 78, y: 38 },
+      { pos: '픽소', x: 50, y: 58 }, { pos: '골키퍼', x: 50, y: 86 }
+    ]},
+    { name: '2-1-1 로우 블록', slots: [
+      { pos: '피벗', x: 50, y: 12 }, { pos: '좌 윙', x: 24, y: 42 }, { pos: '우 윙', x: 76, y: 42 },
+      { pos: '픽소', x: 50, y: 64 }, { pos: '골키퍼', x: 50, y: 88 }
+    ]},
+    { name: '와이드 2-1-1', slots: [
+      { pos: '피벗', x: 50, y: 13 }, { pos: '좌 윙', x: 16, y: 36 }, { pos: '우 윙', x: 84, y: 36 },
+      { pos: '픽소', x: 50, y: 58 }, { pos: '골키퍼', x: 50, y: 87 }
+    ]},
+    { name: '3-1 전진', slots: [
+      { pos: '좌 윙', x: 28, y: 16 }, { pos: '피벗', x: 50, y: 14 }, { pos: '우 윙', x: 72, y: 16 },
+      { pos: '픽소', x: 50, y: 56 }, { pos: '골키퍼', x: 50, y: 86 }
+    ]},
+    { name: '2-2 박스', slots: [
+      { pos: '좌 윙', x: 30, y: 22 }, { pos: '우 윙', x: 70, y: 22 },
+      { pos: '좌 픽소', x: 30, y: 52 }, { pos: '우 픽소', x: 70, y: 52 }, { pos: '골키퍼', x: 50, y: 86 }
+    ]},
+    { name: '1-1-2 더블 픽소', slots: [
+      { pos: '피벗', x: 50, y: 14 }, { pos: '세컨 픽소', x: 50, y: 36 },
+      { pos: '좌 윙', x: 24, y: 54 }, { pos: '우 윙', x: 76, y: 54 }, { pos: '골키퍼', x: 50, y: 86 }
+    ]},
+    { name: '1-3-1', slots: [
+      { pos: '피벗', x: 50, y: 12 }, { pos: '좌 윙', x: 26, y: 40 }, { pos: '픽소', x: 50, y: 44 },
+      { pos: '우 윙', x: 74, y: 40 }, { pos: '골키퍼', x: 50, y: 86 }
+    ]},
+    { name: '역습 2-1-1', slots: [
+      { pos: '피벗', x: 50, y: 15 }, { pos: '좌 윙', x: 26, y: 38 }, { pos: '우 윙', x: 74, y: 38 },
+      { pos: '픽소', x: 50, y: 60 }, { pos: '골키퍼', x: 50, y: 87 }
+    ]}
+  ];
+  function pickFormationBySix(v) {
+    var a = v[0], d = v[1], sp = v[2], pa = v[3], st = v[4], o = v[5];
+    var fit = [
+      a * 0.16 + d * 0.14 + sp * 0.16 + pa * 0.22 + st * 0.16 + o * 0.16,
+      d * 0.38 + o * 0.24 + st * 0.22 + pa * 0.1 + a * 0.06,
+      a * 0.22 + sp * 0.3 + pa * 0.18 + o * 0.18 + d * 0.12,
+      a * 0.36 + sp * 0.24 + pa * 0.2 + d * 0.08 + o * 0.12,
+      d * 0.32 + st * 0.22 + o * 0.24 + a * 0.1 + sp * 0.12,
+      st * 0.34 + pa * 0.26 + o * 0.2 + d * 0.2,
+      pa * 0.36 + o * 0.32 + st * 0.18 + d * 0.14,
+      sp * 0.4 + a * 0.24 + pa * 0.16 + d * 0.1 + o * 0.1
+    ];
+    var bi = 0, bs = -Infinity;
+    for (var i = 0; i < fit.length; i++) {
+      if (fit[i] > bs) { bs = fit[i]; bi = i; }
+    }
+    return TP_FORMATIONS[bi];
+  }
+  function updateTacticalBoard(teamIndex, items, sixVec) {
+    const el = document.getElementById('tactical-pitch-' + teamIndex);
+    if (!el) return;
+    const players = Array.from(items).map(function(it) {
+      return { n: it.childNodes[0].textContent.trim(), s: parseFloat(it.dataset.score) || 0 };
+    });
+    if (!players.length) {
+      el.innerHTML = '<div class="tp-empty">스쿼드를 구성하면 전술판이 표시됩니다.</div>';
+      return;
+    }
+    if (!sixVec || sixVec.length !== 6 || sixVec.every(function(x) { return !x; })) {
+      el.innerHTML = '<div class="tp-empty">지표를 불러오지 못했습니다.</div>';
+      return;
+    }
+    var F = pickFormationBySix(sixVec);
+    var formationName = F.name;
+    var order = shuffleRosterFriendly(players, teamIndex);
+    var starters = order.slice(0, 5);
+    var bench = order.slice(5);
+    var subsBySlot = [[], [], [], [], []];
+    for (var bi = 0; bi < bench.length; bi++) {
+      subsBySlot[bi % 5].push(bench[bi].n);
+    }
+    var html = '';
+    html += '<div class="tp-formation-title">추천 대형 · ' + formationName + '</div>';
+    html += '<div class="tp-field">';
+    for (var j = 0; j < 5; j++) {
+      var sl = F.slots[j];
+      var nm = starters[j] ? escapeHtmlTp(starters[j].n) : '—';
+      var subTxt = '';
+      if (subsBySlot[j].length) {
+        subTxt = '<span class="tp-sub">(SUB ' + subsBySlot[j].map(function(sn) { return escapeHtmlTp(sn); }).join(', ') + ')</span>';
+      }
+      html += '<div class="tp-node" style="left:' + sl.x + '%;top:' + sl.y + '%">';
+      html += '<span class="tp-pos">' + sl.pos + '</span>';
+      html += '<span class="tp-name">' + nm + '</span>';
+      html += subTxt;
+      html += '</div>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
+  }
+  function autoAnalyze() {
+    const cols = document.querySelectorAll('.team-column');
+    const pack = [];
+    cols.forEach(function(col, i) {
+      const items = col.querySelectorAll('.drag-item');
+      const allGuest = items.length > 0 && Array.from(items).every(isGuestDragItem);
+      const showGuestFixed = allGuest && items.length > 0;
+      const rosterOk = items.length >= 5 || showGuestFixed;
+      const computed = computeTeamRadarFromItems(items, i, showGuestFixed);
+      const rawStats = rosterOk ? computed.stats.slice() : [0, 0, 0, 0, 0, 0];
+      pack.push({ i: i, items: items, showGuestFixed: showGuestFixed, rosterOk: rosterOk, computed: computed, rawStats: rawStats });
+    });
+    const rawRows = pack.filter(function(p) { return p.rosterOk; }).map(function(p) { return p.rawStats.slice(); });
+    const ampRows = amplifyStatsAcrossTeams(rawRows);
+    const raw10Rows = pack.filter(function(p) { return p.rosterOk && p.computed.raw10; }).map(function(p) { return p.computed.raw10.slice(); });
+    const barMatrix = barWidthsFromTeamRaw10(raw10Rows);
+    var ai = 0;
+    var biBar = 0;
+    pack.forEach(function(p) {
+      var i = p.i;
+      var items = p.items;
+      var stats = p.rosterOk ? ampRows[ai++] : [0, 0, 0, 0, 0, 0];
+      var theme = p.computed.theme;
+      const ovrEl = document.getElementById('ovr-' + i);
+      ovrEl.style.color = theme.ovr;
+      if (p.showGuestFixed) {
+        ovrEl.innerText = '6';
+        ovrEl.style.fontSize = '24px';
+      } else if (items.length >= 5) {
+        ovrEl.innerText = String(Math.floor(stats.reduce(function(a, b) { return a + b; }, 0) / 6));
+        ovrEl.style.fontSize = '24px';
+      } else if (items.length > 0) {
+        ovrEl.innerText = '--';
+        ovrEl.style.fontSize = '24px';
+      } else {
+        ovrEl.innerText = '--';
+        ovrEl.style.fontSize = '24px';
+      }
+      if (p.rosterOk && barMatrix.length && barMatrix[biBar]) {
+        renderStatBars(i, barMatrix[biBar], theme);
+        biBar++;
+      } else {
+        renderStatBarsStub(i);
+      }
+      var sixForBoard = null;
+      if (items.length) {
+        if (p.rosterOk) sixForBoard = stats.slice();
+        else sixForBoard = p.computed.stats.slice();
+      }
+      updateTacticalBoard(i, items, sixForBoard);
+    });
+    if (deepLinkNeedsReanalyze && masterPlayers && masterPlayers.length) {
+      deepLinkNeedsReanalyze = false;
+      togglePlanLoading(false);
+    }
+  }
+
+  function saveMatchToHistory(mode) {
+    const finalTeams = [];
+    document.querySelectorAll('.drag-list').forEach((list,idx)=>{
+      const members = Array.from(list.querySelectorAll('.drag-item')).map(function(el) {
+        const n = getPlayerNameFromDragItem(el);
+        const six = resolveSixForDragElement(el, n);
+        const sNum = parseFloat(el.dataset.score);
+        const s = !isNaN(sNum) ? sNum : (six.att + six.def + six.spd + six.pas + six.sta + six.org) / 6;
+        return { n: n, s: s, att: six.att, def: six.def, spd: six.spd, pas: six.pas, sta: six.sta, org: six.org };
+      });
+      finalTeams.push({ id:idx, members:members, ovr: document.getElementById(`ovr-${idx}`).innerText });
+    });
+    const iso = document.getElementById('match-date-input').value;
+    activeMatch = { id:Date.now(), date: iso.replace(/-/g, '. '), dateIso: iso, teams:finalTeams, rounds:[] };
+    localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
+    syncUrlWithGamePlan(activeMatch);
+    if (mode === 'dashboard') {
+      startDashboard(activeMatch);
+    } else {
+      alert("Saved! 메인 홈으로 이동합니다. Match Day의 Link로 공유해 주세요.");
+      goBack('setup');
+      renderSavedMatches();
+    }
+  }
+
+  function renderSavedMatches() {
+    const mStr = localStorage.getItem('saved_manager_match');
+    const section = document.getElementById('saved-matches-section');
+    const list = document.getElementById('saved-list');
+    if (mStr) {
+      let m;
+      try { m = JSON.parse(mStr); } catch (e) { section.classList.add('hidden'); list.innerHTML = ''; return; }
+      const matchDateMini = String((m && (m.dateIso || m.date)) || '').replace(/</g, '');
+      section.classList.remove('hidden');
+      list.innerHTML = `
+        <div class="saved-match-wrap" style="width:100%;">
+          <div class="saved-match-card">
+            <div class="saved-match-row">
+              <div class="saved-match-start" onclick="loadSavedMatch()">
+                <div class="saved-tap-main">
+                  <span class="saved-md-text">Sunday Kickoff</span>
+                </div>
+                <div class="saved-preview-sub">
+                  <span class="saved-match-date-mini">${matchDateMini}</span>
+                </div>
+              </div>
+            </div>
+            <div class="saved-match-actions">
+              <button type="button" class="saved-copy-link-btn" onclick="event.stopPropagation(); copyGamePlanShareFromSaved();">Link</button>
+            </div>
+            <span class="admin-del" onclick="deleteLocalMatch()">✕</span>
+          </div>
+        </div>`;
+    } else {
+      section.classList.add('hidden');
+      list.innerHTML = '';
+    }
+  }
+
+  function deleteLocalMatch() {
+    if(prompt("Password:") === ADMIN_PW) { localStorage.removeItem('saved_manager_match'); renderSavedMatches(); }
+  }
+
+  function loadSavedMatch() {
+    activeMatch = JSON.parse(localStorage.getItem('saved_manager_match'));
+    deepLinkNeedsReanalyze = true;
+    togglePlanLoading(true);
+    document.getElementById('shuffle-btn').classList.add('hidden');
+    document.getElementById('match-date-input').value = activeMatch.dateIso || activeMatch.date.replace(/\. /g, '-');
+    renderVSMode(activeMatch.teams.map(function(t) { return { members: membersToPlayerList(t.members) }; }));
+    if (masterPlayers && masterPlayers.length) {
+      setTimeout(function() {
+        autoAnalyze();
+      }, 30);
+    }
+    if (activeMatch.rounds && activeMatch.rounds.some(r => r.winner !== null)) {
+      if (confirm("이전에 기록하던 경기 데이터가 있습니다. 대시보드로 바로 이동할까요?")) {
+        startDashboard(activeMatch);
+      }
+    }
+  }
+
+  function startDashboard(m) {
+    activeMatch = m;
+    document.getElementById('setup-page').classList.add('hidden');
+    document.getElementById('result-page').classList.add('hidden');
+    document.getElementById('match-page').classList.remove('hidden');
+    if(activeMatch.rounds.length===0) {
+      const tc = activeMatch.teams.length;
+      if(tc===2) for(let i=1;i<=9;i++) activeMatch.rounds.push({id:i, t1:0, t2:1, winner:null});
+      else { const p=[[0,1],[1,2],[2,0]]; for(let i=1;i<=9;i++) activeMatch.rounds.push({id:i, t1:p[(i-1)%3][0], t2:p[(i-1)%3][1], winner:null}); }
+    }
+    renderRoundList();
+  }
+
+  function renderRoundList() {
+    const box = document.getElementById('round-list'); box.innerHTML = '';
+    activeMatch.rounds.forEach(r=>{
+      box.innerHTML += `
+        <div class="match-card">
+          <div class="round-info">RD ${r.id}</div>
+          <div class="vs-area">
+            <span class="team-label">T${r.t1+1}</span>
+            <div class="score-btns">
+              <button class="s-btn ${r.winner==='t1'?'selected':''}" onclick="record(${r.id},'t1')">WIN</button>
+              <button class="s-btn ${r.winner==='draw'?'selected':''}" onclick="record(${r.id},'draw')">DRAW</button>
+              <button class="s-btn ${r.winner==='t2'?'selected':''}" onclick="record(${r.id},'t2')">WIN</button>
+            </div>
+            <span class="team-label">T${r.t2+1}</span>
+          </div>
+        </div>`;
+    });
+    updateLiveRanking();
+  }
+
+  function record(rid, res) { 
+    const now = Date.now();
+    const dedupeKey = `${rid}:${res}`;
+    if (dedupeKey === recordDedupeKey && now - recordDedupeTs < 450) return;
+    recordDedupeKey = dedupeKey;
+    recordDedupeTs = now;
+    const r = activeMatch.rounds.find(x=>x.id===rid); 
+    r.winner = (r.winner===res)?null:res; 
+    localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
+    renderRoundList(); 
+  }
+
+  function updateLiveRanking() {
+    const s = activeMatch.teams.map((_,i)=>({id:i+1,w:0,d:0,l:0,p:0}));
+    activeMatch.rounds.forEach(r=>{
+      if(!r.winner) return;
+      if(r.winner==='t1'){ s[r.t1].w++; s[r.t1].p+=3; s[r.t2].l++; }
+      else if(r.winner==='t2'){ s[r.t2].w++; s[r.t2].p+=3; s[r.t1].l++; }
+      else { s[r.t1].d++; s[r.t1].p+=1; s[r.t2].d++; s[r.t2].p+=1; }
+    });
+    s.sort((a,b)=>b.p-a.p);
+    document.getElementById('live-ranking').innerHTML = s.map(x=>`T${x.id}: ${x.w}W ${x.d}D ${x.l}L`).join(' | ');
+  }
+
+  // [가장 완벽했던 초창기 코드로 100% 원복] Fire & Forget 로직
+  function finishMatch() {
+    if(!confirm("Cloud Archive?")) return; 
+    
+    document.body.style.opacity = "0.5";
+    
+    const st = activeMatch.teams.map((t, tid)=>{
+      let w=0,d=0,l=0,p=0; 
+      activeMatch.rounds.forEach(r=>{ 
+        if(r.winner==='t1'&&r.t1===tid){w++;p+=3;} 
+        else if(r.winner==='t2'&&r.t2===tid){w++;p+=3;} 
+        else if(r.winner==='draw'&&(r.t1===tid||r.t2===tid)){d++;p+=1;} 
+        else if(r.winner&&(r.t1===tid||r.t2===tid)) l++; 
+      });
+      return { names: membersToNameCsv(t.members), ovr:t.ovr, record:`${w}W ${d}D ${l}L`, pts:p };
+    });
+    st.sort((a,b)=>b.pts - a.pts);
+    
+    const log = { id:activeMatch.id, date:activeMatch.date, dateIso: activeMatch.dateIso || null, rank:st.map((s,i)=>({r:i+1,sfx:i===0?'st':i===1?'nd':'rd',names:s.names,ovr:s.ovr,record:s.record,pts:s.pts})), rounds:activeMatch.rounds };
+
+    // 1. 구글 서버로 데이터 전송 (응답을 기다리거나 강제 검증하지 않음)
+    fetch(SHEET_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(log)
+    }).catch(e => console.log("Sync bypassed")); 
+
+    // 2. 딜레이 없이 팀장님 폰 화면의 로컬 데이터를 즉시 최신화 (가장 빠르고 확실한 반영)
+    localStorage.removeItem('saved_manager_match'); 
+    if (!Array.isArray(hData)) hData = [];
+    hData.push(log); 
+    saveLocalHistory();
+    
+    document.body.style.opacity = "1";
+    document.getElementById('match-page').classList.add('hidden');
+    document.getElementById('setup-page').classList.remove('hidden');
+    
+    renderHistory(); 
+    renderSavedMatches();
+    
+    setTimeout(() => { alert("Archived Successfully! 🏆"); }, 50);
+  }
+
+  function historyMonthNav(delta) {
+    historyMonthIndex = (historyMonthIndex || 0) + delta;
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const box = document.getElementById('history-list');
+    const navEl = document.getElementById('history-month-nav');
+    box.innerHTML = '';
+    if (!hData || hData.length === 0) {
+      if (navEl) { navEl.innerHTML = ''; navEl.style.display = 'none'; }
+      renderLeaderboard();
+      return;
+    }
+    if (navEl) navEl.style.display = 'flex';
+
+    const groups = [...hData].sort((a,b)=>b.id-a.id).reduce((acc,h)=>{
+      const key = monthKeyFromMatch(h);
+      if(!acc[key]) acc[key]=[];
+      acc[key].push(h);
+      return acc;
+    },{});
+
+    const monthKeys = Object.keys(groups).sort((a,b) => {
+      if (a === 'unknown') return 1;
+      if (b === 'unknown') return -1;
+      return b.localeCompare(a);
+    });
+
+    historyMonthIndex = Math.max(0, Math.min(historyMonthIndex || 0, monthKeys.length - 1));
+    const curKey = monthKeys[historyMonthIndex];
+
+    if (navEl) {
+      const monthTitle = `<div style="flex:1;min-width:0;text-align:center;font-weight:900;font-size:12px;color:var(--primary-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${formatMonthLabel(curKey)}</div>`;
+      if (monthKeys.length <= 1) {
+        navEl.innerHTML = monthTitle;
+      } else {
+        const atOldest = historyMonthIndex >= monthKeys.length - 1;
+        const atNewest = historyMonthIndex <= 0;
+        navEl.innerHTML = `
+          <button type="button" class="btn-outline" style="margin-top:0;flex:0 0 44px;padding:8px 0;font-size:16px;line-height:1;" ${atOldest ? 'disabled' : ''} onclick="historyMonthNav(1)" title="Prev month">◀</button>
+          ${monthTitle}
+          <button type="button" class="btn-outline" style="margin-top:0;flex:0 0 44px;padding:8px 0;font-size:16px;line-height:1;" ${atNewest ? 'disabled' : ''} onclick="historyMonthNav(-1)" title="Next month">▶</button>`;
+      }
+    }
+
+    let mHtml = '';
+    (groups[curKey] || []).forEach(h=>{
+      const dateStr = displayDateFromMatch(h);
+      let teamsBlock = '';
+      (Array.isArray(h.rank) ? h.rank : []).forEach(rk=>{
+        const rec = (rk.record != null && rk.record !== '') ? rk.record : '-';
+        const ratingTxt = (rk.ovr != null && String(rk.ovr).trim() !== '') ? String(rk.ovr).trim() : '--';
+        teamsBlock += `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;">
+          <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+            <span style="font-size:10px;font-weight:900;color:var(--primary-color);"><b>${rk.r}${rk.sfx}</b></span>
+            <span style="font-size:10px;font-weight:900;color:var(--accent-color);">${rk.pts}pt</span>
+            <span style="font-size:9px;color:#64748b;font-weight:800;flex-shrink:0;">${rec}</span>
+            <span style="font-size:9px;color:#0f172a;font-weight:700;flex:1;min-width:0;white-space:normal;word-break:keep-all;line-height:1.25;">${rk.names || ''}</span>
+            <span style="margin-left:4px;font-size:8px;font-weight:900;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 5px;border-radius:999px;flex-shrink:0;">RTG ${ratingTxt}</span>
+          </div>
+        </div>`;
+      });
+      let roundPills = '';
+      if (h.rounds && h.rounds.length) {
+        roundPills = `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;">` +
+          h.rounds.map(r => {
+            let t = '—';
+            if (r.winner === 't1') t = `T${r.t1 + 1}`;
+            else if (r.winner === 't2') t = `T${r.t2 + 1}`;
+            else if (r.winner === 'draw') t = '무';
+            return `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:1.75em;padding:2px 3px;border-radius:4px;background:#f1f5f9;font-size:8.5px;font-weight:800;color:#334155;">${t}</span>`;
+          }).join('') + `</div>`;
+      }
+      const hasArchive = h.id != null && ((Array.isArray(h.rank) && h.rank.length > 0) || (Array.isArray(h.rounds) && h.rounds.length > 0));
+      const delBtn = hasArchive ? `<span class="admin-del" style="position:absolute;top:8px;right:8px;" onclick="deleteCloudMatch(${h.id})">✕</span>` : '';
+      mHtml += `<div class="history-card" style="background:#fff;padding:8px 10px;border-radius:10px;border:1px solid #eee;margin-bottom:8px;position:relative;">
+        <div style="font-size:10px;font-weight:900;margin-bottom:4px;padding-right:${hasArchive ? '22px' : '0'};">${dateStr}${delBtn}</div>
+        ${teamsBlock}
+        ${roundPills}
+      </div>`;
+    });
+    box.innerHTML = `<div class="history-month-group">${mHtml}</div>`;
+    renderLeaderboard();
+  }
+
+  function deleteCloudMatch(id) {
+    if(prompt("Admin Password:") === ADMIN_PW) { 
+      if(!confirm("영구 삭제?")) return; 
+      // 삭제 역시 초창기 방식(Fire & Forget)으로 원복
+      fetch(SHEET_API_URL, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({action: "DELETE", id: id}) 
+      }).catch(e => console.log("Bypass"));
+      
+      hData = hData.filter(h => h.id !== id);
+      saveLocalHistory();
+      renderHistory();
+      alert("Deleted!"); 
+    }
+  }
+
+  function renderLeaderboard() {
+    const stats = {};
+    hData.forEach(h => {
+      if (!h || !Array.isArray(h.rank)) return;
+      h.rank.forEach(rk => {
+        const pts = Number(rk.pts) || 0;
+        const names = String(rk.names || '').split(',').map(n => n.trim()).filter(Boolean);
+        names.forEach(name => {
+          if (name.toLowerCase().includes('guest')) return;
+          if (!stats[name]) stats[name] = { play: 0, win: 0, pts: 0 };
+          stats[name].play++;
+          stats[name].pts += pts;
+          if (rk.r === 1) stats[name].win++;
+        });
+      });
+    });
+    const winProb = (s) => (s.play ? (s.win / s.play) : 0);
+    const winProbPctInt = (s) => (s.play ? Math.round((s.win / s.play) * 100) : 0);
+    const sorted = Object.entries(stats)
+      .sort((a, b) =>
+        (b[1].pts - a[1].pts) ||
+        (winProb(b[1]) - winProb(a[1])) ||
+        (b[1].play - a[1].play)
+      )
+      .slice(0, 20);
+    let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th>PTS</th><th>WIN PROB.</th><th>WIN</th><th>GAMES</th></tr></thead><tbody>`;
+    sorted.forEach(([name, s], i) => {
+      let rank = 1;
+      for (let j = 0; j < i; j++) {
+        const prev = sorted[j][1];
+        if (
+          prev.pts !== s.pts ||
+          winProbPctInt(prev) !== winProbPctInt(s) ||
+          prev.play !== s.play
+        ) rank++;
+      }
+      html += `<tr><td><b>${rank}</b></td><td>${name}</td><td><b>${s.pts}</b></td><td><span class="prob-badge">${(winProb(s)*100).toFixed(0)}%</span></td><td>${s.win}승</td><td>${s.play}회</td></tr>`;
+    });
+    document.getElementById('leaderboard-area').innerHTML = html + `</tbody></table>`;
+  }
+
+  function goBack(step) {
+    if(step==='setup') { document.getElementById('result-page').classList.add('hidden'); document.getElementById('setup-page').classList.remove('hidden'); renderSavedMatches(); }
+    else if(step==='result') { document.getElementById('match-page').classList.add('hidden'); document.getElementById('result-page').classList.remove('hidden'); }
+  }
+  function openAddPlayerModal() {
+    const cur = Array.from(document.querySelectorAll('.drag-item')).map(function(el) { return el.childNodes[0].textContent.trim(); });
+    const box = document.getElementById('modal-player-list');
+    box.innerHTML = '';
+    masterPlayers.forEach(function(p, pi) {
+      if (cur.includes(p.name)) return;
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      card.innerHTML = '<span>' + p.name + '</span>';
+      card.addEventListener('click', function() { addLastMinutePlayerIdx(pi); closeModal(); });
+      box.appendChild(card);
+    });
+    document.getElementById('add-modal').classList.remove('hidden');
+  }
+
+  function addLastMinutePlayerIdx(pi) {
+    var p = masterPlayers[pi];
+    if (!p) return;
+    var minTeam = 0;
+    var minCount = Infinity;
+    for (var ti = 0; ti < teamCount; ti++) {
+      var count = document.getElementById('team-list-' + ti).querySelectorAll('.drag-item').length;
+      if (count < minCount) { minCount = count; minTeam = ti; }
+    }
+    document.getElementById('team-list-' + minTeam).innerHTML += buildDragItemHtml(p);
+    autoAnalyze();
+  }
+  function addDraftGuestModal() {
+    var idx = document.querySelectorAll('.drag-item').length + 1;
+    var g = getGuestScore();
+    var guest = { n: 'Guest ' + idx, s: g, att: g, def: g, spd: g, pas: g, sta: g, org: g };
+    var minTeam = 0;
+    var minCount = Infinity;
+    for (var ti = 0; ti < teamCount; ti++) {
+      var c = document.getElementById('team-list-' + ti).querySelectorAll('.drag-item').length;
+      if (c < minCount) { minCount = c; minTeam = ti; }
+    }
+    document.getElementById('team-list-' + minTeam).innerHTML += buildDragItemHtml(guest);
+    autoAnalyze();
+  }
+  function closeModal() { document.getElementById('add-modal').classList.add('hidden'); }
+  (function initApp() {
+    importGamePlanFromUrlIfPresent();
+    const lh = loadLocalHistory();
+    if (lh.length) {
+      hData = lh;
+      renderHistory();
+    }
+    renderSavedMatches();
+    openDeepLinkedGamePlanIfAny();
+    fetchMasterData();
+  })();
+</script>
 </body>
 </html>
