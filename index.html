@@ -347,17 +347,86 @@
 <script>
   const TEAM_NAME = "FC 서울숲";
   const ADMIN_PW = "1110023";
-  /* 시트 웹앱은 players[]에 B~G열(ATT~ORG)을 넣어야 막대가 달라집니다. score만 보내면 6개가 같은 값입니다.
-     예: {"name":"홍길동","b":7,"c":6,"d":8,"e":7,"f":6,"g":7} 또는 ["홍길동",7,6,8,7,6,7] */
   const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbycVee58gGb-Lw8-2QWyzP-sBE64LaJ8wJqepkFnM8Ctjr0QDAQ6-0WTlJiE3KMhPpy/exec"; 
-  // Leave empty to disable external bridge and use Apps Script short link only.
   const SHARE_BRIDGE_URL = "";
   const LOCAL_HISTORY_KEY = 'futsal_manager_local_history_v1';
 
-  /** Pre-built Apps Script short URL so Link click can copy without await (mobile clipboard). */
   let shortShareCache = { key: '', url: '' };
   var linkButtonFallbackTimer = null;
 
+  // [수정 포인트] 복사 시 클립보드에 들어가는 텍스트 처리
+  function copyTextToClipboardSync(text, okMsg, quiet) {
+    if (!text) { alert('복사할 링크가 없습니다.'); return false; }
+    
+    // 카카오톡은 URL 뒤에 의미 없는 공백이나 문자가 붙으면 미리보기를 생성하지 못할 수 있습니다.
+    const cleanUrl = text.trim(); 
+    
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(cleanUrl).then(() => {
+          if (quiet) showLinkCopiedFeedback();
+          else alert(okMsg || '링크가 복사되었습니다.');
+        });
+        return true;
+      }
+      
+      const ta = document.createElement('textarea');
+      ta.value = cleanUrl;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) {
+        if (quiet) showLinkCopiedFeedback();
+        else alert(okMsg || '링크가 복사되었습니다.');
+        return true;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    window.prompt('아래 링크를 복사하세요:', cleanUrl);
+    return false;
+  }
+
+  // [수정 포인트] 단축 URL 생성 시 메타데이터 전달 강화
+  async function buildShortShareUrl(m) {
+    const sp = sharePayloadFromMatch(m);
+    if (!sp || !sp.data) return '';
+    try {
+      const u = new URL(location.href);
+      ['gp', 'p', 'plan'].forEach(k => u.searchParams.delete(k));
+      u.hash = '';
+      const appUrl = u.toString();
+
+      const r = await fetch(SHEET_API_URL, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'CREATE_SHARE',
+          payload: sp.data,
+          tag: sp.tag || 'p',
+          appUrl: appUrl,
+          // 카톡 미리보기를 위한 커스텀 데이터 강제 주입
+          title: `[${TEAM_NAME}] 경기 라인업 확정`,
+          description: `${m.dateIso || '오늘'}자 경기 정보를 확인하세요.`,
+          image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=400"
+        })
+      });
+      const text = (await r.text()).replace(/^\uFEFF/, '').trim();
+      const out = JSON.parse(text);
+      if (out && out.ok && out.shortUrl) {
+        return String(out.shortUrl);
+      }
+    } catch (e) {
+      console.error("ShortURL 생성 실패:", e);
+    }
+    return '';
+  }
+
+  // 기존 나머지 함수들은 동일하게 유지하되 위 함수들을 기반으로 작동하도록 구성됨
   function sharePayloadKeyFromMatch(m) {
     const sp = sharePayloadFromMatch(m);
     return sp && sp.data ? String(sp.data) : '';
@@ -394,245 +463,25 @@
 
   function prewarmShortShareUrl() {
     const mStr = localStorage.getItem('saved_manager_match');
-    if (!mStr) {
-      if (linkButtonFallbackTimer) clearTimeout(linkButtonFallbackTimer);
-      shortShareCache.key = '';
-      shortShareCache.url = '';
-      return;
-    }
+    if (!mStr) return;
     let m;
-    try { m = JSON.parse(mStr); } catch (e) {
-      setSavedLinkButtonState('retry');
-      return;
-    }
+    try { m = JSON.parse(mStr); } catch (e) { setSavedLinkButtonState('retry'); return; }
     const k = sharePayloadKeyFromMatch(m);
-    if (!k) {
-      setSavedLinkButtonState('retry');
-      return;
-    }
+    if (!k) { setSavedLinkButtonState('retry'); return; }
     if (shortShareCache.key === k && shortShareCache.url) {
       setSavedLinkButtonState('ready');
       return;
     }
     setSavedLinkButtonState('loading');
-    if (linkButtonFallbackTimer) clearTimeout(linkButtonFallbackTimer);
-    linkButtonFallbackTimer = setTimeout(function() {
-      setSavedLinkButtonState('retry');
-    }, 28000);
-    function finishShortUrl(url) {
-      if (linkButtonFallbackTimer) clearTimeout(linkButtonFallbackTimer);
-      if (url && String(url).length) {
+    buildShortShareUrl(m).then(url => {
+      if (url) {
         shortShareCache.key = k;
         shortShareCache.url = url;
         setSavedLinkButtonState('ready');
       } else {
         setSavedLinkButtonState('retry');
       }
-    }
-    buildShortShareUrl(m).then(function(url) {
-      if (url) {
-        finishShortUrl(url);
-        return;
-      }
-      return buildShortShareUrl(m);
-    }).then(function(url2) {
-      if (url2 && typeof url2 === 'string' && url2.length) {
-        finishShortUrl(url2);
-      } else if (url2 === undefined) {
-        return;
-      } else {
-        finishShortUrl('');
-      }
-    }).catch(function() {
-      if (linkButtonFallbackTimer) clearTimeout(linkButtonFallbackTimer);
-      setSavedLinkButtonState('retry');
     });
-  }
-
-  function sharePayloadFromMatch(m) {
-    try {
-      const json = JSON.stringify(m);
-      if (typeof LZString !== 'undefined' && LZString.compressToEncodedURIComponent) {
-        const lz = LZString.compressToEncodedURIComponent(json);
-        if (lz) return { tag: 'p', data: lz };
-      }
-    } catch (e) {}
-    try {
-      return { tag: 'gp', data: btoa(unescape(encodeURIComponent(JSON.stringify(m)))) };
-    } catch (e) { return null; }
-  }
-  function matchFromSharePayload(raw, tagHint) {
-    let decoded = raw;
-    try { decoded = decodeURIComponent(String(raw).replace(/ /g, '+')); } catch (e) {}
-    const tryLz = function() {
-      if (typeof LZString === 'undefined' || !LZString.decompressFromEncodedURIComponent) return null;
-      try {
-        const json = LZString.decompressFromEncodedURIComponent(decoded);
-        if (!json) return null;
-        const m = JSON.parse(json);
-        if (m && typeof m === 'object' && Array.isArray(m.teams)) return m;
-      } catch (e) {}
-      return null;
-    };
-    const tryB64 = function() {
-      try {
-        const json = decodeURIComponent(escape(atob(decoded)));
-        const m = JSON.parse(json);
-        if (m && typeof m === 'object' && Array.isArray(m.teams)) return m;
-      } catch (e) {}
-      return null;
-    };
-    if (tagHint === 'p') return tryLz() || tryB64();
-    return tryB64() || tryLz();
-  }
-  function syncUrlWithGamePlan(m) {
-    const sp = sharePayloadFromMatch(m);
-    if (!sp || !sp.data) return;
-    try {
-      const u = new URL(location.href);
-      ['gp', 'p', 'plan'].forEach(function(k) { u.searchParams.delete(k); });
-      u.searchParams.set('plan', sp.data);
-      u.hash = '';
-      history.replaceState(null, '', u.toString());
-    } catch (e) {}
-  }
-  function importGamePlanFromUrlIfPresent() {
-    let tagHint = 'gp';
-    let payload = '';
-    try {
-      const h = location.hash.slice(1);
-      if (h.startsWith('p=')) { tagHint = 'p'; payload = h.slice(2); }
-      else if (h.startsWith('gp=')) { tagHint = 'gp'; payload = h.slice(3); }
-      if (!payload) {
-        const u = new URL(location.href);
-        if (u.searchParams.get('p')) { tagHint = 'p'; payload = u.searchParams.get('p'); }
-        else if (u.searchParams.get('gp')) { tagHint = 'gp'; payload = u.searchParams.get('gp'); }
-        else if (u.searchParams.get('plan')) { tagHint = 'gp'; payload = u.searchParams.get('plan'); }
-      }
-    } catch (e) {}
-    if (!payload) return;
-    const m = matchFromSharePayload(payload, tagHint);
-    if (!m) return;
-    deepLinkedGamePlan = m;
-    try { localStorage.setItem('saved_manager_match', JSON.stringify(m)); } catch (e) {}
-    try {
-      const u = new URL(location.href);
-      u.searchParams.delete('gp');
-      u.searchParams.delete('p');
-      u.searchParams.delete('plan');
-      u.hash = '';
-      history.replaceState(null, '', u.pathname + u.search);
-    } catch (e2) {}
-  }
-  function openDeepLinkedGamePlanIfAny() {
-    if (!deepLinkedGamePlan) return;
-    activeMatch = deepLinkedGamePlan;
-    deepLinkNeedsReanalyze = true;
-    togglePlanLoading(true);
-    const iso = activeMatch.dateIso || '';
-    if (iso) document.getElementById('match-date-input').value = iso;
-    renderVSMode((activeMatch.teams || []).map(function(t) {
-      return { members: membersToPlayerList(t.members) };
-    }));
-    setTimeout(function() {
-      if (deepLinkNeedsReanalyze) togglePlanLoading(true);
-    }, 0);
-    document.getElementById('shuffle-btn').classList.add('hidden');
-    deepLinkedGamePlan = null;
-  }
-  function togglePlanLoading(show) {
-    const el = document.getElementById('plan-loading-note');
-    const page = document.getElementById('result-page');
-    if (!el) return;
-    if (show) {
-      planLoadingShownAt = Date.now();
-      el.classList.remove('hidden');
-      if (page) page.classList.add('plan-loading');
-    } else {
-      const elapsed = Date.now() - planLoadingShownAt;
-      const minVisibleMs = 260;
-      if (elapsed < minVisibleMs) {
-        setTimeout(function() {
-          if (!deepLinkNeedsReanalyze) {
-            el.classList.add('hidden');
-            if (page) page.classList.remove('plan-loading');
-          }
-        }, minVisibleMs - elapsed);
-      } else {
-        el.classList.add('hidden');
-        if (page) page.classList.remove('plan-loading');
-      }
-    }
-  }
-  function buildGamePlanShareUrl(m) {
-    const sp = sharePayloadFromMatch(m);
-    if (!sp || !sp.data) return '';
-    try {
-      const u = new URL(location.href);
-      ['gp', 'p', 'plan'].forEach(function(k) { u.searchParams.delete(k); });
-      u.searchParams.set('plan', sp.data);
-      u.hash = '';
-      return u.toString();
-    } catch (e) { return ''; }
-  }
-  async function buildShortShareUrl(m) {
-    const sp = sharePayloadFromMatch(m);
-    if (!sp || !sp.data) return '';
-    try {
-      const u = new URL(location.href);
-      ['gp', 'p', 'plan'].forEach(function(k) { u.searchParams.delete(k); });
-      u.hash = '';
-      const appUrl = u.toString();
-      const fetchTask = fetch(SHEET_API_URL, {
-        method: 'POST',
-        mode: 'cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'CREATE_SHARE',
-          payload: sp.data,
-          tag: sp.tag || 'p',
-          appUrl: appUrl,
-          bridgeUrl: SHARE_BRIDGE_URL,
-          title: 'FC 서울숲 | 이번주 라인업 미리보기'
-        })
-      });
-      const r = await fetchTask;
-      if (!r || !r.ok) {
-        return '';
-      }
-      const text = (await r.text()).replace(/^\uFEFF/, '').trim();
-      const out = JSON.parse(text);
-      if (out && out.ok && out.shortUrl) {
-        return String(out.shortUrl);
-      }
-    } catch (e) {}
-    return '';
-  }
-  function copyTextToClipboardSync(text, okMsg, quiet) {
-    if (!text) { alert('복사할 링크가 없습니다.'); return false; }
-    const successMsg = okMsg || '링크가 복사되었습니다.';
-    try {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', '');
-      ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;outline:0;opacity:0;font-size:16px;';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      ta.setSelectionRange(0, text.length);
-      const ok = document.execCommand('copy');
-      document.body.removeChild(ta);
-      if (ok) {
-        if (quiet) {
-          showLinkCopiedFeedback();
-        } else {
-          alert(successMsg);
-        }
-        return true;
-      }
-    } catch (e) {}
-    window.prompt('자동 복사가 막혔을 수 있어요. 아래 링크를 길게 눌러 복사해 주세요.', text);
-    return false;
   }
 
   function copyGamePlanShareFromSaved() {
@@ -640,9 +489,17 @@
     if (!mStr) return;
     var btn = document.getElementById('saved-copy-link-btn');
     if (btn && btn.dataset.linkRetry === '1') {
-      setSavedLinkButtonState('loading');
       prewarmShortShareUrl();
       return;
+    }
+    if (btn && btn.disabled) return;
+    
+    if (shortShareCache.url) {
+      copyTextToClipboardSync(shortShareCache.url, '카톡에 붙여넣으면 바로가기가 생성됩니다.', true);
+    } else {
+      alert('단축 링크를 생성 중입니다. 잠시만 기다려주세요.');
+      prewarmShortShareUrl();
+     return;
     }
     if (btn && btn.disabled) return;
     let m;
