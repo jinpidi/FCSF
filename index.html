@@ -541,44 +541,16 @@
     let m;
     try { m = JSON.parse(mStr); } catch (e) { return; }
     const longUrl = buildGamePlanShareUrl(m);
-    // Resolve short link first, then use mobile-native share/copy fallbacks.
     let shortUrl = await buildShortShareUrl(m);
     if (!shortUrl) {
       await new Promise(function(resolve) { setTimeout(resolve, 900); });
       shortUrl = await buildShortShareUrl(m);
     }
-    const finalUrl = shortUrl || longUrl;
-
-    // 1) Mobile best UX: native share sheet (Kakao selectable on many devices).
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'FC 서울숲 라인업 링크',
-          text: shortUrl ? '이번주 라인업 단축 링크' : '이번주 라인업 링크',
-          url: finalUrl
-        });
-        return;
-      } catch (e) {
-        // User cancelled or unsupported state: continue to copy fallback.
-      }
+    if (shortUrl) {
+      copyTextToClipboard(shortUrl, '단축 링크가 복사되었습니다. 카톡에 붙여넣기 하세요.');
+    } else if (longUrl) {
+      copyTextToClipboard(longUrl, '단축 링크 생성에 실패해 일반 링크를 복사했습니다.');
     }
-
-    // 2) Auto copy to clipboard when possible.
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(finalUrl);
-        alert(shortUrl ? '단축 링크가 자동 복사되었습니다. 카톡에 바로 붙여넣기 하세요.' : '일반 링크가 자동 복사되었습니다. 카톡에 바로 붙여넣기 하세요.');
-        return;
-      } catch (e) {}
-    }
-
-    // 3) Final fallback: manual copy prompt.
-    window.prompt(
-      shortUrl
-        ? '단축 링크입니다. 전체 선택 후 복사해서 카톡에 붙여넣어 주세요.'
-        : '단축 링크 생성이 실패해 일반 링크를 표시합니다. 전체 선택 후 복사해 주세요.',
-      finalUrl
-    );
   }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let deepLinkedGamePlan = null;
