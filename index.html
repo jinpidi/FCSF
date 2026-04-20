@@ -334,8 +334,8 @@
   /* 시트 웹앱은 players[]에 B~G열(ATT~ORG)을 넣어야 막대가 달라집니다. score만 보내면 6개가 같은 값입니다.
      예: {"name":"홍길동","b":7,"c":6,"d":8,"e":7,"f":6,"g":7} 또는 ["홍길동",7,6,8,7,6,7] */
   const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbycVee58gGb-Lw8-2QWyzP-sBE64LaJ8wJqepkFnM8Ctjr0QDAQ6-0WTlJiE3KMhPpy/exec"; 
-  // Optional: set this to your hosted bridge page URL (e.g. Netlify/GitHub Pages)
-  const SHARE_BRIDGE_URL = "https://neon-madeleine-cf1d20.netlify.app/";
+  // Leave empty to disable external bridge and use Apps Script short link only.
+  const SHARE_BRIDGE_URL = "";
   const LOCAL_HISTORY_KEY = 'futsal_manager_local_history_v1';
 
   function sharePayloadFromMatch(m) {
@@ -532,24 +532,16 @@
     if (!mStr) return;
     let m;
     try { m = JSON.parse(mStr); } catch (e) { return; }
-    const fallbackUrl = buildGamePlanShareUrl(m);
-    // Copy immediately while still in direct click context.
-    copyTextToClipboard(fallbackUrl, '링크가 복사되었습니다. 카톡에 붙여넣기 하세요.');
-
     let shortUrl = await buildShortShareUrl(m, 2500);
     if (!shortUrl) {
       await new Promise(function(resolve) { setTimeout(resolve, 700); });
       shortUrl = await buildShortShareUrl(m, 2500);
     }
     if (shortUrl) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shortUrl).then(function() {
-          alert('단축 링크로 업데이트해 복사했습니다. 카톡에 붙여넣기 하세요.');
-        }).catch(function() {
-          // Keep the already-copied fallback link without extra failure noise.
-        });
-      }
+      copyTextToClipboard(shortUrl, '단축 링크가 복사되었습니다. 카톡에 붙여넣기 하세요.');
+      return;
     }
+    copyTextToClipboard(buildGamePlanShareUrl(m), '단축 링크 생성에 실패해 일반 링크를 복사했습니다.');
   }
   let masterPlayers = [], teamCount = 2, hData = [], activeMatch = null, charts = [], draftGuests = [], currentDraftSelection = [];
   let deepLinkedGamePlan = null;
