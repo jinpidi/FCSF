@@ -462,7 +462,7 @@
       return u.toString();
     } catch (e) { return ''; }
   }
-  async function buildShortShareUrl(m) {
+  async function buildShortShareUrl(m, timeoutMs) {
     const sp = sharePayloadFromMatch(m);
     if (!sp || !sp.data) return '';
     try {
@@ -470,7 +470,7 @@
       ['gp', 'p', 'plan'].forEach(function(k) { u.searchParams.delete(k); });
       u.hash = '';
       const appUrl = u.toString();
-      const r = await fetch(SHEET_API_URL, {
+      const fetchTask = fetch(SHEET_API_URL, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -482,6 +482,14 @@
           title: 'FC 서울숲 | 이번주 라인업 미리보기'
         })
       });
+      const request = (typeof timeoutMs === 'number' && timeoutMs > 0)
+        ? Promise.race([
+            fetchTask,
+            new Promise(function(resolve) { setTimeout(function() { resolve(null); }, timeoutMs); })
+          ])
+        : fetchTask;
+      const r = await request;
+      if (!r || !r.ok) return '';
       const text = (await r.text()).replace(/^\uFEFF/, '').trim();
       const out = JSON.parse(text);
       if (out && out.ok && out.shortUrl) return String(out.shortUrl);
@@ -515,7 +523,7 @@
     if (!mStr) return;
     let m;
     try { m = JSON.parse(mStr); } catch (e) { return; }
-    const shortUrl = await buildShortShareUrl(m);
+    const shortUrl = await buildShortShareUrl(m, 900);
     if (shortUrl) copyTextToClipboard(shortUrl);
     else copyTextToClipboard(buildGamePlanShareUrl(m));
   }
@@ -1227,7 +1235,13 @@
     activeMatch = { id:Date.now(), date: iso.replace(/-/g, '. '), dateIso: iso, teams:finalTeams, rounds:[] };
     localStorage.setItem('saved_manager_match', JSON.stringify(activeMatch));
     syncUrlWithGamePlan(activeMatch);
-    if(mode==='dashboard') startDashboard(activeMatch); else { alert("Saved! 메인 화면의 Match Day 옆 「링크 복사」로 카톡에 보내 주세요."); location.reload(); }
+    if (mode === 'dashboard') {
+      startDashboard(activeMatch);
+    } else {
+      alert("Saved! 메인 홈으로 이동합니다. Match Day의 Link로 공유해 주세요.");
+      goBack('setup');
+      renderSavedMatches();
+    }
   }
 
   function renderSavedMatches() {
