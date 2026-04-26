@@ -252,6 +252,12 @@
     .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; background: white; border-radius: 16px; overflow: hidden; border: 1px solid #eee; }
     .leaderboard-table th { background: #f8fafc; padding: 10px; text-align: left; color: var(--text-sub); font-size: 9px; }
     .leaderboard-table td { padding: 10px; border-bottom: 1px solid #f8fafc; }
+    .leaderboard-table .num-tab { display: inline-block; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; text-align: right; }
+    .leaderboard-table .num-rank { min-width: 2ch; }
+    .leaderboard-table .num-pts { min-width: 3ch; }
+    .leaderboard-table .num-pct { min-width: 4ch; }
+    .leaderboard-table .num-win { min-width: 2ch; }
+    .leaderboard-table .num-games { min-width: 2ch; }
     .prob-badge { background: #ecfdf5; color: #059669; padding: 2px 6px; border-radius: 6px; font-weight: 800; font-size: 10px; }
 
     @media (max-width: 640px) {
@@ -1540,16 +1546,15 @@
     let mHtml = '';
       (groups[curKey] || []).forEach(h=>{
       const dateStr = displayDateFromMatch(h);
-      let teamsBlock = `<div style="display:grid;grid-template-columns:60px 62px 74px 1fr 58px;gap:6px;padding:4px 0 6px;border-bottom:1px solid #e2e8f0;font-size:9px;font-weight:900;color:#64748b;">
-        <span>등수</span><span>승점</span><span>승무패</span><span>팀원</span><span style="text-align:right;">RTG</span>
+      let teamsBlock = `<div style="display:grid;grid-template-columns:44px 98px 1fr 40px;gap:4px;padding:4px 0 6px;border-bottom:1px solid #e2e8f0;font-size:8px;font-weight:900;color:#64748b;">
+        <span>등수</span><span>승점(승무패)</span><span>팀원</span><span style="text-align:right;">RTG</span>
       </div>`;
       (Array.isArray(h.rank) ? h.rank : []).forEach(rk=>{
         const rec = (rk.record != null && rk.record !== '') ? rk.record : '-';
         const ratingTxt = (rk.ovr != null && String(rk.ovr).trim() !== '') ? String(rk.ovr).trim() : '--';
-        teamsBlock += `<div style="padding:7px 0;border-bottom:1px solid #f1f5f9;display:grid;grid-template-columns:60px 62px 74px 1fr 58px;gap:6px;align-items:center;min-width:0;">
+        teamsBlock += `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;display:grid;grid-template-columns:44px 98px 1fr 40px;gap:4px;align-items:center;min-width:0;">
           <span style="font-size:10px;font-weight:900;color:var(--primary-color);">${rk.r}${rk.sfx}</span>
-          <span style="font-size:10px;font-weight:900;color:var(--accent-color);">${rk.pts}pt</span>
-          <span style="font-size:9px;color:#64748b;font-weight:800;">${rec}</span>
+          <span style="font-size:9px;font-weight:900;color:var(--accent-color);">${rk.pts}pt <span style="color:#64748b;font-weight:800;">(${rec})</span></span>
           <span style="font-size:9px;color:#0f172a;font-weight:700;min-width:0;white-space:normal;word-break:keep-all;line-height:1.25;">${rk.names || ''}</span>
           <span style="justify-self:end;font-size:8px;font-weight:900;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 5px;border-radius:999px;">${ratingTxt}</span>
         </div>`;
@@ -1684,7 +1689,7 @@
           prev.play !== s.play
         ) rank++;
       }
-      html += `<tr><td><b>${rank}</b></td><td>${name}</td><td><b>${s.pts}</b></td><td><span class="prob-badge">${(winProb(s)*100).toFixed(0)}%</span></td><td>${s.win}승</td><td>${s.play}회</td></tr>`;
+      html += `<tr><td><b><span class="num-tab num-rank">${rank}</span></b></td><td>${name}</td><td><b><span class="num-tab num-pts">${s.pts}</span></b></td><td><span class="prob-badge"><span class="num-tab num-pct">${(winProb(s)*100).toFixed(0)}%</span></span></td><td><span class="num-tab num-win">${s.win}</span>승</td><td><span class="num-tab num-games">${s.play}</span>회</td></tr>`;
     });
     document.getElementById('leaderboard-area').innerHTML = html + `</tbody></table>`;
   }
