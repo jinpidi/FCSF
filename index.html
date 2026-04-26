@@ -1564,17 +1564,17 @@
     let mHtml = '';
       (groups[curKey] || []).forEach(h=>{
       const dateStr = displayDateFromMatch(h);
-      let teamsBlock = `<div style="display:grid;grid-template-columns:26px 88px 1fr 42px;gap:3px;padding:4px 0 6px;border-bottom:1px solid #e2e8f0;font-size:8px;font-weight:900;color:#64748b;">
-        <span>등수</span><span>승점(승무패)</span><span>팀원</span><span style="text-align:right;">RTG</span>
+      let teamsBlock = `<div style="display:grid;grid-template-columns:26px 88px 1fr 36px;gap:3px;padding:4px 0 6px;border-bottom:1px solid #e2e8f0;font-size:8px;font-weight:900;color:#64748b;">
+        <span>순위</span><span>승점 (승무패)</span><span>팀원</span><span style="justify-self:end;width:36px;text-align:right;">RTG</span>
       </div>`;
       (Array.isArray(h.rank) ? h.rank : []).forEach(rk=>{
         const rec = (rk.record != null && rk.record !== '') ? rk.record : '-';
         const ratingTxt = (rk.ovr != null && String(rk.ovr).trim() !== '') ? String(rk.ovr).trim() : '--';
-        teamsBlock += `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;display:grid;grid-template-columns:26px 88px 1fr 42px;gap:3px;align-items:center;min-width:0;">
+        teamsBlock += `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;display:grid;grid-template-columns:26px 88px 1fr 36px;gap:3px;align-items:center;min-width:0;">
           <span style="font-size:10px;font-weight:900;color:var(--primary-color);">${rk.r}</span>
           <span style="font-size:9px;font-weight:900;color:var(--accent-color);">${rk.pts}pt <span style="color:#64748b;font-weight:800;">(${rec})</span></span>
           <span style="font-size:9px;color:#0f172a;font-weight:700;min-width:0;white-space:normal;word-break:keep-all;line-height:1.25;">${rk.names || ''}</span>
-          <span style="justify-self:end;min-width:42px;text-align:right;font-size:8px;font-weight:900;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 5px;border-radius:999px;">${ratingTxt}</span>
+          <span style="justify-self:end;width:36px;text-align:right;font-size:8px;font-weight:900;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 4px;border-radius:999px;">${ratingTxt}</span>
         </div>`;
       });
       let roundPills = '';
