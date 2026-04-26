@@ -1564,13 +1564,13 @@
     let mHtml = '';
       (groups[curKey] || []).forEach(h=>{
       const dateStr = displayDateFromMatch(h);
-      let teamsBlock = `<div style="display:grid;grid-template-columns:26px 88px 1fr 36px;gap:3px;padding:4px 0 6px;border-bottom:1px solid #e2e8f0;font-size:8px;font-weight:900;color:#64748b;">
-        <span>순위</span><span>승점 (승무패)</span><span>팀원</span><span style="justify-self:end;width:36px;text-align:right;">RTG</span>
+      let teamsBlock = `<div style="display:grid;grid-template-columns:24px 84px 1fr 36px;gap:2px;padding:4px 0 6px;border-bottom:1px solid #e2e8f0;font-size:8px;font-weight:900;color:#64748b;">
+        <span>등수</span><span>승점 (승무패)</span><span>팀원</span><span style="justify-self:end;width:36px;text-align:right;">RTG</span>
       </div>`;
       (Array.isArray(h.rank) ? h.rank : []).forEach(rk=>{
         const rec = (rk.record != null && rk.record !== '') ? rk.record : '-';
         const ratingTxt = (rk.ovr != null && String(rk.ovr).trim() !== '') ? String(rk.ovr).trim() : '--';
-        teamsBlock += `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;display:grid;grid-template-columns:26px 88px 1fr 36px;gap:3px;align-items:center;min-width:0;">
+        teamsBlock += `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9;display:grid;grid-template-columns:24px 84px 1fr 36px;gap:2px;align-items:center;min-width:0;">
           <span style="font-size:10px;font-weight:900;color:var(--primary-color);">${rk.r}</span>
           <span style="font-size:9px;font-weight:900;color:var(--accent-color);">${rk.pts}pt <span style="color:#64748b;font-weight:800;">(${rec})</span></span>
           <span style="font-size:9px;color:#0f172a;font-weight:700;min-width:0;white-space:normal;word-break:keep-all;line-height:1.25;">${rk.names || ''}</span>
@@ -1696,7 +1696,7 @@
         (winProb(b[1]) - winProb(a[1])) ||
         (b[1].play - a[1].play)
       );
-    let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th>PTS</th><th>WIN PROB.</th><th>WIN</th><th>GAMES</th></tr></thead><tbody>`;
+    let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th style="padding-right:16px;">POINTS</th><th style="padding-left:16px;padding-right:14px;">WIN PROB.</th><th style="padding-left:14px;padding-right:10px;">WIN</th><th style="padding-left:10px;">GAMES</th></tr></thead><tbody>`;
     sorted.forEach(([name, s], i) => {
       let rank = 1;
       for (let j = 0; j < i; j++) {
@@ -1707,7 +1707,7 @@
           prev.play !== s.play
         ) rank++;
       }
-      html += `<tr><td><b><span class="num-tab num-rank">${rank}</span></b></td><td>${name}</td><td><b><span class="num-tab num-pts">${s.pts}</span></b></td><td><span class="prob-badge"><span class="num-tab num-pct">${(winProb(s)*100).toFixed(0)}%</span></span></td><td><span class="num-tab num-win">${s.win}</span>승</td><td><span class="num-tab num-games">${s.play}</span>회</td></tr>`;
+      html += `<tr><td><b><span class="num-tab num-rank">${rank}</span></b></td><td>${name}</td><td style="padding-right:16px;"><b><span class="num-tab num-pts">${s.pts}</span></b></td><td style="padding-left:16px;padding-right:14px;"><span class="prob-badge"><span class="num-tab num-pct">${(winProb(s)*100).toFixed(0)}%</span></span></td><td style="padding-left:14px;padding-right:10px;"><span class="num-tab num-win">${s.win}</span>승</td><td style="padding-left:10px;"><span class="num-tab num-games">${s.play}</span>회</td></tr>`;
     });
     document.getElementById('leaderboard-area').innerHTML = html + `</tbody></table>`;
   }
