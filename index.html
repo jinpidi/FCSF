@@ -1574,7 +1574,7 @@
           <span style="font-size:10px;font-weight:900;color:var(--primary-color);">${rk.r}</span>
           <span style="font-size:9px;font-weight:900;color:var(--accent-color);">${rk.pts}pt <span style="color:#64748b;font-weight:800;">(${rec})</span></span>
           <span style="font-size:9px;color:#0f172a;font-weight:700;min-width:0;white-space:normal;word-break:keep-all;line-height:1.25;">${rk.names || ''}</span>
-          <span style="justify-self:end;width:36px;text-align:right;font-size:8px;font-weight:900;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 4px;border-radius:999px;">${ratingTxt}</span>
+          <span style="justify-self:end;width:auto;min-width:0;text-align:right;font-size:8px;font-weight:900;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 3px;border-radius:999px;">${ratingTxt}</span>
         </div>`;
       });
       let roundPills = '';
@@ -1678,25 +1678,39 @@
       if (!h || !Array.isArray(h.rank)) return;
       h.rank.forEach(rk => {
         const pts = Number(rk.pts) || 0;
+        const recText = String(rk.record || '');
+        let rw = 0, rd = 0, rl = 0;
+        const mW = recText.match(/(\d+)\s*W/i);
+        const mD = recText.match(/(\d+)\s*D/i);
+        const mL = recText.match(/(\d+)\s*L/i);
+        if (mW) rw = Number(mW[1]) || 0;
+        if (mD) rd = Number(mD[1]) || 0;
+        if (mL) rl = Number(mL[1]) || 0;
         const names = String(rk.names || '').split(',').map(n => n.trim()).filter(Boolean);
         names.forEach(name => {
           if (name.toLowerCase().includes('guest')) return;
-          if (!stats[name]) stats[name] = { play: 0, win: 0, pts: 0 };
+          if (!stats[name]) stats[name] = { play: 0, win: 0, pts: 0, rw: 0, rd: 0, rl: 0 };
           stats[name].play++;
           stats[name].pts += pts;
+          stats[name].rw += rw;
+          stats[name].rd += rd;
+          stats[name].rl += rl;
           if (rk.r === 1) stats[name].win++;
         });
       });
     });
-    const winProb = (s) => (s.play ? (s.win / s.play) : 0);
-    const winProbPctInt = (s) => (s.play ? Math.round((s.win / s.play) * 100) : 0);
+    const winProb = (s) => {
+      const total = (Number(s.rw) || 0) + (Number(s.rd) || 0) + (Number(s.rl) || 0);
+      return total ? ((Number(s.rw) || 0) / total) : 0;
+    };
+    const winProbPctInt = (s) => Math.round(winProb(s) * 100);
     const sorted = Object.entries(stats)
       .sort((a, b) =>
         (b[1].pts - a[1].pts) ||
         (winProb(b[1]) - winProb(a[1])) ||
         (b[1].play - a[1].play)
       );
-    let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th style="padding-right:16px;">POINTS</th><th style="padding-left:16px;padding-right:14px;">WIN PROB.</th><th style="padding-left:14px;padding-right:10px;">WIN</th><th style="padding-left:10px;">GAMES</th></tr></thead><tbody>`;
+    let html = `<table class="leaderboard-table"><thead><tr><th>RANK</th><th>PLAYER</th><th>POINTS (W-D-L)</th><th>WIN PROB.</th><th>TOP1 WINS</th><th>GAMES</th></tr></thead><tbody>`;
     sorted.forEach(([name, s], i) => {
       let rank = 1;
       for (let j = 0; j < i; j++) {
@@ -1707,7 +1721,7 @@
           prev.play !== s.play
         ) rank++;
       }
-      html += `<tr><td><b><span class="num-tab num-rank">${rank}</span></b></td><td>${name}</td><td style="padding-right:16px;"><b><span class="num-tab num-pts">${s.pts}</span></b></td><td style="padding-left:16px;padding-right:14px;"><span class="prob-badge"><span class="num-tab num-pct">${(winProb(s)*100).toFixed(0)}%</span></span></td><td style="padding-left:14px;padding-right:10px;"><span class="num-tab num-win">${s.win}</span>승</td><td style="padding-left:10px;"><span class="num-tab num-games">${s.play}</span>회</td></tr>`;
+      html += `<tr><td><b><span class="num-tab num-rank">${rank}</span></b></td><td>${name}</td><td><b><span class="num-tab num-pts">${s.pts}</span></b> <span style="font-size:9px;color:#64748b;">(${s.rw}-${s.rd}-${s.rl})</span></td><td><span class="prob-badge"><span class="num-tab num-pct">${(winProb(s)*100).toFixed(0)}%</span></span></td><td><span class="num-tab num-win">${s.win}</span></td><td><span class="num-tab num-games">${s.play}</span></td></tr>`;
     });
     document.getElementById('leaderboard-area').innerHTML = html + `</tbody></table>`;
   }
